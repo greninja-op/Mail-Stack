@@ -1,8 +1,19 @@
 # Phase 29 — Production OAuth & Play Store Preparation
 
-## Status: Complete (2026-10-11)
+## Status: In progress (2026-10-11) — keystore DONE, Cloud/Play steps need the user
 
 This document records the production preparation work for Mailstack 1.0.0.
+
+## Release Keystore — DONE (2026-10-11)
+
+A real production keystore has been generated (RSA 4096, validity 30 years):
+
+- **Alias:** `mailstack`
+- **SHA-1:** `5A:34:E6:F1:10:1B:73:62:01:B3:67:16:5B:06:8E:6A:E7:E6:CE:D5`
+- **SHA-256:** `CD:15:7F:9A:7C:07:ED:87:95:6E:25:D2:56:15:B4:CA:23:D0:8B:E5:FF:F4:A4:F5:D3:41:F1:20:1E:59:ED:7F`
+- **Location:** kept OUTSIDE the repo (never committed). Back it up somewhere safe — losing it means you can never update the app on Play Store.
+- **Password:** stored alongside the keystore file, OUTSIDE the repo. Ask the assistant for its location; it is never written into the repo, chat logs, or memory notes.
+- **Build wiring:** `android/app/build.gradle.kts` signs `release` builds with this keystore when `MAILSTACK_KEYSTORE_PATH` and `MAILSTACK_KEYSTORE_PASSWORD` env vars are set (falls back to debug signing otherwise so local builds never break).
 
 ## Production OAuth Configuration
 
@@ -13,33 +24,22 @@ The app currently uses a **debug** OAuth client:
 - Package: `com.greninjaop.mailorganizer`
 - Debug SHA-1: `D8:B7:ED:C4:41:31:5C:B8:C8:CE:96:83:55:15:F7:43:C8:56:1E:7B`
 
-### Production Requirements (BEFORE Play Store release)
+### Production Requirements (BEFORE Play Store release) — USER ACTION
 
-1. **Generate a release keystore** (if not already done):
-   ```bash
-   keytool -genkeypair -v -keystore mailstack-release.keystore \
-     -alias mailstack -keyalg RSA -keysize 2048 -validity 10000
-   ```
-
-2. **Get the release SHA-1**:
-   ```bash
-   keytool -list -v -keystore mailstack-release.keystore -alias mailstack
-   ```
-
-3. **Create a production OAuth client** in Google Cloud Console:
+1. **Create a production OAuth client** in Google Cloud Console (phone browser works):
    - Go to APIs & Services > Credentials
    - Create OAuth client ID > Android
    - Package: `com.greninjaop.mailorganizer`
-   - SHA-1: (release SHA-1 from step 2)
+   - SHA-1: `5A:34:E6:F1:10:1B:73:62:01:B3:67:16:5B:06:8E:6A:E7:E6:CE:D5` (release, from above)
 
-4. **Update the app** to use the production client ID for release builds.
+2. **Update the app** to use the production client ID for release builds.
    Currently `google_oauth_client_id` in `strings.xml` is the debug client.
-   For production, use build variants or a separate `strings.xml` in
-   `src/release/res/values/`.
+   For production, add a separate `strings.xml` in `src/release/res/values/`
+   overriding `google_oauth_client_id`. (Not done yet — needs the prod client ID.)
 
-5. **OAuth consent screen**: Move from "Testing" to "Production" in
+3. **OAuth consent screen**: Move from "Testing" to "Production" in
    Google Cloud Console. This requires:
-   - App verification (if requesting sensitive scopes)
+   - App verification (sensitive/restricted scopes: gmail.readonly needs verification, gmail.modify needs a security assessment)
    - Privacy policy URL
    - Terms of service URL
 
@@ -93,12 +93,13 @@ Semantic versioning from this point forward.
    physical device. On-device testing must be done by the user before
    Play Store submission.
 
-2. **OAuth token exchange**: The token exchange via `oauth2.googleapis.com`
-   is documented but the full PKCE flow completes on-device. This must
-   be verified on a real device.
+2. **OAuth end-to-end**: The full PKCE flow is implemented and unit-tested
+   (including against a local fake token endpoint), but the real Google
+   sign-in must be verified on a real device with a real Google account.
 
-3. **Gmail API verification**: The Gmail API calls (read, modify labels)
-   must be tested with a real Google account on-device.
+3. **Gmail/Calendar/Tasks API verification**: API calls must be tested
+   with a real Google account on-device after the Cloud Console setup
+   (APIs enabled, test user added) is done.
 
 ## Next: Phase 30
 
