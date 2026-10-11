@@ -31,7 +31,6 @@ import com.greninjaop.mailorganizer.data.repository.RoomSyncStateRepository
 import com.greninjaop.mailorganizer.data.repository.RuleRepository
 import com.greninjaop.mailorganizer.data.repository.SearchRepository
 import com.greninjaop.mailorganizer.data.repository.SyncStateRepository
-import com.greninjaop.mailorganizer.data.sync.DeferredGmailSyncApi
 import com.greninjaop.mailorganizer.data.sync.GmailSyncApi
 import com.greninjaop.mailorganizer.data.sync.SyncCoordinator
 import com.greninjaop.mailorganizer.domain.actions.ActionExecutorRegistry
@@ -180,7 +179,12 @@ class AppContainer(private val appContext: Context) {
     // API; only the LIVE Gmail wire-up is deferred (no credentials).
 
     val gmailSyncApi: GmailSyncApi by lazy {
-        DeferredGmailSyncApi()
+        // Phase 3/4: the real authenticated Gmail client. Without a
+        // connected account getValidAccessToken() returns null and every
+        // call fails closed with NotConfigured ("not connected").
+        com.greninjaop.mailorganizer.data.sync.HttpGmailSyncApi(
+            authRepository = authRepository,
+        )
     }
 
     val syncCoordinator: SyncCoordinator by lazy {
@@ -333,12 +337,26 @@ class AppContainer(private val appContext: Context) {
     // Deterministic, on-device: the generator (core.actions) turns
     // effective intelligence into action candidates; the safety layer
     // validates them; this use case persists idempotent, account-isolated
-    // cards. No external executor is registered — confirming an external
-    // proposal records the intent locally and reports "not connected"
-    // honestly (phase §31–§33). External integrations are later phases'.
+    // cards. Phases 15/16 register the real Calendar/Tasks executors below.
+    // Confirming an external proposal without a connected integration still
+    // reports "not connected" honestly (phase §31–§33).
 
     val actionExecutorRegistry: ActionExecutorRegistry by lazy {
-        ActionExecutorRegistry()
+        // Phases 15/16: external executors run ONLY after explicit user
+        // confirmation (ReviewActionUseCase.confirm) — never from sync,
+        // parsing, or background work.
+        ActionExecutorRegistry(
+            listOf(
+                com.greninjaop.mailorganizer.domain.calendar.CalendarActionExecutor(
+                    adapter = calendarIntegrationAdapter,
+                    intelligence = intelligenceRepository,
+                ),
+                com.greninjaop.mailorganizer.domain.tasks.CreateTaskActionExecutor(
+                    tasks = tasksIntegrationAdapter.tasksRepository,
+                    integrations = integrationManager,
+                ),
+            ),
+        )
     }
 
     val generateActionsUseCase: GenerateActionsUseCase by lazy {
@@ -388,6 +406,9 @@ class AppContainer(private val appContext: Context) {
     val tasksIntegrationAdapter: com.greninjaop.mailorganizer.data.integrations.RealTasksIntegrationAdapter by lazy {
         com.greninjaop.mailorganizer.data.integrations.RealTasksIntegrationAdapter(
             authRepository = authRepository,
+            executionStore = com.greninjaop.mailorganizer.data.tasks.TaskExecutionStore(
+                java.io.File(appContext.filesDir, "tasks"),
+            ),
         )
     }
 
@@ -591,8 +612,8 @@ class AppContainer(private val appContext: Context) {
 
     val authRepository: AuthRepository by lazy {
         GoogleAuthRepository(
-            context = appContext.applicationContext,
             tokenStorage = secureTokenStorage,
+            accountRepository = accountRepository,
             oauthClientId = appContext.getString(R.string.google_oauth_client_id),
         )
     }
