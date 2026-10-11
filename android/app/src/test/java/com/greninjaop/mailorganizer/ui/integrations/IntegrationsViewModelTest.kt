@@ -137,7 +137,7 @@ class IntegrationsViewModelTest {
     }
 
     @Test
-    fun `gmail connect emits honest phase 3 message`() = runTest(testDispatcher) {
+    fun `gmail connect emits honest not-connected message`() = runTest(testDispatcher) {
         seedAccount()
         val vm = viewModel()
         vm.events.test {
@@ -146,7 +146,7 @@ class IntegrationsViewModelTest {
             assertTrue(event is IntegrationsEvent.Message)
             assertTrue(
                 "was: ${(event as IntegrationsEvent.Message).text}",
-                event.text.contains("Phase 3"),
+                event.text.contains("Accounts", ignoreCase = true),
             )
             cancelAndIgnoreRemainingEvents()
         }

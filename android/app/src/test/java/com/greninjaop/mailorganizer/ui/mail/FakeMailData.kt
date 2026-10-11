@@ -60,6 +60,7 @@ class FakeAccountRepository : AccountRepository {
 }
 
 class FakeMailRepository : MailRepository {
+    override suspend fun setLabels(messageId: String, labels: List<String>) {}
     private val threads = MutableStateFlow<List<ThreadRecord>>(emptyList())
     private val messages = MutableStateFlow<List<MessageRecord>>(emptyList())
     var failWith: Throwable? = null

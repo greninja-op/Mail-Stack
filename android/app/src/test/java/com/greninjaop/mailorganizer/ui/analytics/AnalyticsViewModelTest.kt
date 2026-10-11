@@ -81,6 +81,7 @@ class AnalyticsViewModelTest {
 
     private val fakeUseCase = object : AnalyticsUseCase(
         mail = object : com.greninjaop.mailorganizer.data.repository.MailRepository {
+            override suspend fun setLabels(messageId: String, labels: List<String>) {}
             override suspend fun saveThreadWithMessages(thread: com.greninjaop.mailorganizer.data.local.ThreadRecord, messages: List<com.greninjaop.mailorganizer.data.local.MessageRecord>) {}
             override fun observeThreads(accountId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.ThreadRecord>())
             override fun observeMessages(threadId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.MessageRecord>())
@@ -173,6 +174,7 @@ class AnalyticsViewModelTest {
         },
         conversationUseCase = com.greninjaop.mailorganizer.domain.conversation.ConversationIntelligenceUseCase(
             mail = object : com.greninjaop.mailorganizer.data.repository.MailRepository {
+                override suspend fun setLabels(messageId: String, labels: List<String>) {}
                 override suspend fun saveThreadWithMessages(thread: com.greninjaop.mailorganizer.data.local.ThreadRecord, messages: List<com.greninjaop.mailorganizer.data.local.MessageRecord>) {}
                 override fun observeThreads(accountId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.ThreadRecord>())
                 override fun observeMessages(threadId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.MessageRecord>())
@@ -245,6 +247,7 @@ class AnalyticsViewModelTest {
         ),
         cleanupUseCase = com.greninjaop.mailorganizer.domain.cleanup.CleanupUseCase(
             mail = object : com.greninjaop.mailorganizer.data.repository.MailRepository {
+                override suspend fun setLabels(messageId: String, labels: List<String>) {}
                 override suspend fun saveThreadWithMessages(thread: com.greninjaop.mailorganizer.data.local.ThreadRecord, messages: List<com.greninjaop.mailorganizer.data.local.MessageRecord>) {}
                 override fun observeThreads(accountId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.ThreadRecord>())
                 override fun observeMessages(threadId: String, limit: Int) = flowOf(emptyList<com.greninjaop.mailorganizer.data.local.MessageRecord>())

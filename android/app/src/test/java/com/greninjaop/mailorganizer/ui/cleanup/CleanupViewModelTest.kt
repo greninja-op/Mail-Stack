@@ -164,6 +164,7 @@ class CleanupViewModelTest {
     }
 
     private class FakeMailRepository : MailRepository {
+        override suspend fun setLabels(messageId: String, labels: List<String>) {}
         private val messages = mutableMapOf<String, MessageRecord>()
 
         fun addMessage(message: MessageRecord) {
