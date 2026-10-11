@@ -25,8 +25,8 @@ android {
         minSdk = 26
         targetSdk = 35
         versionCode = 1
-        // Phase 6 core inbox & email viewer. Versioning scheme (semantic) lands in Phase 29.
-        versionName = "0.1.0-phase17"
+        // Phase 29: Production version. Semantic versioning starts at 1.0.0.
+        versionName = "1.0.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -92,6 +92,12 @@ dependencies {
 
     // DataStore Preferences — app settings and (later) account-scoped prefs.
     implementation(libs.androidx.datastore.preferences)
+
+    // Phase 3: Google OAuth & Gmail Connection
+    // OAuth2 via system browser (official Google-supported flow).
+    // Tokens secured with EncryptedSharedPreferences.
+    // Gmail API accessed via direct HTTPS (no heavy Google client libs).
+    implementation(libs.androidx.security.crypto)
 
     // Compose (versions managed by the Compose BOM)
     val bom = libs.compose.bom

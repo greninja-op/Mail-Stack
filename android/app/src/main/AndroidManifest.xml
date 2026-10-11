@@ -5,9 +5,11 @@
          introduced with the phases that need them (Phase 3+), per least privilege.
          Phase 6: ACCESS_NETWORK_STATE for the offline banner only (normal
          permission — auto-granted at install, no runtime prompt). Browsing
-         local mail never needs network; this only drives the banner. -->
+         local mail never needs network; this only drives the banner.
+         Phase 3: INTERNET for Google OAuth and Gmail API (normal permission). -->
 
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:name=".MailOrganizerApp"
@@ -15,6 +17,7 @@
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
+        android:roundIcon="@mipmap/ic_launcher_round"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.MailOrganizer">
@@ -22,10 +25,20 @@
         <activity
             android:name=".MainActivity"
             android:exported="true"
-            android:theme="@style/Theme.MailOrganizer">
+            android:theme="@style/Theme.MailOrganizer"
+            android:launchMode="singleTask">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+            <!-- Phase 3: OAuth2 redirect handler -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data
+                    android:scheme="com.greninjaop.mailorganizer"
+                    android:host="oauth2redirect" />
             </intent-filter>
         </activity>
     </application>
