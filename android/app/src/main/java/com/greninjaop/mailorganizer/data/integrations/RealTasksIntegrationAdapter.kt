@@ -1,5 +1,6 @@
 package com.greninjaop.mailorganizer.data.integrations
 
+import android.content.Intent
 import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.AccountId
@@ -11,21 +12,19 @@ import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.core.integrations.IntegrationStatus
 import com.greninjaop.mailorganizer.core.integrations.PermissionDescription
 import com.greninjaop.mailorganizer.data.auth.AuthRepository
+import com.greninjaop.mailorganizer.data.auth.GoogleAuthState
+import com.greninjaop.mailorganizer.data.tasks.GoogleTasksHttp
+import com.greninjaop.mailorganizer.data.tasks.TaskExecutionStore
+import com.greninjaop.mailorganizer.data.tasks.TasksRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-import java.util.TimeZone
 
 /**
  * Google Tasks integration adapter — Phase 16 (real implementation).
  *
  * Connects Mail Organizer's action intelligence to Google Tasks
- * via the official Tasks API.
+ * via the official Tasks API (`GoogleTasksHttp` + `TasksRepository`).
  *
  * Core principle (Phase 16):
  * ```
@@ -34,11 +33,21 @@ import java.util.TimeZone
  *   → Google Tasks API → Verified Result
  * ```
  *
- * NEVER creates tasks without explicit user confirmation.
+ * NEVER creates tasks without explicit user confirmation — that gate
+ * lives in the Action Engine (`ReviewActionUseCase`); this adapter only
+ * reports honest status and executes through `TasksRepository` when the
+ * engine's executor asks.
+ *
+ * Honesty (phase §29): [IntegrationStatus.CONNECTED] is reported ONLY
+ * when a lightweight API probe proves a usable token *and* the tasks
+ * scope exist. A mere local token is not enough — the scope may be
+ * missing (incremental auth), revoked, or expired.
  */
 class RealTasksIntegrationAdapter(
     private val authRepository: AuthRepository,
     private val clock: () -> Long = System::currentTimeMillis,
+    tasksHttp: GoogleTasksHttp = GoogleTasksHttp(),
+    executionStore: TaskExecutionStore? = null,
 ) : IntegrationAdapter {
 
     override val id: IntegrationId = IntegrationId.TASKS
@@ -59,118 +68,163 @@ class RealTasksIntegrationAdapter(
         ),
     )
 
-    override suspend fun snapshot(accountId: String?): IntegrationSnapshot {
-        val accId = accountId?.let { AccountId(it) }
-        val isConnected = accId?.let { authRepository.isConnected(it) } ?: false
+    /**
+     * The Tasks use-case layer. Exposed so `AppContainer` can hand the
+     * same instance to the Action Engine's `CreateTaskActionExecutor`
+     * without building a second repository.
+     */
+    val tasksRepository: TasksRepository =
+        TasksRepository(authRepository, tasksHttp, executionStore, clock)
 
-        return IntegrationSnapshot(
-            id = id,
-            displayName = displayName,
-            provider = provider,
-            accountId = accountId,
-            accountEmail = null,
-            status = if (isConnected) IntegrationStatus.CONNECTED else IntegrationStatus.DISCONNECTED,
-            statusReason = if (isConnected) "Connected" else "Connect your Google account to use Tasks",
-            declaredCapabilities = declaredCapabilities,
-            requiredPermissions = requiredPermissions,
-            lastCheckedEpochMs = clock(),
-        )
-    }
+    override suspend fun snapshot(accountId: String?): IntegrationSnapshot =
+        withContext(Dispatchers.IO) {
+            try {
+                val (status, reason) = probe(accountId)
+                IntegrationSnapshot(
+                    id = id,
+                    displayName = displayName,
+                    provider = provider,
+                    accountId = accountId,
+                    accountEmail = resolveEmail(accountId),
+                    status = status,
+                    statusReason = reason,
+                    declaredCapabilities = declaredCapabilities,
+                    requiredPermissions = requiredPermissions,
+                    lastCheckedEpochMs = clock(),
+                )
+            } catch (t: Throwable) {
+                // Total: never throw (contract).
+                MoLogger.w(TAG, "snapshot failed: ${t.javaClass.simpleName}")
+                IntegrationSnapshot(
+                    id = id,
+                    displayName = displayName,
+                    provider = provider,
+                    accountId = accountId,
+                    accountEmail = null,
+                    status = IntegrationStatus.ERROR,
+                    statusReason = "Couldn't check Google Tasks status.",
+                    declaredCapabilities = declaredCapabilities,
+                    requiredPermissions = requiredPermissions,
+                    lastCheckedEpochMs = clock(),
+                )
+            }
+        }
 
-    override suspend fun connect(): MoResult<Unit> {
-        return MoResult.Failure(
+    /**
+     * The Tasks "connection" is incremental authorization on the shared
+     * Google account — it needs the UI to start an OAuth intent
+     * ([incrementalAuthIntent]), so this local part honestly reports
+     * that instead of faking a connection.
+     */
+    override suspend fun connect(): MoResult<Unit> =
+        MoResult.Failure(
             MoError.Integration(
                 integration = id.value,
-                message = "Connect via the Google account settings. Tasks uses your connected Google account.",
+                message = "Grant Tasks access from your Google account settings — " +
+                    "Mailstack will ask for just the Tasks permission.",
             ),
         )
+
+    /**
+     * Intent that adds the Tasks scope to an already-connected account
+     * (incremental authorization, phase §37). Returns null when there is
+     * no connected account to upgrade. The UI starts the returned intent;
+     * the normal OAuth redirect completes it. Gmail/Calendar grants are
+     * preserved; denying Tasks leaves them working.
+     */
+    fun incrementalAuthIntent(accountId: String?): Intent? {
+        if (accountId.isNullOrBlank()) return null
+        return try {
+            tasksRepository.incrementalAuthIntent(AccountId(accountId))
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "incrementalAuthIntent failed: ${t.javaClass.simpleName}")
+            null
+        }
     }
 
+    /**
+     * Idempotent disconnect (phase §18): clears this account's local
+     * Tasks metadata (selected list, execution records) only. Never
+     * touches mail, actions, or other integrations. The Google grant
+     * itself is revoked via the account-level disconnect in
+     * `AuthRepository` — this adapter never claims local disconnect
+     * equals Google revocation (phase §23).
+     */
     override suspend fun disconnect(accountId: String?): MoResult<Unit> =
-        MoResult.Success(Unit)
+        withContext(Dispatchers.IO) {
+            try {
+                if (!accountId.isNullOrBlank()) {
+                    tasksRepository.clearAccountData(AccountId(accountId))
+                }
+                MoResult.Success(Unit)
+            } catch (t: Throwable) {
+                MoLogger.w(TAG, "disconnect failed: ${t.javaClass.simpleName}")
+                MoResult.Success(Unit)
+            }
+        }
 
     override suspend fun refresh(accountId: String?): IntegrationSnapshot =
         snapshot(accountId)
 
     /**
-     * Creates a task (Phase 16).
-     *
-     * MUST only be called after explicit user confirmation.
-     *
-     * @param accountId The Google account to create the task in.
-     * @param title Task title.
-     * @param notes Task notes (optional).
-     * @param dueEpochMs Due date (milliseconds since epoch, optional).
-     * @return [MoResult] with the created task ID on success.
+     * Honest status probe (phase §29, §35–§38):
+     * - no account in scope → DISCONNECTED
+     * - no usable Google auth → AUTH_REQUIRED
+     * - probe 200 → CONNECTED (token + tasks scope proven)
+     * - probe 401 → AUTH_REQUIRED (expired/revoked; refresh already tried)
+     * - probe 403/insufficient scope → PERMISSION_REQUIRED (incremental
+     *   auth fixes it; Gmail/Calendar keep working)
+     * - network failure → OFFLINE (not a disconnect)
+     * - anything else → ERROR
      */
-    suspend fun createTask(
-        accountId: AccountId,
-        title: String,
-        notes: String?,
-        dueEpochMs: Long?,
-    ): MoResult<String> {
-        val accessToken = authRepository.getValidAccessToken(accountId)
-            ?: return MoResult.Failure(
-                MoError.Integration(
-                    integration = id.value,
-                    message = "Not connected. Connect your Google account first.",
-                ),
-            )
-
-        return withContext(Dispatchers.IO) {
-            try {
-                val url = URL("https://tasks.googleapis.com/tasks/v1/lists/@default/tasks")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Authorization", "Bearer $accessToken")
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.doOutput = true
-                connection.connectTimeout = 15000
-                connection.readTimeout = 15000
-
-                val taskJson = JSONObject().apply {
-                    put("title", title)
-                    if (notes != null) put("notes", notes)
-                    if (dueEpochMs != null) put("due", formatRfc3339(dueEpochMs))
-                }
-
-                connection.outputStream.use { os ->
-                    os.write(taskJson.toString().toByteArray(Charsets.UTF_8))
-                }
-
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    val taskId = json.optString("id", "")
-                    MoLogger.i(TAG, "Task created: $taskId")
-                    MoResult.Success(taskId)
-                } else {
-                    val error = connection.errorStream?.bufferedReader()?.use { it.readText() }?.take(200)
-                    MoLogger.w(TAG, "Task creation failed: HTTP $responseCode: $error")
-                    MoResult.Failure(
-                        MoError.Integration(
-                            integration = id.value,
-                            message = "Failed to create task: HTTP $responseCode",
-                        ),
-                    )
-                }
-            } catch (e: Exception) {
-                MoLogger.e(TAG, "Task creation failed", e)
-                MoResult.Failure(
-                    MoError.Integration(
-                        integration = id.value,
-                        message = "Network error: ${e.message?.take(100)}",
-                    ),
-                )
+    private suspend fun probe(accountId: String?): Pair<IntegrationStatus, String> {
+        if (accountId.isNullOrBlank()) {
+            return IntegrationStatus.DISCONNECTED to
+                "Select an account to use Google Tasks."
+        }
+        val accId = AccountId(accountId)
+        val authed = try {
+            authRepository.isConnected(accId)
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "isConnected failed: ${t.javaClass.simpleName}")
+            false
+        }
+        if (!authed) {
+            return IntegrationStatus.AUTH_REQUIRED to
+                "Connect your Google account to use Tasks."
+        }
+        return when (val result = tasksRepository.probeAccess(accId)) {
+            is MoResult.Success -> IntegrationStatus.CONNECTED to
+                "Google Tasks is connected."
+            is MoResult.Failure -> when (val e = result.error) {
+                is MoError.Authentication -> IntegrationStatus.AUTH_REQUIRED to
+                    "Your Google authorization expired or was revoked. Reconnect to continue."
+                is MoError.PermissionDenied -> IntegrationStatus.PERMISSION_REQUIRED to
+                    "The Tasks permission isn't granted yet. Grant it to create tasks — " +
+                        "your mail and calendar keep working."
+                is MoError.Network -> IntegrationStatus.OFFLINE to
+                    "You're offline. Google Tasks will work when you're back online."
+                is MoError.RateLimited -> IntegrationStatus.ERROR to
+                    "Google Tasks is rate-limiting requests right now. Try again later."
+                is MoError.Api -> IntegrationStatus.ERROR to
+                    "Google Tasks isn't responding as expected (${e.code ?: "unknown"})."
+                else -> IntegrationStatus.ERROR to
+                    "Couldn't reach Google Tasks."
             }
         }
     }
 
-    private fun formatRfc3339(epochMs: Long): String {
-        val sdf = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'", Locale.US)
-        sdf.timeZone = TimeZone.getTimeZone("UTC")
-        return sdf.format(Date(epochMs))
+    private suspend fun resolveEmail(accountId: String?): String? {
+        if (accountId.isNullOrBlank()) return null
+        return try {
+            when (val s = authRepository.observeAuthState(AccountId(accountId)).firstOrNull()) {
+                is GoogleAuthState.Connected -> s.email
+                is GoogleAuthState.AuthError -> s.email
+                else -> null
+            }
+        } catch (t: Throwable) {
+            null
+        }
     }
 
     private companion object {

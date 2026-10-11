@@ -93,6 +93,14 @@ interface MessageDao {
     @Query("UPDATE messages SET starred = :starred WHERE messageId = :messageId")
     suspend fun setStarred(messageId: String, starred: Boolean)
 
+    /**
+     * Replaces the Gmail label list for one message (Phase 22: archive /
+     * trash / label changes). Labels are synced remote state — this is only
+     * called after Gmail confirms the change (Gmail is authoritative).
+     */
+    @Query("UPDATE messages SET labels = :labels WHERE messageId = :messageId")
+    suspend fun setLabels(messageId: String, labels: List<String>)
+
     @Query("SELECT COUNT(*) FROM messages WHERE accountId = :accountId")
     suspend fun countByAccount(accountId: String): Int
 
