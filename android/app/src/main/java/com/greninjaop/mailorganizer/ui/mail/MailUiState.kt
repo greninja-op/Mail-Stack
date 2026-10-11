@@ -127,6 +127,12 @@ data class MessageItem(
      * category (requirements.md).
      */
     val priority: Priority? = null,
+    /**
+     * Phase 22: true when the message has a Gmail id (synced). Write
+     * actions are only offered for synced messages — fixture / unsynced
+     * rows never get write affordances.
+     */
+    val syncedWithGmail: Boolean = false,
 ) {
     /** Sanitized HTML takes precedence; plain text fallback; never an error (§29). */
     val hasRenderableBody: Boolean
@@ -173,6 +179,7 @@ fun MessageRecord.toMessageItem(): MessageItem = MessageItem(
     timestampEpochMs = timestampEpochMs,
     unread = unread,
     starred = starred,
+    syncedWithGmail = gmailMessageId != null,
 )
 
 /** Thread ordering (phase §51): oldest message first, newest last — documented. */

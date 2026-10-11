@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import com.greninjaop.mailorganizer.core.temporal.ExtractedTemporal
+import com.greninjaop.mailorganizer.domain.write.GmailWriteOperation as WriteOp
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -67,12 +69,20 @@ fun MessageCard(
     onCorrect: (() -> Unit)? = null,
     /** Phase 13: extracted meetings/deadlines; empty when none extracted. */
     temporalItems: List<ExtractedTemporal> = emptyList(),
+    /**
+     * Phase 22: per-message Gmail write actions. When non-null and the
+     * message is synced with Gmail, an overflow menu offers mark
+     * read/unread, star/unstar, archive, and trash — each opening an
+     * explicit confirmation dialog first (never executed directly).
+     */
+    onWriteAction: ((MessageItem, com.greninjaop.mailorganizer.domain.write.GmailWriteOperation) -> Unit)? = null,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         MessageHeader(
             message = message,
             expanded = expanded,
             onToggleExpanded = onToggleExpanded,
+            onWriteAction = onWriteAction,
         )
         if (expanded) {
             MessageBody(
@@ -99,6 +109,7 @@ private fun MessageHeader(
     expanded: Boolean,
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
+    onWriteAction: ((MessageItem, com.greninjaop.mailorganizer.domain.write.GmailWriteOperation) -> Unit)? = null,
 ) {
     val now = System.currentTimeMillis()
     val timeText = remember(message.timestampEpochMs, now / 60_000) {
@@ -164,6 +175,59 @@ private fun MessageHeader(
                 imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
                 contentDescription = if (expanded) "Collapse message" else "Expand message",
             )
+        }
+        // Phase 22: overflow menu with Gmail write actions. Only for synced
+        // messages — fixture rows never get write affordances.
+        if (onWriteAction != null && message.syncedWithGmail) {
+            MessageWriteMenu(message = message, onWriteAction = onWriteAction)
+        }
+    }
+}
+
+/**
+ * Overflow menu for per-message Gmail write actions (Phase 22).
+ *
+ * Every item only *requests* the action — the confirmation dialog owns
+ * execution (phase §15). Menu labels reflect current state (e.g. "Mark as
+ * unread" when the message is read).
+ */
+@Composable
+private fun MessageWriteMenu(
+    message: MessageItem,
+    onWriteAction: (MessageItem, com.greninjaop.mailorganizer.domain.write.GmailWriteOperation) -> Unit,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    androidx.compose.foundation.layout.Box {
+        IconButton(
+            onClick = { expanded = true },
+            modifier = Modifier.semantics { contentDescription = "Message actions" },
+        ) {
+            Icon(
+                imageVector = Icons.Filled.MoreVert,
+                contentDescription = "Message actions",
+            )
+        }
+        androidx.compose.material3.DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false },
+        ) {
+            val items = listOf(
+                (if (message.unread) WriteOp.MARK_READ else WriteOp.MARK_UNREAD) to
+                    if (message.unread) "Mark as read" else "Mark as unread",
+                (if (message.starred) WriteOp.UNSTAR else WriteOp.STAR) to
+                    if (message.starred) "Remove star" else "Star",
+                WriteOp.ARCHIVE to "Archive",
+                WriteOp.TRASH to "Move to trash",
+            )
+            for ((op, label) in items) {
+                androidx.compose.material3.DropdownMenuItem(
+                    text = { Text(label) },
+                    onClick = {
+                        expanded = false
+                        onWriteAction(message, op)
+                    },
+                )
+            }
         }
     }
 }

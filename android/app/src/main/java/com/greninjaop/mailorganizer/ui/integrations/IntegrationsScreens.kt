@@ -627,6 +627,8 @@ private fun CapabilityRow(capability: IntegrationCapability, usable: Boolean) {
 private fun IntegrationCapability.displayName(): String = when (this) {
     IntegrationCapability.READ_EMAIL -> "Read email"
     IntegrationCapability.SYNC_EMAIL -> "Sync email"
+    // Phase 22: shown only after the gmail.modify grant; never claimed early.
+    IntegrationCapability.MODIFY_EMAIL -> "Modify email (with your confirmation)"
     IntegrationCapability.READ_CALENDAR_METADATA -> "Read calendar metadata"
     IntegrationCapability.CREATE_EVENT -> "Create calendar events"
     IntegrationCapability.READ_TASK_LISTS -> "Read task lists"

@@ -1,6 +1,8 @@
 package com.greninjaop.mailorganizer.ui.mail
 
 import android.content.Intent
+import com.greninjaop.mailorganizer.domain.write.GmailWriteOperation as WriteOp
+import com.greninjaop.mailorganizer.domain.write.GmailWriteOutcome as WriteOutcome
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,6 +15,8 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -55,12 +59,33 @@ fun ThreadScreen(
     val listState = rememberLazyListState()
     var correctingMessage by remember { mutableStateOf<MessageItem?>(null) }
 
+    // Phase 22: Gmail write confirmation + results.
+    val pendingWrite by viewModel.pendingWrite.collectAsState()
+    val writeResult by viewModel.writeResult.collectAsState()
+    val snackbar = remember { SnackbarHostState() }
+    var showPermissionUpgrade by remember { mutableStateOf<PendingGmailWrite?>(null) }
+
     // Deep-link focus: expand the target message and scroll to it.
     LaunchedEffect(focusMessageId) {
         focusMessageId?.let { viewModel.ensureExpanded(it) }
     }
 
+    // Phase 22: surface write outcomes once, then clear.
+    LaunchedEffect(writeResult) {
+        val result = writeResult as? GmailWriteResultUi.Done ?: return@LaunchedEffect
+        when (val outcome = result.outcome) {
+            is com.greninjaop.mailorganizer.domain.write.GmailWriteOutcome.PermissionUpgradeRequired ->
+                showPermissionUpgrade = result.request
+            else -> {
+                val message = writeOutcomeMessage(result.request.operation, outcome)
+                if (message != null) snackbar.showSnackbar(message)
+            }
+        }
+        viewModel.clearWriteResult()
+    }
+
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         topBar = {
             TopAppBar(
                 navigationIcon = {
@@ -125,6 +150,11 @@ fun ThreadScreen(
                             priority = s.priorities[message.messageId],
                             // Phase 13: extracted meetings/deadlines.
                             temporalItems = s.temporalItems[message.messageId].orEmpty(),
+                            // Phase 22: Gmail write actions (confirmation dialog
+                            // owns execution; never runs directly).
+                            onWriteAction = { message, operation ->
+                                viewModel.requestWrite(message, operation)
+                            },
                             // Phase 12: correction entry point (§4).
                             onCorrect = {
                                 val classification = s.classifications[message.messageId]
@@ -155,6 +185,70 @@ fun ThreadScreen(
             viewModel = correctionViewModel,
             onDismiss = { correctingMessage = null },
         )
+    }
+
+    // Phase 22: explicit confirmation dialog (phase §15). Confirming is the
+    // only path that executes the write.
+    val pending = pendingWrite
+    if (pending != null) {
+        GmailWriteConfirmDialog(
+            pending = pending,
+            onConfirm = { viewModel.confirmWrite() },
+            onDismiss = { viewModel.dismissWrite() },
+        )
+    }
+
+    // Phase 22: incremental-authorization upgrade (phase §9, §10).
+    val upgradeRequest = showPermissionUpgrade
+    if (upgradeRequest != null) {
+        WritePermissionUpgradeDialog(
+            accountEmail = upgradeRequest.accountEmail,
+            onGrant = {
+                showPermissionUpgrade = null
+                try {
+                    viewModel.writePermissionIntent(upgradeRequest.message.accountId)
+                        ?.let { context.startActivity(it) }
+                } catch (_: Exception) {
+                    // Stay silent: the user can retry from the menu.
+                }
+            },
+            onDismiss = { showPermissionUpgrade = null },
+        )
+    }
+}
+
+/**
+ * Honest, user-safe copy for a write outcome (Phase 22, phase §25: no raw
+ * errors, no tokens, no message content).
+ */
+private fun writeOutcomeMessage(
+    operation: com.greninjaop.mailorganizer.domain.write.GmailWriteOperation,
+    outcome: com.greninjaop.mailorganizer.domain.write.GmailWriteOutcome,
+): String? {
+    return when (outcome) {
+        is WriteOutcome.Success -> if (outcome.alreadyDone) {
+            "Already done."
+        } else {
+            when (operation) {
+                WriteOp.MARK_READ -> "Marked as read."
+                WriteOp.MARK_UNREAD -> "Marked as unread."
+                WriteOp.STAR -> "Starred."
+                WriteOp.UNSTAR -> "Star removed."
+                WriteOp.ARCHIVE -> "Archived."
+                WriteOp.TRASH -> "Moved to trash."
+                WriteOp.UNTRASH -> "Restored from trash."
+                WriteOp.ADD_LABEL -> "Label added."
+                WriteOp.REMOVE_LABEL -> "Label removed."
+            }
+        }
+        is WriteOutcome.Rejected -> outcome.reason
+        is WriteOutcome.AuthRequired ->
+            "Google authorization expired. Reconnect your account to continue."
+        is WriteOutcome.NotFound -> "That message no longer exists in Gmail."
+        is WriteOutcome.NetworkError -> outcome.message
+        is WriteOutcome.Failed -> outcome.message
+        // Handled separately via the upgrade dialog.
+        is WriteOutcome.PermissionUpgradeRequired -> null
     }
 }
 
