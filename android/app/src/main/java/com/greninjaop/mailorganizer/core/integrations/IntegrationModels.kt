@@ -72,6 +72,13 @@ enum class IntegrationStatus {
 enum class IntegrationCapability {
     READ_EMAIL,
     SYNC_EMAIL,
+    /**
+     * Gmail write operations (Phase 22): mark read/unread, star/unstar,
+     * archive, trash/untrash, label add/remove. Only usable when the
+     * account granted gmail.modify via incremental authorization —
+     * declared here, never claimed without the grant (phase §12).
+     */
+    MODIFY_EMAIL,
     READ_CALENDAR_METADATA,
     CREATE_EVENT,
     READ_TASK_LISTS,

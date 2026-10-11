@@ -8,6 +8,9 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.ui.foundation.FoundationViewModel
 import com.greninjaop.mailorganizer.ui.foundation.StartupErrorScreen
 import com.greninjaop.mailorganizer.ui.navigation.AppNavGraph
@@ -60,6 +63,36 @@ class MainActivity : ComponentActivity() {
         // is showing; never crash the error screen itself.
         (application as? MailOrganizerApp)?.containerOrNull()
             ?.syncScheduler?.onAppResume()
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handlePossibleOAuthRedirect(intent)
+    }
+
+    /**
+     * Phase 3: Google OAuth redirects back via the custom scheme
+     * (singleTask → onNewIntent). Forwarded to the auth repository, which
+     * validates state, exchanges the code, and emits the result for the
+     * Connect UI. Non-OAuth intents are ignored.
+     */
+    private fun handlePossibleOAuthRedirect(intent: Intent) {
+        val data = intent.data ?: return
+        if (data.scheme != com.greninjaop.mailorganizer.data.auth.GoogleAuthRepository.REDIRECT_SCHEME) {
+            return
+        }
+        val container = (application as? MailOrganizerApp)?.containerOrNull() ?: return
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                container.authRepository.handleOAuthResult(intent)
+            } catch (e: Exception) {
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "MainActivity",
+                    "OAuth redirect handling failed: ${e.javaClass.simpleName}",
+                )
+            }
+        }
     }
 
     private fun restartApp() {

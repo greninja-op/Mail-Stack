@@ -4,6 +4,8 @@ import android.app.Application
 import android.content.pm.ApplicationInfo
 import com.greninjaop.mailorganizer.core.CrashReporter
 import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.data.auth.AuthResult
+import com.greninjaop.mailorganizer.data.sync.SyncTrigger
 import com.greninjaop.mailorganizer.di.AppContainer
 import java.io.File
 
@@ -64,6 +66,32 @@ class MailOrganizerApp : Application() {
                     c.syncScheduler.onAppStart()
                 } catch (t: Throwable) {
                     MoLogger.e(TAG, "syncScheduler.onAppStart() failed (non-fatal)", t)
+                }
+                // Phase 3: a fresh OAuth connection must trigger the first
+                // mailbox sync — otherwise the user connects and sees an
+                // empty inbox. Restored (already-connected) accounts are
+                // covered by onAppStart()'s staleness check instead.
+                try {
+                    kotlinx.coroutines.runBlocking {
+                        c.authRepository.observeOAuthResults().collect { result ->
+                            if (result is AuthResult.Success) {
+                                try {
+                                    c.syncScheduler.requestSync(
+                                        result.accountId,
+                                        SyncTrigger.ACCOUNT_CONNECTED,
+                                    )
+                                    MoLogger.i(
+                                        TAG,
+                                        "Post-connect sync requested for ${result.email}",
+                                    )
+                                } catch (t: Throwable) {
+                                    MoLogger.e(TAG, "post-connect sync failed (non-fatal)", t)
+                                }
+                            }
+                        }
+                    }
+                } catch (t: Throwable) {
+                    MoLogger.e(TAG, "oauth-result observer failed (non-fatal)", t)
                 }
             }, "mailstack-startup").apply { isDaemon = true }.start()
             MoLogger.i(TAG, "Mail Organizer foundation initialized")

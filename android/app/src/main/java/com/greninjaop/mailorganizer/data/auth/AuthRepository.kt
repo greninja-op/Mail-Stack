@@ -48,10 +48,35 @@ interface AuthRepository {
 
     /**
      * Creates an OAuth [android.content.Intent] to start the Google
-     * sign-in flow. The caller starts this intent with
-     * startActivityForResult.
+     * sign-in flow for a new account. The caller starts this intent;
+     * Google redirects back to the app and the Activity forwards the
+     * redirect via [handleOAuthResult].
+     *
+     * @param additionalScopes Scopes beyond the Phase 3 base set. Used by
+     * later phases (Calendar, Tasks, Gmail write) for incremental
+     * authorization — never requested all-at-once up front.
      */
-    fun createOAuthIntent(): android.content.Intent
+    fun createOAuthIntent(
+        additionalScopes: List<String> = emptyList(),
+    ): android.content.Intent
+
+    /**
+     * Creates an OAuth [android.content.Intent] that adds [additionalScopes]
+     * to an already-connected account (incremental authorization,
+     * `include_granted_scopes=true`). The redirect is handled like a normal
+     * connection; tokens are updated in place for the same account.
+     */
+    fun createIncrementalAuthIntent(
+        accountId: AccountId,
+        additionalScopes: List<String>,
+    ): android.content.Intent
+
+    /**
+     * Emits the result of each OAuth redirect handled by
+     * [handleOAuthResult]. The Connect UI collects this to drive its
+     * connecting/success/error states.
+     */
+    fun observeOAuthResults(): Flow<AuthResult>
 
     /**
      * Disconnects the given account: revokes the token with Google,
