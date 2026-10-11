@@ -45,6 +45,16 @@ class ThreadViewModelFactory(
             dispatchers = container.dispatchers,
             conversationIntelligence = container.conversationUseCase,
             aiFallback = container.aiFallbackUseCase,
+            // Phase 22: Gmail write operations behind the confirmation
+            // boundary. Built here (not in AppContainer) so the auth flow
+            // wiring stays untouched.
+            gmailWrite = com.greninjaop.mailorganizer.domain.write.GmailWriteUseCase(
+                writeApi = container.gmailApiClient,
+                mail = container.mailRepository,
+                auth = container.authRepository,
+                dispatchers = container.dispatchers,
+            ),
+            accounts = container.accountRepository,
         ) as T
     }
 }

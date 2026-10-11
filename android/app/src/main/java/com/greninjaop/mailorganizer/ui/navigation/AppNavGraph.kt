@@ -24,6 +24,9 @@ import com.greninjaop.mailorganizer.di.AppContainer
 import com.greninjaop.mailorganizer.ui.actions.ActionsScreen
 import com.greninjaop.mailorganizer.ui.actions.ActionsViewModel
 import com.greninjaop.mailorganizer.ui.actions.ActionsViewModelFactory
+import com.greninjaop.mailorganizer.ui.auth.ConnectAccountScreen
+import com.greninjaop.mailorganizer.ui.auth.ConnectAccountViewModel
+import com.greninjaop.mailorganizer.ui.auth.ConnectAccountViewModelFactory
 import com.greninjaop.mailorganizer.ui.categories.CategoriesScreen
 import com.greninjaop.mailorganizer.ui.categories.CategoriesViewModel
 import com.greninjaop.mailorganizer.ui.categories.CategoriesViewModelFactory
@@ -83,6 +86,9 @@ object AppDestinations {
     const val SETTINGS = "settings"
     const val PRIVACY = "privacy"
     const val ACCOUNTS = "accounts"
+
+    /** Phase 3: Google OAuth connect-account flow. */
+    const val CONNECT = "connect"
     const val CLEANUP = "cleanup"
     const val ANALYTICS = "analytics"
     const val AI_SETTINGS = "settings/ai"
@@ -498,6 +504,18 @@ fun AppNavGraph(
                 viewModel(factory = AccountsViewModelFactory(container))
             AccountsScreen(
                 viewModel = vm,
+                onBack = { navController.popBackStack() },
+                onConnectAccount = { navController.navigate(AppDestinations.CONNECT) },
+            )
+        }
+        // Phase 3: Google OAuth connect-account flow. The screen opens
+        // the system browser; the redirect returns via MainActivity.
+        composable(AppDestinations.CONNECT) {
+            val vm: ConnectAccountViewModel =
+                viewModel(factory = ConnectAccountViewModelFactory(container.authRepository))
+            ConnectAccountScreen(
+                viewModel = vm,
+                onConnected = { navController.popBackStack() },
                 onBack = { navController.popBackStack() },
             )
         }

@@ -230,6 +230,7 @@ class AccountsViewModel(
     private val dispatchers: AppDispatchers,
     private val clock: () -> Long = System::currentTimeMillis,
     private val syncStateRepository: com.greninjaop.mailorganizer.data.repository.SyncStateRepository? = null,
+    private val authRepository: com.greninjaop.mailorganizer.data.auth.AuthRepository? = null,
 ) : ViewModel() {
     val accounts: StateFlow<List<AccountRecord>> =
         accountRepository.observeAll()
@@ -300,6 +301,15 @@ class AccountsViewModel(
 
     fun disconnectAccount(accountId: String) {
         viewModelScope.launch(dispatchers.io) {
+            // Phase 3: revoke Google's grant + clear encrypted tokens first.
+            try {
+                authRepository?.disconnect(com.greninjaop.mailorganizer.core.AccountId(accountId))
+            } catch (e: Exception) {
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "AccountsViewModel",
+                    "Auth disconnect failed: ${e.javaClass.simpleName}",
+                )
+            }
             // Integration cleanup
             integrationManager?.handleAccountRemoved(accountId)
             // Delete account cascades to all account-owned rows in Room and cleans FTS
@@ -344,6 +354,7 @@ class AccountsViewModelFactory(
             integrationManager = container.integrationManager,
             dispatchers = container.dispatchers,
             syncStateRepository = container.syncStateRepository,
+            authRepository = container.authRepository,
         ) as T
     }
 }
@@ -362,6 +373,7 @@ class AccountsViewModelFactory(
 fun AccountsScreen(
     viewModel: AccountsViewModel,
     onBack: () -> Unit,
+    onConnectAccount: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val accounts by viewModel.accounts.collectAsState()
@@ -432,9 +444,11 @@ fun AccountsScreen(
         if (accounts.isEmpty()) {
             MoEmptyState(
                 title = "No accounts connected",
-                message = "Gmail account connection uses the official Google " +
-                    "sign-in flow and arrives with Phase 3. You can add a local test " +
-                    "account using the 'Add Local' action above.",
+                message = "Connect your Gmail account using the official Google " +
+                    "sign-in flow. Mailstack requests read-only access — it cannot " +
+                    "send, delete, or modify your emails.",
+                actionLabel = "Connect Gmail",
+                onAction = onConnectAccount,
                 modifier = Modifier.padding(padding),
             )
         } else {
