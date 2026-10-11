@@ -30,6 +30,12 @@ interface MailRepository {
     suspend fun searchByText(accountId: String, query: String, limit: Int = 50): List<MessageRecord>
     suspend fun setRead(messageId: String, read: Boolean)
     suspend fun setStarred(messageId: String, starred: Boolean)
+
+    /**
+     * Replaces one message's Gmail label list (Phase 22). Called only after
+     * Gmail confirms the remote change — Gmail is the source of truth.
+     */
+    suspend fun setLabels(messageId: String, labels: List<String>)
     suspend fun countByAccount(accountId: String): Int
 
     /**
@@ -278,6 +284,11 @@ class RoomMailRepository(
     override suspend fun setStarred(messageId: String, starred: Boolean) =
         withContext(dispatchers.io) {
             db.messageDao().setStarred(messageId, starred)
+        }
+
+    override suspend fun setLabels(messageId: String, labels: List<String>) =
+        withContext(dispatchers.io) {
+            db.messageDao().setLabels(messageId, labels)
         }
 
     override suspend fun countByAccount(accountId: String): Int =
