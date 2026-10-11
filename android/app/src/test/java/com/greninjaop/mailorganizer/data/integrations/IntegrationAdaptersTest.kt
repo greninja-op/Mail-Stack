@@ -65,29 +65,26 @@ class IntegrationAdaptersTest {
     }
 
     @Test
-    fun `gmail with local-only account needs auth with phase 3 reason`() = runTest(testDispatcher) {
+    fun `gmail with local-only account needs auth`() = runTest(testDispatcher) {
         val accounts = FakeAccountRepository()
         accounts.upsert(account())
         val adapter = GmailIntegrationAdapter(DeferredGmailSyncApi(), accounts)
         val snapshot = adapter.snapshot("a1")
         assertEquals(IntegrationStatus.AUTH_REQUIRED, snapshot.status)
-        assertTrue(
-            "reason must name Phase 3, was: ${snapshot.statusReason}",
-            snapshot.statusReason.contains("Phase 3"),
-        )
+        assertTrue(snapshot.statusReason.isNotBlank())
         assertEquals("user@example.com", snapshot.accountEmail)
         assertTrue(snapshot.usableCapabilities.isEmpty())
     }
 
     @Test
-    fun `gmail connect fails honestly naming phase 3`() = runTest(testDispatcher) {
+    fun `gmail connect fails honestly directing to Accounts screen`() = runTest(testDispatcher) {
         val adapter = GmailIntegrationAdapter(DeferredGmailSyncApi(), FakeAccountRepository())
         val result = adapter.connect()
         assertTrue(result is MoResult.Failure)
         val message = (result as MoResult.Failure).error.let {
             (it as MoError.InvalidConfiguration).message
         }
-        assertTrue(message.contains("Phase 3"))
+        assertTrue(message.contains("Accounts", ignoreCase = true))
     }
 
     @Test
@@ -109,19 +106,23 @@ class IntegrationAdaptersTest {
     }
 
     @Test
-    fun `gmail declares only readonly capabilities and permissions`() {
+    fun `gmail declares readonly plus optional modify capabilities`() {
         val adapter = GmailIntegrationAdapter(DeferredGmailSyncApi(), FakeAccountRepository())
         assertEquals(
-            setOf(IntegrationCapability.READ_EMAIL, IntegrationCapability.SYNC_EMAIL),
+            setOf(
+                IntegrationCapability.READ_EMAIL,
+                IntegrationCapability.SYNC_EMAIL,
+                // Phase 22: declared but only usable after incremental grant.
+                IntegrationCapability.MODIFY_EMAIL,
+            ),
             adapter.declaredCapabilities,
         )
         assertTrue(adapter.requiredPermissions.any { it.scope == "gmail.readonly" })
+        val modify = adapter.requiredPermissions.single { it.scope == "gmail.modify" }
+        assertTrue("gmail.modify must be optional, never bundled into sign-in", !modify.required)
         assertTrue(
-            "must not declare modify/send permissions",
-            adapter.requiredPermissions.none {
-                it.scope.contains("modify", ignoreCase = true) ||
-                    it.scope.contains("send", ignoreCase = true)
-            },
+            "must not declare send permissions",
+            adapter.requiredPermissions.none { it.scope.contains("send", ignoreCase = true) },
         )
     }
 
