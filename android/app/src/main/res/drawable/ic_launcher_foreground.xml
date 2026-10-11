@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Phase 0 launcher foreground (vector "M" mark).
+     The circular Mailstack logo PNG is the intended product icon
+     (see logo/logo.png; the delivered APKs carry it). It cannot be pushed
+     through the GitHub MCP API (binary content is stored as base64 text),
+     so the repo uses this vector to stay buildable. Re-add the PNG via a
+     git client with proper auth to restore the full icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="9"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M30,74 L30,36 L54,56 L78,36 L78,74" />
+</vector>
