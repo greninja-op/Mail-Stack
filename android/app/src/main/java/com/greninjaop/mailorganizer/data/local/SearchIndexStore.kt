@@ -54,6 +54,24 @@ class SearchIndexStore(private val db: SupportSQLiteDatabase) {
 
         /** Indexed body text is capped (bounded index growth, phase §50). */
         const val MAX_INDEXED_BODY_CHARS = 20_000
+
+        /**
+         * Best-effort FTS table creation for Room's `onCreate` callback.
+         *
+         * Crash-repair (2026-10-11): the raw `execSQL(CREATE_SQL)` used to
+         * throw here on devices whose SQLite lacks the FTS5 module, which
+         * aborted database creation and crashed the app on first launch.
+         * Returns false instead of throwing; search then degrades through
+         * the existing [FtsUnavailableException] path like everywhere else.
+         */
+        fun createTableOrSkip(db: SupportSQLiteDatabase): Boolean {
+            return try {
+                db.execSQL(CREATE_SQL)
+                true
+            } catch (_: Throwable) {
+                false
+            }
+        }
     }
 
     /** One searchable document assembled from a message row + company name. */

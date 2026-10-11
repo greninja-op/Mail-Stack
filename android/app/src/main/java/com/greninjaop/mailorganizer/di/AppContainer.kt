@@ -4,13 +4,17 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
+import com.greninjaop.mailorganizer.R
 import com.greninjaop.mailorganizer.core.AppDispatchers
+import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.data.auth.AuthRepository
+import com.greninjaop.mailorganizer.data.auth.GmailApiClient
+import com.greninjaop.mailorganizer.data.auth.GoogleAuthRepository
+import com.greninjaop.mailorganizer.data.auth.SecureTokenStorage
 import com.greninjaop.mailorganizer.data.local.AppDatabase
 import com.greninjaop.mailorganizer.data.local.Migrations
 import com.greninjaop.mailorganizer.data.local.SearchIndexStore
-import com.greninjaop.mailorganizer.data.integrations.CalendarIntegrationAdapter
 import com.greninjaop.mailorganizer.data.integrations.GmailIntegrationAdapter
-import com.greninjaop.mailorganizer.data.integrations.TasksIntegrationAdapter
 import com.greninjaop.mailorganizer.data.prefs.DataStoreThemePreferences
 import com.greninjaop.mailorganizer.data.prefs.ThemePreferences
 import com.greninjaop.mailorganizer.data.repository.AccountRepository
@@ -108,11 +112,20 @@ class AppContainer(private val appContext: Context) {
             )
             // Fresh installs: the FTS search index is a standalone virtual
             // table (not a Room entity), so it is created here. Upgrades
-            // are covered by MIGRATION_4_5.
+            // are covered by MIGRATION_4_5. Creation is FTS5-safe
+            // (crash-repair 2026-10-11): on devices without the FTS5
+            // module a raw execSQL would abort DB creation and crash the
+            // app on first launch; degrade to non-FTS search instead.
             .addCallback(
                 object : RoomDatabase.Callback() {
                     override fun onCreate(db: SupportSQLiteDatabase) {
-                        db.execSQL(SearchIndexStore.CREATE_SQL)
+                        if (!SearchIndexStore.createTableOrSkip(db)) {
+                            MoLogger.w(
+                                TAG,
+                                "Device SQLite lacks FTS5; search index disabled, " +
+                                    "falling back to non-FTS search",
+                            )
+                        }
                     }
                 },
             )
@@ -366,12 +379,16 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
-    val calendarIntegrationAdapter: CalendarIntegrationAdapter by lazy {
-        CalendarIntegrationAdapter()
+    val calendarIntegrationAdapter: com.greninjaop.mailorganizer.data.integrations.RealCalendarIntegrationAdapter by lazy {
+        com.greninjaop.mailorganizer.data.integrations.RealCalendarIntegrationAdapter(
+            authRepository = authRepository,
+        )
     }
 
-    val tasksIntegrationAdapter: TasksIntegrationAdapter by lazy {
-        TasksIntegrationAdapter()
+    val tasksIntegrationAdapter: com.greninjaop.mailorganizer.data.integrations.RealTasksIntegrationAdapter by lazy {
+        com.greninjaop.mailorganizer.data.integrations.RealTasksIntegrationAdapter(
+            authRepository = authRepository,
+        )
     }
 
     val integrationManager: IntegrationManager by lazy {
@@ -564,7 +581,30 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
+    // ---- Phase 3: Google OAuth & Gmail Connection ----
+    // Secure token storage (EncryptedSharedPreferences). The ONLY place
+    // that touches raw OAuth tokens.
+
+    val secureTokenStorage: SecureTokenStorage by lazy {
+        SecureTokenStorage(appContext.applicationContext)
+    }
+
+    val authRepository: AuthRepository by lazy {
+        GoogleAuthRepository(
+            context = appContext.applicationContext,
+            tokenStorage = secureTokenStorage,
+            oauthClientId = appContext.getString(R.string.google_oauth_client_id),
+        )
+    }
+
+    val gmailApiClient: GmailApiClient by lazy {
+        GmailApiClient(
+            authRepository = authRepository,
+        )
+    }
+
     private companion object {
         const val DATABASE_NAME = "mail_organizer.db"
+        const val TAG = "AppContainer"
     }
 }
