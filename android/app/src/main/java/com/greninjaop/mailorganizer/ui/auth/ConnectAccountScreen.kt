@@ -10,19 +10,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 
 /**
  * Connect Gmail account screen (Phase 3 §21).
  *
- * Explains what permissions are requested and why (Phase 3 §13),
- * then initiates the Google OAuth flow.
+ * Explains what permissions are requested and why (Phase 3 §13), then
+ * opens the Google consent page in the system browser. The OAuth
+ * redirect returns to the app and the ViewModel updates this UI.
  */
 @Composable
 fun ConnectAccountScreen(
@@ -32,6 +39,25 @@ fun ConnectAccountScreen(
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    // If the user backs out of the browser, no redirect arrives — tell
+    // the ViewModel we foregrounded so it can leave the spinner state.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.onForegrounded()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
+    fun launchOAuth() {
+        val intent = viewModel.createOAuthIntent()
+        context.startActivity(intent)
+    }
 
     Column(
         modifier = modifier
@@ -57,8 +83,9 @@ fun ConnectAccountScreen(
         Spacer(modifier = Modifier.height(8.dp))
 
         Text(
-            text = "Permission requested: Read your Gmail messages (gmail.readonly). " +
-                "Mailstack cannot send, delete, or modify your emails.",
+            text = "Permission requested: read your Gmail messages (gmail.readonly). " +
+                "Mailstack cannot send, delete, or modify your emails. " +
+                "You can disconnect anytime from Settings → Accounts.",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -68,7 +95,7 @@ fun ConnectAccountScreen(
         when (val state = uiState) {
             is ConnectAccountUiState.Idle -> {
                 Button(
-                    onClick = { viewModel.startOAuthFlow() },
+                    onClick = { launchOAuth() },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Connect with Google")
@@ -78,7 +105,7 @@ fun ConnectAccountScreen(
                 CircularProgressIndicator()
                 Spacer(modifier = Modifier.height(16.dp))
                 Text(
-                    text = "Connecting to Google…",
+                    text = "Waiting for Google… complete the sign-in in your browser.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -104,7 +131,7 @@ fun ConnectAccountScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = { viewModel.startOAuthFlow() },
+                    onClick = { launchOAuth() },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Try Again")
@@ -114,7 +141,7 @@ fun ConnectAccountScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(
+        OutlinedButton(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth(),
         ) {

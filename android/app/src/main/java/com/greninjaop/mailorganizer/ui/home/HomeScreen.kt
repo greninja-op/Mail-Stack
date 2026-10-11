@@ -113,9 +113,11 @@ fun HomeScreen(
                 modifier = Modifier.padding(padding),
             )
             is HomeContent.NoAccount -> MoEmptyState(
-                title = "Welcome to Mail Organizer",
+                title = "Welcome to Mailstack",
                 message = "Connect a Gmail account to start organizing your mail. " +
-                    "Account connection arrives with a later phase — your data stays on this device.",
+                    "Your data stays on this device.",
+                actionLabel = "Connect Gmail",
+                onAction = { onNavigate(AppDestinations.CONNECT) },
                 modifier = Modifier.padding(padding),
             )
             is HomeContent.Error -> MoErrorState(
