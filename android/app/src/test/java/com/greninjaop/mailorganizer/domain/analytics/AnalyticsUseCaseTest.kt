@@ -72,6 +72,7 @@ class AnalyticsUseCaseTest {
     private val priorities = mutableMapOf<String, PriorityRecord>()
 
     private val fakeMailRepo = object : MailRepository {
+        override suspend fun setLabels(messageId: String, labels: List<String>) {}
         override suspend fun saveThreadWithMessages(thread: ThreadRecord, messages: List<MessageRecord>) {}
         override fun observeThreads(accountId: String, limit: Int): Flow<List<ThreadRecord>> = flowOf(emptyList())
         override fun observeMessages(threadId: String, limit: Int): Flow<List<MessageRecord>> = flowOf(emptyList())
