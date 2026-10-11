@@ -382,6 +382,7 @@ class ApplyRulesUseCaseTest {
     // ================= Fakes =================
 
     private class FakeRulesMailRepository : MailRepository {
+        override suspend fun setLabels(messageId: String, labels: List<String>) {}
         private val messages = mutableMapOf<String, MessageRecord>()
 
         fun add(m: MessageRecord) {

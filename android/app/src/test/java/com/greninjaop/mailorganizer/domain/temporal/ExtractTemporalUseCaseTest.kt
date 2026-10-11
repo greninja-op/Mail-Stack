@@ -154,6 +154,7 @@ class ExtractTemporalUseCaseTest {
     )
 
     private class FakeMail(private val messages: Map<String, MessageRecord>) : MailRepository {
+        override suspend fun setLabels(messageId: String, labels: List<String>) {}
         override suspend fun saveThreadWithMessages(
             thread: com.greninjaop.mailorganizer.data.local.ThreadRecord,
             messages: List<MessageRecord>,

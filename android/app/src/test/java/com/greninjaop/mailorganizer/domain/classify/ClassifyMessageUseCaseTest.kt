@@ -237,6 +237,7 @@ class ClassifyMessageUseCaseTest {
 
     private class FakeClassifyMailRepository :
         com.greninjaop.mailorganizer.data.repository.MailRepository {
+        override suspend fun setLabels(messageId: String, labels: List<String>) {}
         private val messages = mutableListOf<MessageRecord>()
 
         fun seed(vararg records: MessageRecord) {

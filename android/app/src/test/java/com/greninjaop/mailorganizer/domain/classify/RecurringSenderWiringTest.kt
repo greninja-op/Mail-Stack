@@ -63,6 +63,7 @@ class RecurringSenderWiringTest {
     /** Minimal MailRepository: only getMessage is exercised here. */
     private fun mailRepo(msg: MessageRecord): MailRepository =
         object : MailRepository {
+            override suspend fun setLabels(messageId: String, labels: List<String>) {}
             override suspend fun saveThreadWithMessages(
                 thread: com.greninjaop.mailorganizer.data.local.ThreadRecord,
                 messages: List<MessageRecord>,
