@@ -59,6 +59,7 @@ class SecureTokenStorage(context: Context) {
             .putString(key(accountId, KEY_EMAIL), email)
             .putString(key(accountId, KEY_DISPLAY_NAME), displayName)
             .apply()
+        addAccountId(accountId)
     }
 
     /**
@@ -105,6 +106,7 @@ class SecureTokenStorage(context: Context) {
             .remove(key(accountId, KEY_EMAIL))
             .remove(key(accountId, KEY_DISPLAY_NAME))
             .apply()
+        removeAccountId(accountId)
     }
 
     /**
@@ -112,6 +114,67 @@ class SecureTokenStorage(context: Context) {
      */
     fun hasTokens(accountId: AccountId): Boolean =
         prefs.contains(key(accountId, KEY_ACCESS_TOKEN))
+
+    /**
+     * Tracks which accounts hold tokens, so auth state can be restored
+     * after a process restart (Phase 3 §18). Stored as an encrypted
+     * string-set; account ids are not sensitive.
+     */
+    fun getAllAccountIds(): Set<String> =
+        prefs.getStringSet(KEY_ACCOUNT_IDS, emptySet()).orEmpty().toSet()
+
+    private fun addAccountId(accountId: AccountId) {
+        val ids = getAllAccountIds().toMutableSet()
+        if (ids.add(accountId.value)) {
+            prefs.edit().putStringSet(KEY_ACCOUNT_IDS, ids).apply()
+        }
+    }
+
+    private fun removeAccountId(accountId: AccountId) {
+        val ids = getAllAccountIds().toMutableSet()
+        if (ids.remove(accountId.value)) {
+            prefs.edit().putStringSet(KEY_ACCOUNT_IDS, ids).apply()
+        }
+    }
+
+    /**
+     * Persists the in-flight OAuth authorization attempt (PKCE verifier,
+     * CSRF state, requested scopes). The browser flow may kill our
+     * process; without this the redirect could not be validated or
+     * exchanged on return. Encrypted at rest like tokens.
+     */
+    fun savePendingFlow(pending: PendingOAuthFlow) {
+        prefs.edit()
+            .putString(KEY_PENDING_STATE, pending.state)
+            .putString(KEY_PENDING_VERIFIER, pending.codeVerifier)
+            .putString(KEY_PENDING_SCOPES, pending.scopes.joinToString(" "))
+            .putString(KEY_PENDING_UPGRADE_ACCOUNT, pending.upgradeAccountId?.value)
+            .apply()
+    }
+
+    fun getPendingFlow(): PendingOAuthFlow? {
+        val state = prefs.getString(KEY_PENDING_STATE, null) ?: return null
+        val verifier = prefs.getString(KEY_PENDING_VERIFIER, null) ?: return null
+        val scopes = prefs.getString(KEY_PENDING_SCOPES, "")
+            .orEmpty().split(" ").filter { it.isNotBlank() }
+        val upgradeId = prefs.getString(KEY_PENDING_UPGRADE_ACCOUNT, null)
+            ?.ifBlank { null }?.let { AccountId(it) }
+        return PendingOAuthFlow(
+            state = state,
+            codeVerifier = verifier,
+            scopes = scopes,
+            upgradeAccountId = upgradeId,
+        )
+    }
+
+    fun clearPendingFlow() {
+        prefs.edit()
+            .remove(KEY_PENDING_STATE)
+            .remove(KEY_PENDING_VERIFIER)
+            .remove(KEY_PENDING_SCOPES)
+            .remove(KEY_PENDING_UPGRADE_ACCOUNT)
+            .apply()
+    }
 
     private fun key(accountId: AccountId, suffix: String): String =
         "auth_${accountId.value}_$suffix"
@@ -124,5 +187,26 @@ class SecureTokenStorage(context: Context) {
         const val KEY_EXPIRES_AT = "expires_at"
         const val KEY_EMAIL = "email"
         const val KEY_DISPLAY_NAME = "display_name"
+        const val KEY_ACCOUNT_IDS = "account_ids"
+        const val KEY_PENDING_STATE = "pending_state"
+        const val KEY_PENDING_VERIFIER = "pending_verifier"
+        const val KEY_PENDING_SCOPES = "pending_scopes"
+        const val KEY_PENDING_UPGRADE_ACCOUNT = "pending_upgrade_account"
     }
 }
+
+/**
+ * In-flight OAuth authorization attempt (Phase 3 §5).
+ *
+ * @param state CSRF token echoed back by Google on redirect.
+ * @param codeVerifier PKCE verifier; the challenge was sent in the auth URL.
+ * @param scopes Scopes requested in this attempt.
+ * @param upgradeAccountId Non-null when this attempt adds scopes to an
+ * existing connected account instead of connecting a new one.
+ */
+data class PendingOAuthFlow(
+    val state: String,
+    val codeVerifier: String,
+    val scopes: List<String>,
+    val upgradeAccountId: AccountId?,
+)

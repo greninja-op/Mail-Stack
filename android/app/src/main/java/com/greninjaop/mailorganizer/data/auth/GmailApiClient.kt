@@ -1,27 +1,50 @@
 package com.greninjaop.mailorganizer.data.auth
 
-import com.greninjaop.mailorganizer.core.AccountId
-import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
+import com.greninjaop.mailorganizer.core.AccountId
+import com.greninjaop.mailorganizer.core.JsonParser
+import com.greninjaop.mailorganizer.core.JsonParser.array
+import com.greninjaop.mailorganizer.core.JsonParser.string
+import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.data.http.HttpTransport
+import com.greninjaop.mailorganizer.data.http.TransportResponse
+import com.greninjaop.mailorganizer.data.http.UrlConnectionTransport
+import com.greninjaop.mailorganizer.domain.write.GmailWriteApi
+import com.greninjaop.mailorganizer.domain.write.WriteVerification
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import org.json.JSONObject
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.IOException
 
 /**
- * Gmail API client (Phase 3 §26).
+ * Gmail API client (Phase 3 §26, Phase 22).
  *
  * Uses direct HTTPS calls to the Gmail REST API (no heavy Google client
  * libraries). The client is fail-closed: if no valid token is available,
  * operations return an honest "not connected" state rather than crashing.
  *
  * Phase 3 scope: Gmail API client foundation + authenticated smoke test.
- * Mailbox synchronization is Phase 4.
+ * Phase 22 scope: hardened write operations (mark read/unread, star/unstar,
+ * archive, trash/untrash, label add/remove). Every write:
+ * - requires the gmail.modify scope (requested incrementally, never bundled
+ *   into the Phase 3 sign-in),
+ * - returns the label state Gmail reported, so callers can verify the
+ *   change instead of assuming it,
+ * - maps HTTP failures honestly: 401 → Authentication, 403 → PermissionDenied
+ *   (drives the incremental-auth upgrade prompt), 404 → Api, 429 →
+ *   RateLimited, 5xx → Api, transport failures → Network,
+ * - never retries: ambiguous results are reconciled by the caller (the
+ *   write use case), never by blind repetition.
+ *
+ * Tokens come only from [AuthRepository.getValidAccessToken]. Tokens and
+ * message content are never logged.
  */
 class GmailApiClient(
     private val authRepository: AuthRepository,
-) {
+    private val apiBase: String = "https://gmail.googleapis.com",
+    private val transport: HttpTransport = UrlConnectionTransport(),
+) : GmailWriteApi {
+
     /**
      * Performs an authenticated smoke test: fetches the Gmail profile.
      * Returns the email address on success, null on failure.
@@ -33,35 +56,13 @@ class GmailApiClient(
             ?: return SmokeTestResult.Failure("Not connected")
 
         return withContext(Dispatchers.IO) {
-            try {
-                val url = URL("https://gmail.googleapis.com/gmail/v1/users/me/profile")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "GET"
-                connection.setRequestProperty("Authorization", "Bearer $accessToken")
-                connection.connectTimeout = 15000
-                connection.readTimeout = 15000
-
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    val response = connection.inputStream.bufferedReader().use { it.readText() }
-                    val json = JSONObject(response)
-                    val email = json.optString("emailAddress", "unknown")
-                    MoLogger.i(TAG, "Gmail smoke test succeeded for $email")
+            when (val res = get("$apiBase/gmail/v1/users/me/profile", accessToken)) {
+                is ApiResponse.Ok -> {
+                    val email = JsonParser.parse(res.body)?.string("emailAddress") ?: "unknown"
+                    MoLogger.i(TAG, "Gmail smoke test succeeded")
                     SmokeTestResult.Success(email)
-                } else if (responseCode == 401) {
-                    MoLogger.w(TAG, "Gmail smoke test: unauthorized (token invalid)")
-                    SmokeTestResult.Failure("Unauthorized: token invalid or expired")
-                } else if (responseCode == 403) {
-                    MoLogger.w(TAG, "Gmail smoke test: forbidden")
-                    SmokeTestResult.Failure("Forbidden: insufficient permissions")
-                } else {
-                    val error = connection.errorStream?.bufferedReader()?.use { it.readText() }?.take(200)
-                    MoLogger.w(TAG, "Gmail smoke test failed: HTTP $responseCode: $error")
-                    SmokeTestResult.Failure("API error: HTTP $responseCode")
                 }
-            } catch (e: Exception) {
-                MoLogger.e(TAG, "Gmail smoke test failed", e)
-                SmokeTestResult.Failure("Network error: ${e.message?.take(100)}")
+                is ApiResponse.Err -> SmokeTestResult.Failure(res.error.userMessage())
             }
         }
     }
@@ -71,21 +72,42 @@ class GmailApiClient(
         data class Failure(val reason: String) : SmokeTestResult
     }
 
+    // ---- Phase 22 write operations ----
+
     /**
      * Marks a message as read/unread (Phase 22).
      *
      * Requires gmail.modify scope. MUST only be called after explicit
-     * user action (never automatic).
+     * user action (never automatic) — enforced by GmailWriteUseCase.
      */
+    override suspend fun markRead(
+        accountId: AccountId,
+        gmailMessageId: String,
+        read: Boolean,
+    ): MoResult<WriteVerification> = modifyLabels(
+        accountId = accountId,
+        gmailMessageId = gmailMessageId,
+        addLabels = if (read) emptyList() else listOf(LABEL_UNREAD),
+        removeLabels = if (read) listOf(LABEL_UNREAD) else emptyList(),
+    )
+
+    /** Backward-compatible alias kept for existing call sites. */
     suspend fun markAsRead(
         accountId: AccountId,
         messageId: String,
         isRead: Boolean,
-    ): MoResult<Unit> = modifyLabels(
+    ): MoResult<WriteVerification> = markRead(accountId, messageId, isRead)
+
+    /** Adds/removes the STARRED label (Phase 22). */
+    override suspend fun setStarred(
+        accountId: AccountId,
+        gmailMessageId: String,
+        starred: Boolean,
+    ): MoResult<WriteVerification> = modifyLabels(
         accountId = accountId,
-        messageId = messageId,
-        addLabels = if (isRead) emptyList() else listOf("UNREAD"),
-        removeLabels = if (isRead) listOf("UNREAD") else emptyList(),
+        gmailMessageId = gmailMessageId,
+        addLabels = if (starred) listOf(LABEL_STARRED) else emptyList(),
+        removeLabels = if (starred) emptyList() else listOf(LABEL_STARRED),
     )
 
     /**
@@ -93,82 +115,237 @@ class GmailApiClient(
      *
      * MUST only be called after explicit user confirmation.
      */
+    override suspend fun archive(
+        accountId: AccountId,
+        gmailMessageId: String,
+    ): MoResult<WriteVerification> = modifyLabels(
+        accountId = accountId,
+        gmailMessageId = gmailMessageId,
+        addLabels = emptyList(),
+        removeLabels = listOf(LABEL_INBOX),
+    )
+
+    /** Backward-compatible alias kept for existing call sites. */
     suspend fun archiveMessage(
         accountId: AccountId,
         messageId: String,
-    ): MoResult<Unit> = modifyLabels(
-        accountId = accountId,
-        messageId = messageId,
-        addLabels = emptyList(),
-        removeLabels = listOf("INBOX"),
-    )
+    ): MoResult<WriteVerification> = archive(accountId, messageId)
+
+    /** Moves a message to Trash (recoverable; never permanent delete). */
+    override suspend fun trash(
+        accountId: AccountId,
+        gmailMessageId: String,
+    ): MoResult<WriteVerification> = withWriteToken(accountId) { token ->
+        when (val res = post("$apiBase/gmail/v1/users/me/messages/$gmailMessageId/trash", token, null)) {
+            is ApiResponse.Ok -> verificationFrom(res.body, gmailMessageId)
+            is ApiResponse.Err -> MoResult.Failure(res.error)
+        }
+    }
+
+    /** Removes a message from Trash. */
+    override suspend fun untrash(
+        accountId: AccountId,
+        gmailMessageId: String,
+    ): MoResult<WriteVerification> = withWriteToken(accountId) { token ->
+        when (val res = post("$apiBase/gmail/v1/users/me/messages/$gmailMessageId/untrash", token, null)) {
+            is ApiResponse.Ok -> verificationFrom(res.body, gmailMessageId)
+            is ApiResponse.Err -> MoResult.Failure(res.error)
+        }
+    }
+
+    override suspend fun addLabels(
+        accountId: AccountId,
+        gmailMessageId: String,
+        labelIds: List<String>,
+    ): MoResult<WriteVerification> {
+        if (labelIds.isEmpty()) return MoResult.Failure(MoError.InvalidConfiguration("No labels to add."))
+        return modifyLabels(accountId, gmailMessageId, addLabels = labelIds, removeLabels = emptyList())
+    }
+
+    override suspend fun removeLabels(
+        accountId: AccountId,
+        gmailMessageId: String,
+        labelIds: List<String>,
+    ): MoResult<WriteVerification> {
+        if (labelIds.isEmpty()) return MoResult.Failure(MoError.InvalidConfiguration("No labels to remove."))
+        return modifyLabels(accountId, gmailMessageId, addLabels = emptyList(), removeLabels = labelIds)
+    }
+
+    override suspend fun getLabelIds(
+        accountId: AccountId,
+        gmailMessageId: String,
+    ): MoResult<Set<String>> = withWriteToken(accountId) { token ->
+        when (val res = get("$apiBase/gmail/v1/users/me/messages/$gmailMessageId?format=minimal", token)) {
+            is ApiResponse.Ok -> {
+                val parsed = JsonParser.parse(res.body)
+                    ?: return@withWriteToken MoResult.Failure(MoError.Parsing("Gmail's response couldn't be understood."))
+                val labels = parsed.array("labelIds")
+                    ?.mapNotNull { (it as? JsonParser.JsonValue.Str)?.value }
+                    ?.toSet() ?: emptySet()
+                MoResult.Success(labels)
+            }
+            is ApiResponse.Err -> MoResult.Failure(res.error)
+        }
+    }
 
     /**
      * Modifies message labels via Gmail API (Phase 22).
+     * Returns Gmail's reported label state for verification.
      */
     private suspend fun modifyLabels(
         accountId: AccountId,
-        messageId: String,
+        gmailMessageId: String,
         addLabels: List<String>,
         removeLabels: List<String>,
-    ): MoResult<Unit> {
-        // Note: Write operations require gmail.modify scope.
-        // Phase 3 requested gmail.readonly only. The OAuth flow must
-        // request additional scopes for write features.
+    ): MoResult<WriteVerification> = withWriteToken(accountId) { token ->
+        val body = buildString {
+            append("{\"addLabelIds\":[")
+            append(addLabels.joinToString(",") { jsonString(it) })
+            append("],\"removeLabelIds\":[")
+            append(removeLabels.joinToString(",") { jsonString(it) })
+            append("]}")
+        }
+        when (val res = post("$apiBase/gmail/v1/users/me/messages/$gmailMessageId/modify", token, body)) {
+            is ApiResponse.Ok -> verificationFrom(res.body, gmailMessageId)
+            is ApiResponse.Err -> MoResult.Failure(res.error)
+        }
+    }
+
+    /**
+     * Runs [block] with a valid token on IO, mapping a missing token to an
+     * honest Authentication failure. The token never leaves this function.
+     */
+    private suspend fun <T> withWriteToken(
+        accountId: AccountId,
+        block: suspend (token: String) -> MoResult<T>,
+    ): MoResult<T> {
         val accessToken = authRepository.getValidAccessToken(accountId)
             ?: return MoResult.Failure(
-                com.greninjaop.mailorganizer.MoError.Integration(
-                    integration = "gmail",
-                    message = "Not connected. Connect your Google account first.",
-                ),
+                MoError.Authentication("Not connected. Connect your Google account first."),
             )
-
         return withContext(Dispatchers.IO) {
             try {
-                val url = URL("https://gmail.googleapis.com/gmail/v1/users/me/messages/$messageId/modify")
-                val connection = url.openConnection() as HttpURLConnection
-                connection.requestMethod = "POST"
-                connection.setRequestProperty("Authorization", "Bearer $accessToken")
-                connection.setRequestProperty("Content-Type", "application/json")
-                connection.doOutput = true
-                connection.connectTimeout = 15000
-                connection.readTimeout = 15000
-
-                val body = JSONObject().apply {
-                    put("addLabelIds", org.json.JSONArray(addLabels))
-                    put("removeLabelIds", org.json.JSONArray(removeLabels))
-                }
-
-                connection.outputStream.use { os ->
-                    os.write(body.toString().toByteArray(Charsets.UTF_8))
-                }
-
-                val responseCode = connection.responseCode
-                if (responseCode == 200) {
-                    MoLogger.i(TAG, "Message $messageId labels modified")
-                    MoResult.Success(Unit)
-                } else {
-                    MoLogger.w(TAG, "Label modification failed: HTTP $responseCode")
-                    MoResult.Failure(
-                        com.greninjaop.mailorganizer.MoError.Integration(
-                            integration = "gmail",
-                            message = "Failed to modify message: HTTP $responseCode",
-                        ),
-                    )
-                }
+                block(accessToken)
             } catch (e: Exception) {
-                MoLogger.e(TAG, "Label modification failed", e)
-                MoResult.Failure(
-                    com.greninjaop.mailorganizer.MoError.Integration(
-                        integration = "gmail",
-                        message = "Network error: ${e.message?.take(100)}",
-                    ),
-                )
+                // Never log the token or message content — only the class.
+                MoLogger.e(TAG, "Gmail write failed: ${e.javaClass.simpleName}")
+                MoResult.Failure(MoError.Network("Network error — couldn't reach Gmail."))
             }
         }
     }
 
-    private companion object {
-        const val TAG = "GmailApiClient"
+    /** Parses the message resource Gmail returns into verification evidence. */
+    private fun verificationFrom(body: String, gmailMessageId: String): MoResult<WriteVerification> {
+        val parsed = JsonParser.parse(body)
+            ?: run {
+                MoLogger.w(TAG, "Couldn't parse Gmail write response")
+                return MoResult.Failure(MoError.Parsing("Gmail's response couldn't be understood."))
+            }
+        val labels = parsed.array("labelIds")
+            ?.mapNotNull { (it as? JsonParser.JsonValue.Str)?.value }
+            ?.toSet() ?: emptySet()
+        return MoResult.Success(WriteVerification(gmailMessageId, labels))
+    }
+
+    /** Minimal JSON string escaper for label ids (no new dependencies). */
+    private fun jsonString(value: String): String = buildString {
+        append('"')
+        for (ch in value) {
+            when (ch) {
+                '"' -> append("\\\"")
+                '\\' -> append("\\\\")
+                '\n' -> append("\\n")
+                '\r' -> append("\\r")
+                '\t' -> append("\\t")
+                else -> append(ch)
+            }
+        }
+        append('"')
+    }
+
+    // ---- HTTP plumbing ----
+
+    private sealed interface ApiResponse {
+        data class Ok(val body: String) : ApiResponse
+        data class Err(val error: MoError) : ApiResponse
+    }
+
+    private fun get(url: String, token: String): ApiResponse =
+        request(url, token, method = "GET", body = null)
+
+    private fun post(url: String, token: String, body: String?): ApiResponse =
+        request(url, token, method = "POST", body = body)
+
+    private fun request(url: String, token: String, method: String, body: String?): ApiResponse {
+        return try {
+            val headers = mutableMapOf(
+                // The token is set as a header value; never logged or stored.
+                "Authorization" to "Bearer $token",
+            )
+            if (body != null) {
+                headers["Content-Type"] = "application/json; charset=utf-8"
+            }
+            val response: TransportResponse = transport.execute(method, url, headers, body)
+            when (response.code) {
+                200 -> ApiResponse.Ok(response.body)
+                // The error body is never surfaced (phase §25).
+                else -> ApiResponse.Err(mapHttpError(response.code))
+            }
+        } catch (e: IOException) {
+            // Transport failure (DNS, TLS, timeout, refused). The caller
+            // decides whether reconciliation is needed — never retried here.
+            ApiResponse.Err(MoError.Network("Couldn't reach Gmail: ${e.message?.take(80)}"))
+        }
+    }
+
+    /**
+     * Honest HTTP error mapping (phase §33, §34). 403 specifically means
+     * the grant lacks gmail.modify → the use case turns it into the
+     * incremental-authorization upgrade prompt (phase §9).
+     */
+    private fun mapHttpError(code: Int): MoError {
+        MoLogger.w(TAG, "Gmail API error: HTTP $code")
+        return when (code) {
+            401 -> MoError.Authentication(
+                "Google authorization expired or was revoked. Reconnect your account.",
+            )
+            403 -> MoError.PermissionDenied(
+                "gmail.modify",
+            )
+            404 -> MoError.Api(
+                404,
+                "That message no longer exists in Gmail.",
+            )
+            429 -> MoError.RateLimited(retryAfterSeconds = null)
+            in 500..599 -> MoError.Api(
+                code,
+                "Gmail had a problem (HTTP $code). Nothing was changed locally.",
+            )
+            else -> MoError.Api(
+                code,
+                "Gmail request failed (HTTP $code).",
+            )
+        }
+    }
+
+    /**
+     * User-safe copy for a mapped error. Never includes tokens, message
+     * content, or raw server payloads (phase §25).
+     */
+    private fun MoError.userMessage(): String = when (this) {
+        is MoError.Authentication -> message
+        is MoError.PermissionDenied -> "Additional Gmail permission is needed for this action."
+        is MoError.Api -> message
+        is MoError.RateLimited -> "Gmail is rate-limiting requests. Try again in a little while."
+        is MoError.Network -> message
+        else -> "Couldn't reach Gmail."
+    }
+
+    companion object {
+        private const val TAG = "GmailApiClient"
+        const val LABEL_INBOX = "INBOX"
+        const val LABEL_UNREAD = "UNREAD"
+        const val LABEL_STARRED = "STARRED"
+        const val LABEL_TRASH = "TRASH"
     }
 }

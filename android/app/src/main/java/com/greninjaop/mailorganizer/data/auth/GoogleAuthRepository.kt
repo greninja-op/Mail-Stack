@@ -1,248 +1,514 @@
 package com.greninjaop.mailorganizer.data.auth
 
-import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.data.local.AccountRecord
+import com.greninjaop.mailorganizer.data.local.ConnectionState
+import com.greninjaop.mailorganizer.data.repository.AccountRepository
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
-import java.util.UUID
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
+import java.security.MessageDigest
 
 /**
  * Google OAuth repository implementation (Phase 3).
  *
- * Uses the OAuth2 authorization code flow via Custom Tabs (official
- * Google-supported mechanism). Tokens are stored in [SecureTokenStorage]
- * (EncryptedSharedPreferences).
+ * Uses the OAuth2 authorization-code flow with PKCE (RFC 7636) via the
+ * system browser — the Google-supported mechanism for installed apps
+ * (no embedded webviews, no password collection, no scraping).
  *
- * Gmail scopes requested (least privilege, Phase 3 §12):
- * - https://www.googleapis.com/auth/gmail.readonly (Phase 3: read-only)
+ * Flow:
+ * ```
+ * createOAuthIntent()  →  system browser, Google consent
+ *       ↓
+ * redirect to com.greninjaop.mailorganizer://oauth2redirect
+ *       ↓ (MainActivity.onNewIntent)
+ * handleOAuthResult()  →  state check → code exchange (HTTPS POST)
+ *       →  Gmail profile smoke test  →  tokens stored encrypted
+ * ```
  *
- * Write scopes (gmail.send, gmail.modify) are deferred to Phase 22.
+ * Phase 3 requests the least-privilege base scopes only:
+ * - https://www.googleapis.com/auth/gmail.readonly
+ * - openid, email, profile
+ *
+ * Write/integration scopes (gmail.modify, calendar, tasks) are requested
+ * incrementally by their own phases via [createIncrementalAuthIntent].
+ *
+ * Tokens live ONLY in [SecureTokenStorage] (EncryptedSharedPreferences).
+ * Raw tokens are never logged, never stored in Room, never exposed to UI.
  */
 class GoogleAuthRepository(
-    private val context: Context,
     private val tokenStorage: SecureTokenStorage,
+    private val accountRepository: AccountRepository,
     private val oauthClientId: String,
+    private val oauthHttp: GoogleOAuthHttp = GoogleOAuthHttp(),
+    private val gmailApiBase: String = "https://gmail.googleapis.com",
 ) : AuthRepository {
+
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     private val _authStates = MutableStateFlow<Map<AccountId, GoogleAuthState>>(emptyMap())
     private val authStatesFlow = _authStates.asStateFlow()
+
+    private val _oauthResults =
+        MutableSharedFlow<AuthResult>(extraBufferCapacity = 4)
+    private val oauthResultsFlow = _oauthResults.asSharedFlow()
+
+    init {
+        // Restore auth state after process restart (Phase 3 §18): any
+        // account with stored tokens is Connected (token validity is
+        // checked lazily by getValidAccessToken, which refreshes).
+        scope.launch(Dispatchers.IO) {
+            try {
+                val restored = mutableMapOf<AccountId, GoogleAuthState>()
+                for (id in tokenStorage.getAllAccountIds()) {
+                    val accountId = AccountId(id)
+                    if (!tokenStorage.hasTokens(accountId)) continue
+                    val email = tokenStorage.getEmail(accountId) ?: continue
+                    restored[accountId] = GoogleAuthState.Connected(
+                        accountId = accountId,
+                        email = email,
+                        displayName = tokenStorage.getDisplayName(accountId),
+                    )
+                }
+                if (restored.isNotEmpty()) {
+                    _authStates.value = restored
+                    MoLogger.i(TAG, "Restored ${restored.size} connected account(s)")
+                }
+                // A redirect that arrived while we were dead left a pending
+                // flow behind; it can no longer be completed (no intent).
+                // Keep it — if the browser is still open the user can finish
+                // and the redirect will arrive via onNewIntent.
+            } catch (e: Exception) {
+                MoLogger.e(TAG, "Auth state restore failed", e)
+            }
+        }
+    }
 
     override fun observeAuthStates(): Flow<Map<AccountId, GoogleAuthState>> = authStatesFlow
 
     override fun observeAuthState(accountId: AccountId): Flow<GoogleAuthState> =
         authStatesFlow.map { it[accountId] ?: GoogleAuthState.Disconnected }
 
+    override fun observeOAuthResults(): Flow<AuthResult> = oauthResultsFlow
+
     override suspend fun getValidAccessToken(accountId: AccountId): String? {
-        // Check if token exists and is not expired
         val accessToken = tokenStorage.getAccessToken(accountId) ?: return null
         val expiresAt = tokenStorage.getExpiresAt(accountId)
-
-        // If token expires in less than 5 minutes, try to refresh
+        // Refresh proactively when < 5 minutes remain.
         if (System.currentTimeMillis() > expiresAt - REFRESH_BUFFER_MS) {
             return refreshAccessToken(accountId)
         }
-
         return accessToken
     }
 
-    override fun createOAuthIntent(): Intent {
-        // Builds the OAuth2 authorization URL.
-        // Opens in the system browser; the redirect uses the app's custom scheme.
-        val authUrl = buildAuthUrl()
-        return Intent(Intent.ACTION_VIEW, Uri.parse(authUrl))
+    override fun createOAuthIntent(additionalScopes: List<String>): Intent {
+        return buildAuthIntent(
+            scopes = BASE_SCOPES + additionalScopes,
+            upgradeAccountId = null,
+        )
     }
 
-    /**
-     * Builds the Google OAuth2 authorization URL (Phase 3 §5, Phase 22).
-     * Uses the authorization code flow with PKCE.
-     *
-     * Scopes (least privilege):
-     * - gmail.readonly (Phase 3: reading mail)
-     * - gmail.modify (Phase 22: mark read/unread, archive — user-confirmed only)
-     * Write scopes are only requested when the user enables write features.
-     */
-    private fun buildAuthUrl(): String {
-        val scopes = listOf(
-            "https://www.googleapis.com/auth/gmail.readonly",
-            "https://www.googleapis.com/auth/gmail.modify",
-            "https://www.googleapis.com/auth/calendar.events",
-            "https://www.googleapis.com/auth/tasks",
-            "openid",
-            "email",
-            "profile",
-        ).joinToString(" ")
+    override fun createIncrementalAuthIntent(
+        accountId: AccountId,
+        additionalScopes: List<String>,
+    ): Intent {
+        require(additionalScopes.isNotEmpty()) { "additionalScopes must not be empty" }
+        return buildAuthIntent(
+            scopes = BASE_SCOPES + additionalScopes,
+            upgradeAccountId = accountId,
+        )
+    }
 
-        return Uri.Builder()
+    private fun buildAuthIntent(
+        scopes: List<String>,
+        upgradeAccountId: AccountId?,
+    ): Intent {
+        val verifier = PkceUtil.generateCodeVerifier()
+        val state = PkceUtil.generateState()
+        tokenStorage.savePendingFlow(
+            PendingOAuthFlow(
+                state = state,
+                codeVerifier = verifier,
+                scopes = scopes.distinct(),
+                upgradeAccountId = upgradeAccountId,
+            ),
+        )
+        val authUrl = Uri.Builder()
             .scheme("https")
             .authority("accounts.google.com")
             .path("/o/oauth2/v2/auth")
             .appendQueryParameter("client_id", oauthClientId)
             .appendQueryParameter("redirect_uri", REDIRECT_URI)
             .appendQueryParameter("response_type", "code")
-            .appendQueryParameter("scope", scopes)
+            .appendQueryParameter("scope", scopes.distinct().joinToString(" "))
+            .appendQueryParameter("code_challenge", PkceUtil.codeChallenge(verifier))
+            .appendQueryParameter("code_challenge_method", "S256")
+            .appendQueryParameter("state", state)
             .appendQueryParameter("access_type", "offline")
+            // Incremental auth: keep already-granted scopes so upgrades
+            // don't force re-consent for everything.
+            .appendQueryParameter("include_granted_scopes", "true")
             .appendQueryParameter("prompt", "consent")
             .build()
             .toString()
+        // Never log the URL: it carries the PKCE challenge/state.
+        MoLogger.i(TAG, "OAuth authorization started (scopes=${scopes.size})")
+        return Intent(Intent.ACTION_VIEW, Uri.parse(authUrl)).apply {
+            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+        }
     }
 
-    /**
-     * Handles the OAuth redirect with authorization code.
-     * Exchanges the code for tokens via Google's token endpoint.
-     */
-
     override suspend fun handleOAuthResult(data: Intent?): AuthResult {
+        val result = processOAuthRedirect(data)
+        _oauthResults.emit(result)
+        return result
+    }
+
+    private suspend fun processOAuthRedirect(data: Intent?): AuthResult {
         val uri = data?.data
         if (uri == null) {
+            MoLogger.w(TAG, "OAuth redirect had no data")
+            return AuthResult.Failure(AuthErrorReason.UNKNOWN)
+        }
+        if (uri.scheme != REDIRECT_SCHEME) {
+            MoLogger.w(TAG, "Ignoring non-OAuth intent")
             return AuthResult.Failure(AuthErrorReason.UNKNOWN)
         }
 
-        // Check for OAuth error
+        val pending = tokenStorage.getPendingFlow()
+        if (pending == null) {
+            MoLogger.w(TAG, "OAuth redirect with no pending flow")
+            return AuthResult.Failure(AuthErrorReason.UNKNOWN)
+        }
+
+        // Google-level error (user denied, etc.).
         val error = uri.getQueryParameter("error")
         if (error != null) {
-            MoLogger.w(TAG, "OAuth error: $error")
+            tokenStorage.clearPendingFlow()
+            MoLogger.i(TAG, "OAuth consent ended with error")
             return when (error) {
                 "access_denied" -> AuthResult.Failure(AuthErrorReason.USER_DENIED)
                 else -> AuthResult.Failure(AuthErrorReason.UNKNOWN)
             }
         }
 
-        val code = uri.getQueryParameter("code")
-        if (code == null) {
+        // CSRF protection: the echoed state MUST match.
+        val returnedState = uri.getQueryParameter("state")
+        if (returnedState != pending.state) {
+            tokenStorage.clearPendingFlow()
+            MoLogger.w(TAG, "OAuth state mismatch — possible CSRF; rejecting")
             return AuthResult.Failure(AuthErrorReason.UNKNOWN)
         }
 
-        // Exchange authorization code for tokens
-        return exchangeCodeForTokens(code)
+        val code = uri.getQueryParameter("code")
+        if (code.isNullOrBlank()) {
+            tokenStorage.clearPendingFlow()
+            MoLogger.w(TAG, "OAuth redirect missing authorization code")
+            return AuthResult.Failure(AuthErrorReason.UNKNOWN)
+        }
+
+        return when (
+            val tokenResult = oauthHttp.exchangeCode(
+                code = code,
+                codeVerifier = pending.codeVerifier,
+                clientId = oauthClientId,
+                redirectUri = REDIRECT_URI,
+            )
+        ) {
+            is OAuthTokenResult.Failure -> {
+                tokenStorage.clearPendingFlow()
+                MoLogger.w(TAG, "Token exchange failed")
+                AuthResult.Failure(mapOAuthError(tokenResult.error))
+            }
+            is OAuthTokenResult.Success -> {
+                finishConnection(pending, tokenResult)
+            }
+        }
     }
 
     /**
-     * Exchanges the authorization code for OAuth tokens.
-     * Uses Google's token endpoint.
+     * Completes sign-in after a successful token exchange: proves the
+     * grant with a minimal Gmail profile read (Phase 3 §27 smoke test —
+     * no mailbox sync), derives a stable account id, stores tokens and
+     * upserts the Phase 2 account record.
      */
-    private suspend fun exchangeCodeForTokens(code: String): AuthResult {
-        return try {
-            // In a production app, this would make an HTTPS POST to
-            // https://oauth2.googleapis.com/token with the code,
-            // client_id, redirect_uri, and grant_type.
-            //
-            // For Phase 3, the token exchange requires network access
-            // which is available on-device. The implementation uses
-            // HttpURLConnection to avoid heavy dependencies.
-
-            val tokenResponse = performTokenExchange(code)
-            if (tokenResponse == null) {
-                return AuthResult.Failure(AuthErrorReason.NETWORK_ERROR)
+    private suspend fun finishConnection(
+        pending: PendingOAuthFlow,
+        tokenResult: OAuthTokenResult.Success,
+    ): AuthResult = withContext(Dispatchers.IO) {
+        try {
+            val profile = fetchGmailProfile(tokenResult.accessToken)
+            if (profile == null) {
+                tokenStorage.clearPendingFlow()
+                MoLogger.w(TAG, "Gmail profile smoke test failed after token exchange")
+                return@withContext AuthResult.Failure(AuthErrorReason.NETWORK_ERROR)
             }
 
-            val (accessToken, refreshToken, expiresIn, email, displayName) = tokenResponse
-
-            val accountId = AccountId("google_${email.hashCode().toString(16)}_${UUID.randomUUID().toString().take(8)}")
-
+            val accountId = pending.upgradeAccountId ?: deriveAccountId(profile.email)
+            val previousRefresh = tokenStorage.getRefreshToken(accountId)
             tokenStorage.storeTokens(
                 accountId = accountId,
-                accessToken = accessToken,
-                refreshToken = refreshToken,
-                expiresAtEpochMs = System.currentTimeMillis() + (expiresIn * 1000),
-                email = email,
-                displayName = displayName,
+                accessToken = tokenResult.accessToken,
+                // Refresh responses may omit refresh_token; keep the old one.
+                refreshToken = tokenResult.refreshToken ?: previousRefresh,
+                expiresAtEpochMs = System.currentTimeMillis() + tokenResult.expiresInSec * 1000,
+                email = profile.email,
+                displayName = profile.displayName,
+            )
+            tokenStorage.clearPendingFlow()
+
+            val existing = accountRepository.getById(accountId.value)
+            accountRepository.upsert(
+                (existing ?: AccountRecord(
+                    accountId = accountId.value,
+                    emailAddress = profile.email,
+                    displayName = profile.displayName,
+                    createdAtEpochMs = System.currentTimeMillis(),
+                )).copy(
+                    emailAddress = profile.email,
+                    displayName = profile.displayName ?: existing?.displayName,
+                    connectionState = ConnectionState.CONNECTED,
+                    updatedAtEpochMs = System.currentTimeMillis(),
+                ),
             )
 
-            val state = GoogleAuthState.Connected(
+            _authStates.value = _authStates.value + (accountId to GoogleAuthState.Connected(
                 accountId = accountId,
-                email = email,
-                displayName = displayName,
-            )
-            _authStates.value = _authStates.value + (accountId to state)
-
-            MoLogger.i(TAG, "Google account connected: $email")
-            AuthResult.Success(accountId, email, displayName)
+                email = profile.email,
+                displayName = profile.displayName,
+            ))
+            MoLogger.i(TAG, "Google account connected: ${profile.email}")
+            AuthResult.Success(accountId, profile.email, profile.displayName)
         } catch (e: Exception) {
-            MoLogger.e(TAG, "Token exchange failed", e)
-            AuthResult.Failure(mapExceptionToReason(e))
+            tokenStorage.clearPendingFlow()
+            MoLogger.e(TAG, "Finishing OAuth connection failed", e)
+            AuthResult.Failure(AuthErrorReason.UNKNOWN)
         }
     }
 
     /**
-     * Performs the HTTP token exchange with Google.
-     * Returns (accessToken, refreshToken, expiresIn, email, displayName) or null.
+     * Minimal authenticated Gmail API call: GET /gmail/v1/users/me/profile.
+     * Proves OAuth + Gmail authorization work without syncing any mail.
+     * Returns null on any failure (caller maps to a safe error).
      */
-    private fun performTokenExchange(code: String): TokenResponse? {
-        // Implementation uses HttpURLConnection for minimal dependencies.
-        // Full implementation in production would use the Google Auth library.
-        //
-        // For Phase 3 foundation, this documents the flow. The actual
-        // network call happens on-device where the Gmail API is available.
-        MoLogger.i(TAG, "Token exchange initiated for OAuth code")
-        // TODO: Implement actual HTTP POST to oauth2.googleapis.com/token
-        // This requires the code_verifier for PKCE which is generated per-flow.
-        return null
+    private fun fetchGmailProfile(accessToken: String): GmailProfile? {
+        var connection: HttpURLConnection? = null
+        return try {
+            connection = URL("$gmailApiBase/gmail/v1/users/me/profile")
+                .openConnection() as HttpURLConnection
+            connection.requestMethod = "GET"
+            // The token is sent only to Google over HTTPS, never logged.
+            connection.setRequestProperty("Authorization", "Bearer $accessToken")
+            connection.connectTimeout = 15_000
+            connection.readTimeout = 15_000
+            if (connection.responseCode != 200) {
+                MoLogger.w(TAG, "Gmail profile returned HTTP ${connection.responseCode}")
+                return null
+            }
+            val body = connection.inputStream.bufferedReader().use { it.readText() }
+            val email = GoogleOAuthHttp.parseFlatJsonObject(body)
+                ?.get("emailAddress").orEmpty()
+            if (email.isBlank()) return null
+            GmailProfile(
+                email = email,
+                // displayName isn't in the Gmail profile; the People API is
+                // out of scope for Phase 3 — use the local part as a label.
+                displayName = email.substringBefore("@"),
+            )
+        } catch (e: Exception) {
+            MoLogger.w(TAG, "Gmail profile fetch failed: ${e.javaClass.simpleName}")
+            null
+        } finally {
+            connection?.disconnect()
+        }
     }
-
-    private data class TokenResponse(
-        val accessToken: String,
-        val refreshToken: String?,
-        val expiresIn: Long,
-        val email: String,
-        val displayName: String?,
-    )
 
     override suspend fun disconnect(accountId: AccountId) {
+        // Best-effort Google revocation (Phase 3 §23): even if it fails,
+        // local state is always cleared so the app stops using the grant.
         try {
-            // Clear local tokens
-            tokenStorage.clearTokens(accountId)
-
-            // Update state
-            _authStates.value = _authStates.value - accountId
-
-            MoLogger.i(TAG, "Account disconnected: ${accountId.value}")
+            val refreshToken = tokenStorage.getRefreshToken(accountId)
+            val accessToken = tokenStorage.getAccessToken(accountId)
+            val revoked = when {
+                refreshToken != null -> oauthHttp.revokeToken(refreshToken)
+                accessToken != null -> oauthHttp.revokeToken(accessToken)
+                else -> true
+            }
+            if (!revoked) {
+                MoLogger.w(TAG, "Google revocation did not confirm; local state cleared anyway")
+            }
         } catch (e: Exception) {
-            MoLogger.e(TAG, "Error during disconnect", e)
-            // Still clear state even if revocation fails
-            _authStates.value = _authStates.value - accountId
+            MoLogger.w(TAG, "Revocation attempt failed: ${e.javaClass.simpleName}")
         }
+        tokenStorage.clearTokens(accountId)
+        _authStates.value = _authStates.value - accountId
+        // Phase 3 §22: mark disconnected; local mail is preserved (no
+        // silent deletion — purge is an explicit user choice in Privacy).
+        try {
+            accountRepository.updateConnectionState(accountId.value, ConnectionState.DISCONNECTED)
+        } catch (e: Exception) {
+            MoLogger.w(TAG, "Could not mark account disconnected: ${e.javaClass.simpleName}")
+        }
+        MoLogger.i(TAG, "Account disconnected: ${accountId.value}")
     }
 
-    override suspend fun isConnected(accountId: AccountId): Boolean {
-        return tokenStorage.hasTokens(accountId)
-    }
+    override suspend fun isConnected(accountId: AccountId): Boolean =
+        tokenStorage.hasTokens(accountId)
 
-    /**
-     * Attempts to refresh the access token.
-     * Returns the new token, or null if refresh failed.
-     */
     private suspend fun refreshAccessToken(accountId: AccountId): String? {
         val refreshToken = tokenStorage.getRefreshToken(accountId)
         if (refreshToken == null) {
-            // No refresh token; mark as error
-            val email = tokenStorage.getEmail(accountId) ?: return null
-            _authStates.value = _authStates.value + (accountId to
-                GoogleAuthState.AuthError(accountId, email, AuthErrorReason.REFRESH_FAILED))
+            markAuthError(accountId, AuthErrorReason.REFRESH_FAILED)
             return null
         }
-
-        // TODO: Implement actual token refresh via Google OAuth2 endpoint.
-        // For Phase 3, return null to indicate re-auth needed.
-        MoLogger.w(TAG, "Token refresh not yet implemented; re-auth required")
-        return null
-    }
-
-    private fun mapExceptionToReason(e: Exception): AuthErrorReason {
-        return when {
-            e.message?.contains("cancel", ignoreCase = true) == true -> AuthErrorReason.USER_DENIED
-            e.message?.contains("network", ignoreCase = true) == true -> AuthErrorReason.NETWORK_ERROR
-            else -> AuthErrorReason.UNKNOWN
+        return when (
+            val result = oauthHttp.refreshAccessToken(refreshToken, oauthClientId)
+        ) {
+            is OAuthTokenResult.Failure -> {
+                MoLogger.w(TAG, "Token refresh failed")
+                if (result.error == OAuthError.INVALID_GRANT) {
+                    // Refresh token revoked/expired — purge so we don't
+                    // keep failing; user must reconnect.
+                    tokenStorage.clearTokens(accountId)
+                    markAuthError(accountId, AuthErrorReason.REVOKED)
+                } else {
+                    markAuthError(accountId, AuthErrorReason.REFRESH_FAILED)
+                }
+                null
+            }
+            is OAuthTokenResult.Success -> {
+                tokenStorage.updateAccessToken(
+                    accountId = accountId,
+                    accessToken = result.accessToken,
+                    expiresAtEpochMs = System.currentTimeMillis() + result.expiresInSec * 1000,
+                )
+                // A rotated refresh token replaces the old one.
+                if (result.refreshToken != null) {
+                    val email = tokenStorage.getEmail(accountId)
+                    val displayName = tokenStorage.getDisplayName(accountId)
+                    if (email != null) {
+                        tokenStorage.storeTokens(
+                            accountId = accountId,
+                            accessToken = result.accessToken,
+                            refreshToken = result.refreshToken,
+                            expiresAtEpochMs = System.currentTimeMillis() + result.expiresInSec * 1000,
+                            email = email,
+                            displayName = displayName,
+                        )
+                    }
+                }
+                result.accessToken
+            }
         }
     }
 
-    private companion object {
-        const val TAG = "GoogleAuthRepository"
-        const val REFRESH_BUFFER_MS = 5 * 60 * 1000L // 5 minutes
-        const val REDIRECT_URI = "com.greninjaop.mailorganizer:/oauth2redirect"
+    private suspend fun markAuthError(accountId: AccountId, reason: AuthErrorReason) {
+        val email = tokenStorage.getEmail(accountId) ?: return
+        _authStates.value = _authStates.value + (accountId to
+            GoogleAuthState.AuthError(accountId, email, reason))
+        try {
+            accountRepository.updateConnectionState(accountId.value, ConnectionState.TOKEN_EXPIRED)
+        } catch (e: Exception) {
+            MoLogger.w(TAG, "Could not mark token-expired: ${e.javaClass.simpleName}")
+        }
+    }
+
+    private fun mapOAuthError(error: OAuthError): AuthErrorReason = when (error) {
+        OAuthError.INVALID_GRANT -> AuthErrorReason.REFRESH_FAILED
+        OAuthError.INVALID_CLIENT -> AuthErrorReason.UNKNOWN
+        OAuthError.INVALID_REQUEST -> AuthErrorReason.UNKNOWN
+        OAuthError.MALFORMED_RESPONSE -> AuthErrorReason.UNKNOWN
+        OAuthError.SERVER_ERROR -> AuthErrorReason.NETWORK_ERROR
+        OAuthError.NETWORK -> AuthErrorReason.NETWORK_ERROR
+    }
+
+    companion object {
+        private const val TAG = "GoogleAuthRepository"
+        private const val REFRESH_BUFFER_MS = 5 * 60 * 1000L
+
+        /**
+         * Custom-scheme redirect. MUST match the manifest intent-filter
+         * (scheme com.greninjaop.mailorganizer, host oauth2redirect).
+         */
+        const val REDIRECT_URI = "com.greninjaop.mailorganizer://oauth2redirect"
+        const val REDIRECT_SCHEME = "com.greninjaop.mailorganizer"
+
+        /**
+         * Phase 3 least-privilege scopes (Phase 3 §12): read-only Gmail.
+         * Write/integration scopes arrive incrementally in their phases.
+         */
+        val BASE_SCOPES: List<String> = listOf(
+            "https://www.googleapis.com/auth/gmail.readonly",
+            "openid",
+            "email",
+            "profile",
+        )
+
+        /** Incremental scopes for later phases (never requested in Phase 3). */
+        const val SCOPE_GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify"
+        const val SCOPE_CALENDAR_EVENTS = "https://www.googleapis.com/auth/calendar.events"
+        const val SCOPE_TASKS = "https://www.googleapis.com/auth/tasks"
+
+        /**
+         * Stable account id derived from the Google email address
+         * (Phase 3 §45: never create duplicates for the same account).
+         * Pure function — unit-tested.
+         */
+        fun deriveAccountId(email: String): AccountId {
+            val normalized = email.trim().lowercase()
+            val digest = MessageDigest.getInstance("SHA-256")
+            val hex = digest.digest(normalized.toByteArray(Charsets.UTF_8))
+                .joinToString("") { "%02x".format(it.toInt() and 0xFF) }
+            return AccountId("google_$hex")
+        }
+
+        /**
+         * Builds the authorization URL (pure JVM logic, unit-tested).
+         * Deliberately avoids android.net.Uri so unit tests run without
+         * Robolectric.
+         */
+        fun buildAuthorizationUrl(
+            clientId: String,
+            redirectUri: String,
+            scopes: List<String>,
+            codeChallenge: String,
+            state: String,
+            includeGrantedScopes: Boolean = true,
+        ): String {
+            fun enc(value: String): String =
+                java.net.URLEncoder.encode(value, Charsets.UTF_8.name())
+            val params = listOf(
+                "client_id" to clientId,
+                "redirect_uri" to redirectUri,
+                "response_type" to "code",
+                "scope" to scopes.joinToString(" "),
+                "code_challenge" to codeChallenge,
+                "code_challenge_method" to "S256",
+                "state" to state,
+                "access_type" to "offline",
+                "include_granted_scopes" to includeGrantedScopes.toString(),
+                "prompt" to "consent",
+            ).joinToString("&") { (k, v) -> "$k=${enc(v)}" }
+            return "https://accounts.google.com/o/oauth2/v2/auth?$params"
+        }
     }
 }
+
+/** Minimal Gmail profile (Phase 3 §27 smoke test result). */
+private data class GmailProfile(
+    val email: String,
+    val displayName: String?,
+)
