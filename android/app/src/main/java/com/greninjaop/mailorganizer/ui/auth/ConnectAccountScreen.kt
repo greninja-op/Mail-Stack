@@ -1,6 +1,7 @@
 package com.greninjaop.mailorganizer.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -62,6 +63,10 @@ fun ConnectAccountScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
+            // Paint the theme background explicitly: the activity's platform
+            // theme is light, so any unpainted area would flash white even
+            // when the app theme is dark.
+            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,

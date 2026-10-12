@@ -28,6 +28,7 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -301,23 +302,50 @@ class AccountsViewModel(
 
     fun disconnectAccount(accountId: String) {
         viewModelScope.launch(dispatchers.io) {
-            // Phase 3: revoke Google's grant + clear encrypted tokens first.
-            try {
+            // Crash fix (2026-10-12): every cleanup step is best-effort. A
+            // throw in any of them (revocation, integration metadata, FTS
+            // rows) used to escape this coroutine and crash the app, leaving
+            // the account undeleted. The account row itself is always removed.
+            runCatching {
+                // Phase 3: revoke Google's grant + clear encrypted tokens first.
                 authRepository?.disconnect(com.greninjaop.mailorganizer.core.AccountId(accountId))
-            } catch (e: Exception) {
+            }.onFailure { e ->
                 com.greninjaop.mailorganizer.core.MoLogger.w(
                     "AccountsViewModel",
                     "Auth disconnect failed: ${e.javaClass.simpleName}",
                 )
             }
-            // Integration cleanup
-            integrationManager?.handleAccountRemoved(accountId)
-            // Delete account cascades to all account-owned rows in Room and cleans FTS
-            accountRepository.deleteById(accountId)
+            runCatching {
+                // Integration cleanup
+                integrationManager?.handleAccountRemoved(accountId)
+            }.onFailure { e ->
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "AccountsViewModel",
+                    "Integration cleanup failed: ${e.javaClass.simpleName}",
+                )
+            }
+            // Delete account cascades to all account-owned rows in Room and cleans FTS.
+            // This step must run even if cleanup above failed.
+            runCatching {
+                accountRepository.deleteById(accountId)
+            }.onFailure { e ->
+                com.greninjaop.mailorganizer.core.MoLogger.e(
+                    "AccountsViewModel",
+                    "Account delete failed: ${e.javaClass.simpleName}: ${e.message}",
+                    e,
+                )
+            }
             // If deleted was active, fallback to unified
-            val currentSel = activeAccountPreferences.activeSelection.first()
-            if (currentSel is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Single && currentSel.accountId == accountId) {
-                activeAccountPreferences.setActiveSelection(com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified)
+            runCatching {
+                val currentSel = activeAccountPreferences.activeSelection.first()
+                if (currentSel is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Single && currentSel.accountId == accountId) {
+                    activeAccountPreferences.setActiveSelection(com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified)
+                }
+            }.onFailure { e ->
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "AccountsViewModel",
+                    "Active-selection fallback failed: ${e.javaClass.simpleName}",
+                )
             }
         }
     }
@@ -574,8 +602,20 @@ fun AccountsScreen(
                     }
                 }
                 Spacer(Modifier.height(MoSpacing.md))
+                // The real Google sign-in must stay reachable even when local/demo
+                // accounts exist — the empty-state "Connect Gmail" action only
+                // shows when the account list is completely empty.
+                OutlinedButton(
+                    onClick = onConnectAccount,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MoSpacing.md),
+                ) {
+                    Text("Connect Google account")
+                }
+                Spacer(Modifier.height(MoSpacing.xs))
                 Text(
-                    text = "Google OAuth sign-in arrives with Phase 3. Local accounts can be added for multi-account testing.",
+                    text = "Connect your real Gmail with the official Google sign-in flow. Local accounts are for testing.",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = MoSpacing.md),

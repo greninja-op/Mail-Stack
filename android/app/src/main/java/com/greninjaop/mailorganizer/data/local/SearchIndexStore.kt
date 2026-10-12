@@ -167,18 +167,34 @@ class SearchIndexStore(private val db: SupportSQLiteDatabase) {
         }
     }
 
-    /** Removes one document (message deleted locally, phase §24). */
+    /**
+     * Removes one document (message deleted locally, phase §24).
+     *
+     * Crash fix (2026-10-12): the FTS table may legitimately not exist —
+     * [createTableOrSkip] skips creation on devices whose SQLite lacks the
+     * FTS5 module. A raw DELETE then throws "no such table", which used to
+     * crash account removal. Missing table simply means nothing to delete.
+     */
     fun deleteDocument(messageId: String) {
+        if (!tableExists()) return
         db.execSQL("DELETE FROM messages_fts WHERE messageId = ?", arrayOf<Any?>(messageId))
     }
 
-    /** Removes every document of one account (account removed / rebuild). */
+    /**
+     * Removes every document of one account (account removed / rebuild).
+     * No-ops when the FTS table was never created (see [deleteDocument]).
+     */
     fun deleteForAccount(accountId: String) {
+        if (!tableExists()) return
         db.execSQL("DELETE FROM messages_fts WHERE accountId = ?", arrayOf<Any?>(accountId))
     }
 
-    /** Removes all documents across all accounts (data purge / rebuild). */
+    /**
+     * Removes all documents across all accounts (data purge / rebuild).
+     * No-ops when the FTS table was never created (see [deleteDocument]).
+     */
     fun clearAll() {
+        if (!tableExists()) return
         db.execSQL("DELETE FROM messages_fts")
     }
 
