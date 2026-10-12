@@ -30,14 +30,15 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-            <!-- Phase 3: OAuth2 redirect handler -->
+            <!-- Phase 3: OAuth2 redirect handler. Scheme-only match
+                 (AppAuth pattern): catches the RFC 8252 single-slash
+                 redirect com.greninjaop.mailorganizer:/oauth2redirect
+                 regardless of path/host parsing differences. -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data
-                    android:scheme="com.greninjaop.mailorganizer"
-                    android:host="oauth2redirect" />
+                <data android:scheme="com.greninjaop.mailorganizer" />
             </intent-filter>
         </activity>
     </application>

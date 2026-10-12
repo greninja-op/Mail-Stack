@@ -50,6 +50,12 @@ class MainActivity : ComponentActivity() {
             }
             return
         }
+        // OAuth cold start (2026-10-11 fix): if Android killed our process
+        // while the browser was in front (common on MIUI), the redirect
+        // intent arrives here in onCreate — NOT in onNewIntent. Handle it
+        // the same way, otherwise consent completes in the browser and the
+        // app silently does nothing ("authentication not working").
+        handlePossibleOAuthRedirect(intent)
         setContent {
             MailOrganizerTheme(themeMode = foundationViewModel.themeMode) {
                 AppNavGraph(container = app.container)

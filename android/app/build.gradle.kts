@@ -13,6 +13,16 @@ ksp {
     arg("room.schemaLocation", "$projectDir/schemas")
 }
 
+// Stable debug signing key (2026-10-11): the sandbox Gradle auto-generated
+// debug keystore is NOT stable across build agents (different APKs came out
+// with different certs), and the Google OAuth Android client binds the
+// package name to ONE SHA-1. This keeps every Mailstack APK on the same
+// certificate so the Cloud Console registration — and on-device APK updates,
+// which require matching certs — keep working. Falls back to the default
+// debug key on machines without this file. (Debug key only; the password is
+// not a secret.)
+val stableDebugKeyFile = file("/home/hatch/keys/mailstack-debug.keystore")
+
 android {
     namespace = "com.greninjaop.mailorganizer"
     // compileSdk 35: verified against AAR metadata; the newest AndroidX
@@ -24,14 +34,32 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 1
+        versionCode = 2
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
-        versionName = "1.0.0"
+        // 1.0.1: disconnect-crash fix + always-visible Connect button.
+        versionName = "1.0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    signingConfigs {
+        if (stableDebugKeyFile.exists()) {
+            create("stableDebug") {
+                storeFile = stableDebugKeyFile
+                storePassword = "mailstack-debug"
+                keyAlias = "mailstack-debug"
+                keyPassword = "mailstack-debug"
+            }
+        }
+    }
+
     buildTypes {
+        debug {
+            // Pin every debug APK to the stable certificate when available.
+            if (stableDebugKeyFile.exists()) {
+                signingConfig = signingConfigs.getByName("stableDebug")
+            }
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(

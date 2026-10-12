@@ -33,8 +33,8 @@ import java.security.MessageDigest
  * ```
  * createOAuthIntent()  →  system browser, Google consent
  *       ↓
- * redirect to com.greninjaop.mailorganizer://oauth2redirect
- *       ↓ (MainActivity.onNewIntent)
+ * redirect to com.greninjaop.mailorganizer:/oauth2redirect
+ *       ↓ (MainActivity.onNewIntent / onCreate cold start)
  * handleOAuthResult()  →  state check → code exchange (HTTPS POST)
  *       →  Gmail profile smoke test  →  tokens stored encrypted
  * ```
@@ -440,10 +440,14 @@ class GoogleAuthRepository(
         private const val REFRESH_BUFFER_MS = 5 * 60 * 1000L
 
         /**
-         * Custom-scheme redirect. MUST match the manifest intent-filter
-         * (scheme com.greninjaop.mailorganizer, host oauth2redirect).
+         * Custom-scheme redirect in RFC 8252 §7.1 private-use URI form
+         * (single slash). This is the exact form Google's OAuth
+         * documentation prescribes for installed apps
+         * ("com.example.app:redirect_uri_path ... the path should begin
+         * with a single slash"). MUST match the manifest intent-filter
+         * (scheme com.greninjaop.mailorganizer).
          */
-        const val REDIRECT_URI = "com.greninjaop.mailorganizer://oauth2redirect"
+        const val REDIRECT_URI = "com.greninjaop.mailorganizer:/oauth2redirect"
         const val REDIRECT_SCHEME = "com.greninjaop.mailorganizer"
 
         /**

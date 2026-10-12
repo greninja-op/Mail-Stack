@@ -4,6 +4,7 @@ import com.greninjaop.mailorganizer.data.http.HttpTransport
 import com.greninjaop.mailorganizer.data.http.TransportResponse
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -85,23 +86,27 @@ class OAuthPhase3Test {
     fun `authorization url encodes redirect uri and scopes`() {
         val url = GoogleAuthRepository.buildAuthorizationUrl(
             clientId = "cid",
-            redirectUri = "com.example.app://oauth2redirect",
+            redirectUri = "com.example.app:/oauth2redirect",
             scopes = listOf("https://www.googleapis.com/auth/gmail.readonly", "email"),
             codeChallenge = "c",
             state = "s",
         )
-        // The custom scheme's :// must be percent-encoded in the query.
-        assertTrue(url.contains("redirect_uri=com.example.app%3A%2F%2Foauth2redirect"))
+        // The custom scheme's :/ must be percent-encoded in the query.
+        assertTrue(url.contains("redirect_uri=com.example.app%3A%2Foauth2redirect"))
         assertTrue(url.contains("gmail.readonly"))
     }
 
     @Test
     fun `redirect uri matches manifest intent filter`() {
-        // Manifest declares scheme=com.greninjaop.mailorganizer,
-        // host=oauth2redirect. The code's URI must resolve the same way.
+        // Manifest declares scheme=com.greninjaop.mailorganizer
+        // (scheme-only match, AppAuth pattern). The code's URI must use
+        // that scheme in the RFC 8252 single-slash private-use form that
+        // Google's OAuth docs prescribe for installed apps.
         val uri = GoogleAuthRepository.REDIRECT_URI
-        assertTrue(uri.startsWith("com.greninjaop.mailorganizer://"))
-        assertTrue(uri.endsWith("oauth2redirect"))
+        assertEquals("com.greninjaop.mailorganizer:/oauth2redirect", uri)
+        assertTrue(uri.startsWith("com.greninjaop.mailorganizer:"))
+        assertTrue(uri.endsWith("/oauth2redirect"))
+        assertFalse(uri.contains("://"))
     }
 
     @Test
