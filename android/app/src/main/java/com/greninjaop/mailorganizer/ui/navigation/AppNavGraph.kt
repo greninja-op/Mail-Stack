@@ -1,13 +1,18 @@
 package com.greninjaop.mailorganizer.ui.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -18,6 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.di.AppContainer
@@ -36,6 +42,7 @@ import com.greninjaop.mailorganizer.ui.companies.CompaniesViewModel
 import com.greninjaop.mailorganizer.ui.companies.CompaniesViewModelFactory
 import com.greninjaop.mailorganizer.ui.companies.CompanyDetailScreen
 import com.greninjaop.mailorganizer.ui.home.HomeScreen
+import com.greninjaop.mailorganizer.ui.theme.MoMotion
 import com.greninjaop.mailorganizer.ui.home.HomeViewModel
 import com.greninjaop.mailorganizer.ui.home.HomeViewModelFactory
 import com.greninjaop.mailorganizer.ui.integrations.IntegrationsViewModel
@@ -89,6 +96,16 @@ object AppDestinations {
 
     /** Phase 3: Google OAuth connect-account flow. */
     const val CONNECT = "connect"
+
+    /**
+     * Import flow (2026-10-12): `import/{accountId}`. Shown after a new
+     * account connects so the user can explicitly start the first sync with
+     * the animated import experience.
+     */
+    const val IMPORT = "import/{accountId}"
+
+    fun importRoute(accountId: String): String =
+        "import/${android.net.Uri.encode(accountId)}"
     const val CLEANUP = "cleanup"
     const val ANALYTICS = "analytics"
     const val AI_SETTINGS = "settings/ai"
@@ -211,6 +228,16 @@ fun AppNavGraph(
     NavHost(
         navController = navController,
         startDestination = AppDestinations.HOME,
+        // 2026-10-13: explicit crossfade on every route change. The
+        // previous default left the raw window background visible while
+        // the old screen faded out, which read as a white flash when
+        // switching tabs. Fading in/out with matched timing over the
+        // theme background makes it a true, smooth crossfade.
+        enterTransition = { fadeIn(animationSpec = MoMotion.crossfade) },
+        exitTransition = { fadeOut(animationSpec = MoMotion.crossfade) },
+        popEnterTransition = { fadeIn(animationSpec = MoMotion.crossfade) },
+        popExitTransition = { fadeOut(animationSpec = MoMotion.crossfade) },
+        modifier = Modifier.background(MaterialTheme.colorScheme.background),
     ) {
         // Phase 11: the real Home dashboard (replaces the Phase 1
         // foundation screen).
@@ -228,8 +255,8 @@ fun AppNavGraph(
                 onOpenCompany = { companyId ->
                     navController.navigate(AppDestinations.companyRoute(companyId))
                 },
-                onOpenSearch = {
-                    navController.navigate(AppDestinations.searchRoute())
+                onOpenSearch = { query ->
+                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -272,8 +299,8 @@ fun AppNavGraph(
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
                 },
-                onOpenSearch = {
-                    navController.navigate(AppDestinations.searchRoute())
+                onOpenSearch = { query ->
+                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -318,8 +345,8 @@ fun AppNavGraph(
                 onOpenCompany = { companyId ->
                     navController.navigate(AppDestinations.companyRoute(companyId))
                 },
-                onOpenSearch = {
-                    navController.navigate(AppDestinations.searchRoute())
+                onOpenSearch = { query ->
+                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -357,8 +384,8 @@ fun AppNavGraph(
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
                 },
-                onOpenSearch = {
-                    navController.navigate(AppDestinations.searchRoute())
+                onOpenSearch = { query ->
+                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -513,9 +540,49 @@ fun AppNavGraph(
         composable(AppDestinations.CONNECT) {
             val vm: ConnectAccountViewModel =
                 viewModel(factory = ConnectAccountViewModelFactory(container.authRepository))
+            val scope = rememberCoroutineScope()
             ConnectAccountScreen(
                 viewModel = vm,
-                onConnected = { navController.popBackStack() },
+                // New accounts (never successfully synced) go to the import
+                // flow; reconnects return to where they came from.
+                onConnected = { accountId ->
+                    scope.launch {
+                        val record = container.syncStateRepository.ensureForAccount(accountId)
+                        if (record.lastSuccessfulSyncEpochMs == null) {
+                            navController.navigate(AppDestinations.importRoute(accountId)) {
+                                popUpTo(AppDestinations.CONNECT) { inclusive = true }
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
+                },
+                onBack = { navController.popBackStack() },
+            )
+        }
+        // Import flow (2026-10-12): explicit "Import now" + animated
+        // flying-mail progress for a newly connected account.
+        composable(
+            route = AppDestinations.IMPORT,
+            arguments = listOf(navArgument("accountId") { type = NavType.StringType }),
+        ) { backStackEntry ->
+            val accountId = backStackEntry.arguments?.getString("accountId").orEmpty()
+            val vm: com.greninjaop.mailorganizer.ui.import.ImportViewModel =
+                viewModel(
+                    factory = com.greninjaop.mailorganizer.ui.import.ImportViewModelFactory(
+                        accountId = accountId,
+                        accountRepository = container.accountRepository,
+                        syncCoordinator = container.syncCoordinator,
+                        dispatchers = container.dispatchers,
+                    ),
+                )
+            com.greninjaop.mailorganizer.ui.import.ImportFlowScreen(
+                viewModel = vm,
+                onDone = {
+                    navController.navigate(AppDestinations.MAIL) {
+                        popUpTo(AppDestinations.IMPORT) { inclusive = true }
+                    }
+                },
                 onBack = { navController.popBackStack() },
             )
         }
