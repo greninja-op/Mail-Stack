@@ -11,10 +11,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
@@ -43,9 +39,8 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -55,9 +50,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import com.greninjaop.mailorganizer.ui.components.MoSearchField
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
@@ -141,9 +136,18 @@ fun MailScreen(
                 }
                 val sync = state.syncUi
                 if (sync is SyncUiState.Syncing) {
-                    LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    // Determinate when the total is known (initial sync),
+                    // indeterminate otherwise (incremental) — 2026-10-12.
+                    if (sync.progress != null) {
+                        LinearProgressIndicator(
+                            progress = { sync.progress },
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
+                        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+                    }
                     Text(
-                        text = sync.stageText,
+                        text = syncProgressLabel(sync, sync.stageText),
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(
@@ -186,6 +190,21 @@ fun MailScreen(
     }
 }
 
+/**
+ * Sync progress label (2026-10-12): "42% · 210 of ~500 emails · Fetching mail…".
+ * Falls back to the stage text alone when the total is unknown.
+ */
+private fun syncProgressLabel(sync: SyncUiState.Syncing, stageText: String): String {
+    val total = sync.totalEstimate
+    val pct = sync.progress
+    if (total == null || total <= 0 || pct == null) return stageText
+    // Gmail's estimate is rough — once processed passes it, drop the
+    // comparison instead of showing "253 of ~201".
+    val count = if (sync.processed > total) "${sync.processed} emails"
+    else "${sync.processed} of ~$total emails"
+    return "${(pct * 100).toInt()}% · $count · $stageText"
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MailTopBar(
@@ -204,29 +223,11 @@ private fun MailTopBar(
             }
         },
         title = {
-            TextField(
+            MoSearchField(
                 value = state.filterText,
                 onValueChange = onFilterChange,
-                placeholder = { Text("Search mail") },
-                leadingIcon = {
-                    Icon(Icons.Filled.Search, contentDescription = null)
-                },
-                trailingIcon = {
-                    if (state.filterText.isNotEmpty()) {
-                        IconButton(onClick = { onFilterChange("") }) {
-                            Icon(Icons.Filled.Close, contentDescription = "Clear search")
-                        }
-                    }
-                },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() }),
-                shape = RoundedCornerShape(MoSpacing.xxl),
-                colors = TextFieldDefaults.colors(
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                ),
-                modifier = Modifier.fillMaxWidth(),
+                onSearchSubmit = onSearchSubmit,
+                placeholder = "Search mail",
             )
         },
         actions = {
@@ -385,6 +386,7 @@ private fun OfflineBanner() {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun MailContent(
     state: MailScreenState,
@@ -395,6 +397,8 @@ private fun MailContent(
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
+        // Gmail parity: pull-to-refresh on the list, wired to the sync engine.
+        val isRefreshing = state.syncUi is SyncUiState.Syncing
         Column(modifier = modifier.fillMaxSize()) {
             header()
             when (val content = state.content) {
@@ -403,48 +407,57 @@ private fun MailContent(
                     modifier = Modifier.weight(1f),
                 )
                 is MailboxContent.Threads -> {
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(content.items, key = { it.threadId }) { item ->
-                            val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
-                            ThreadRow(
-                                item = item,
-                                account = rowAccount,
-                                showAccountIndicator = state.isUnified || state.destination == MailboxDestination.ALL_INBOX,
-                                onClick = { onOpenThread(item.threadId, null) },
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                modifier = Modifier.padding(start = MoSpacing.md),
-                            )
-                        }
-                        if (content.hasMore) {
-                            item {
-                                Button(
-                                    onClick = onLoadMore,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(MoSpacing.md),
-                                ) {
-                                    Text("Load more")
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRetry,
+                        modifier = Modifier.weight(1f).fillMaxSize(),
+                    ) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(content.items, key = { it.threadId }) { item ->
+                                val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
+                                ThreadRow(
+                                    item = item,
+                                    account = rowAccount,
+                                    showAccountIndicator = state.isUnified || state.destination == MailboxDestination.ALL_INBOX,
+                                    onClick = { onOpenThread(item.threadId, null) },
+                                    modifier = Modifier.animateItem(),
+                                )
+                                // No dividers between rows — Gmail has none.
+                            }
+                            if (content.hasMore) {
+                                item {
+                                    Button(
+                                        onClick = onLoadMore,
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(MoSpacing.md)
+                                            .animateItem(),
+                                    ) {
+                                        Text("Load more")
+                                    }
                                 }
                             }
                         }
                     }
                 }
                 is MailboxContent.Messages -> {
-                    LazyColumn(modifier = Modifier.weight(1f)) {
-                        items(content.items, key = { it.messageId }) { item ->
-                            val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
-                            StarredMessageRow(
-                                item = item,
-                                account = rowAccount,
-                                showAccountIndicator = state.isUnified,
-                                onClick = { onOpenThread(item.threadId, item.messageId) },
-                            )
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant,
-                                modifier = Modifier.padding(start = MoSpacing.md),
-                            )
+                    PullToRefreshBox(
+                        isRefreshing = isRefreshing,
+                        onRefresh = onRetry,
+                        modifier = Modifier.weight(1f).fillMaxSize(),
+                    ) {
+                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                            items(content.items, key = { it.messageId }) { item ->
+                                val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
+                                StarredMessageRow(
+                                    item = item,
+                                    account = rowAccount,
+                                    showAccountIndicator = state.isUnified,
+                                    onClick = { onOpenThread(item.threadId, item.messageId) },
+                                    modifier = Modifier.animateItem(),
+                                )
+                                // No dividers between rows — Gmail has none.
+                            }
                         }
                     }
                 }
@@ -453,7 +466,7 @@ private fun MailContent(
                         EmptyKind.NO_MAIL -> MoEmptyState(
                             title = "No synchronized email yet",
                             message = "Connect a Gmail account to see your mail here. " +
-                                "Gmail connection arrives in a later phase.",
+                                "Tap Sync now to fetch your messages.",
                             actionLabel = "Sync now",
                             onAction = onRetry,
                             modifier = Modifier.weight(1f),
