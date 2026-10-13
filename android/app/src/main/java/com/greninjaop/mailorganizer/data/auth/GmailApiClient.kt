@@ -5,8 +5,16 @@ import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.JsonParser
 import com.greninjaop.mailorganizer.core.JsonParser.array
+import com.greninjaop.mailorganizer.core.JsonParser.long
+import com.greninjaop.mailorganizer.core.JsonParser.obj
 import com.greninjaop.mailorganizer.core.JsonParser.string
 import com.greninjaop.mailorganizer.core.MoLogger
+import com.greninjaop.mailorganizer.core.email.EmailMessage
+import com.greninjaop.mailorganizer.core.email.EmailParser
+import com.greninjaop.mailorganizer.core.email.RawGmailBody
+import com.greninjaop.mailorganizer.core.email.RawGmailHeader
+import com.greninjaop.mailorganizer.core.email.RawGmailMessage
+import com.greninjaop.mailorganizer.core.email.RawGmailPart
 import com.greninjaop.mailorganizer.data.http.HttpTransport
 import com.greninjaop.mailorganizer.data.http.TransportResponse
 import com.greninjaop.mailorganizer.data.http.UrlConnectionTransport
@@ -303,6 +311,79 @@ class GmailApiClient(
      * the grant lacks gmail.modify → the use case turns it into the
      * incremental-authorization upgrade prompt (phase §9).
      */
+    /**
+     * Fetches one message's full MIME payload (`format=full`) and parses it
+     * into the canonical [EmailMessage].
+     *
+     * Fetch-on-open (2026-10-13): the sync stores metadata only
+     * (`bodyText`/`bodyHtml` null); bodies arrive when the user opens a
+     * thread. Fail-closed like every other client method: no token means an
+     * honest Authentication failure, never a crash. Tokens and message
+     * content are never logged.
+     */
+    suspend fun fetchFullMessage(
+        accountId: AccountId,
+        gmailMessageId: String,
+    ): MoResult<EmailMessage> = withContext(Dispatchers.IO) {
+        val accessToken = authRepository.getValidAccessToken(accountId)
+            ?: return@withContext MoResult.Failure(
+                MoError.Authentication("Not connected to Gmail. Reconnect your account."),
+            )
+        when (val res = get("$apiBase/gmail/v1/users/me/messages/$gmailMessageId?format=full", accessToken)) {
+            is ApiResponse.Ok -> {
+                val raw = parseRawFullMessage(res.body, gmailMessageId)
+                    ?: return@withContext MoResult.Failure(
+                        MoError.Parsing("Gmail's response couldn't be understood."),
+                    )
+                MoResult.Success(EmailParser.parse(raw))
+            }
+            is ApiResponse.Err -> MoResult.Failure(res.error)
+        }
+    }
+
+    /**
+     * Builds a [RawGmailMessage] from a `format=full` response. Total:
+     * malformed parts degrade to null and the parser degrades gracefully —
+     * one bad part never breaks the fetch.
+     */
+    private fun parseRawFullMessage(body: String, fallbackId: String): RawGmailMessage? {
+        val json = JsonParser.parse(body) as? JsonParser.JsonValue.Obj ?: return null
+        fun parsePart(value: JsonParser.JsonValue): RawGmailPart? {
+            val o = value as? JsonParser.JsonValue.Obj ?: return null
+            val bodyObj = o.obj("body")
+            return RawGmailPart(
+                mimeType = o.string("mimeType").orEmpty(),
+                filename = o.string("filename")?.takeIf { it.isNotEmpty() },
+                headers = o.array("headers").orEmpty().mapNotNull { h ->
+                    val ho = h as? JsonParser.JsonValue.Obj ?: return@mapNotNull null
+                    val name = ho.string("name") ?: return@mapNotNull null
+                    val headerValue = ho.string("value") ?: return@mapNotNull null
+                    RawGmailHeader(name, headerValue)
+                },
+                body = bodyObj?.let {
+                    RawGmailBody(
+                        data = it.string("data"),
+                        attachmentId = it.string("attachmentId"),
+                        size = it.long("size") ?: 0L,
+                    )
+                },
+                parts = o.array("parts").orEmpty().mapNotNull(::parsePart),
+            )
+        }
+        return RawGmailMessage(
+            id = json.string("id") ?: fallbackId,
+            threadId = json.string("threadId").orEmpty(),
+            labelIds = json.array("labelIds").orEmpty()
+                .mapNotNull { (it as? JsonParser.JsonValue.Str)?.value },
+            snippet = json.string("snippet"),
+            internalDateMs = json.string("internalDate")?.toLongOrNull()
+                ?: json.long("internalDate"),
+            sizeEstimate = json.string("sizeEstimate")?.toLongOrNull()
+                ?: json.long("sizeEstimate"),
+            payload = json.obj("payload")?.let(::parsePart),
+        )
+    }
+
     private fun mapHttpError(code: Int): MoError {
         MoLogger.w(TAG, "Gmail API error: HTTP $code")
         return when (code) {
