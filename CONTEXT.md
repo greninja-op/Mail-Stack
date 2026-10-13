@@ -138,3 +138,68 @@
 ## 2026-10-13 09:20 IST — Push STAGED but blocked (proactive mode)
 - All 96 changes merged (remote CONTEXT.md fetched via API and merged; local entries preserved). 101 text files packed for push; 35 PNGs (drawable-nodpi/, mipmap-*/) stay local-only per the binary rule; 1 PNG deletion (`drawable/ic_launcher_logo_foreground.png`) still needs `delete_file`.
 - Payloads staged at /tmp/pb00.json … /tmp/pb14.json (15 batches, ~95KB each — single-arg exec limit is 128KB). Could NOT push: proactive delivery context denies connector writes (`policy_denied`, `read_only_preparation`). The push must be fired from the main chat where write approvals work. Next step: run the 15 `push_files` batches + 1 `delete_file` from main chat, then byte-verify via `get_file_contents` readback.
+
+## 2026-10-13 ~09:45 IST — PUSHED to main (15 commits)
+- All 96 working-tree changes pushed to greninja-op/mail-organizer main as 15 batched commits (a0d85127 … debbff96): "Mailstack fixes 2026-10-13 (part N/15)". Single-arg exec limit (128KB) forced the split; one batched push_files per commit.
+- 101 text files pushed, byte-verified remote-vs-local (CONTEXT.md, MoAppTopBar.kt, MoSearchField.kt, FetchMessageBodyUseCase.kt, Motion.kt all MATCH). 35 PNGs (drawable-nodpi/, mipmap-*/) remain local-only per the binary rule; the deleted launcher PNG never existed on remote (nothing to delete).
+- Remote CONTEXT.md was fetched fresh and merged before pushing (anti-stale rule); no history lost.
+- Still no APK delivered (user directive). Splash screen still on hold awaiting user's final card.
+
+## 2026-10-13 ~13:15 IST — 1.0.11: demo inbox + banner removal (APK delivered)
+- REMOVED the "Sample data — fixtures for UI development" banner from Mail
+  (SampleDataBanner) and Home (SampleDataNote). The `isSampleData` state flag
+  remains (tests use it); nothing renders it anymore.
+- Seeder expanded into a realistic demo inbox: 7 original fixture threads +
+  25 new company threads (Adobe, Amazon shipped→delivered 2-msg thread,
+  GitHub PR + Dependabot, Netflix, Spotify, Google, LinkedIn x2, YouTube,
+  Reddit, Canva, Dribbble, X, Duolingo, ClickUp, AWS, Apple, HDFC Bank,
+  IndiGo, Swiggy, Flipkart, OpenRouter, Glasp, + 1 demo spam). 32 threads /
+  37 messages total, all with full bodies. Gmail labels mirror Gmail
+  (INBOX / CATEGORY_SOCIAL / CATEGORY_PROMOTIONS / SPAM) so every mailbox
+  destination populates. Seeds only on fresh install (zero accounts).
+- Flying-mail import animation REPORT (user asked why it never appeared):
+  it was built in 1.0.6 and IS fully wired — Connect success → Continue →
+  onConnected → import route (never-synced accounts only) → Intro →
+  Importing with FlyingEnvelope Canvas animation → Done. The user never saw
+  it because their account predates 1.0.6 and was already synced. Disconnect
+  + reconnect shows it (disconnect cascades the sync state). No fix needed.
+- Tests: 932 run, 924 pass; the only 8 failures are the known env-broken
+  Robolectric classes (same as before). Test-lesson: the R class in
+  kotlin-classes/debug is stale (predates logo PNGs) — put the fresh R.jar
+  (processDebugResources) FIRST on the JUnitCore classpath.
+- Version 1.0.11 (versionCode 12). APK verified: package, versionName,
+  label Mailstack, stable cert SHA-1 07:31:05:EF:.... Delivered as
+  Mailstack-1.0.11.apk (16.3 MB).
+
+## 2026-10-13 ~14:10 IST — Fixes batch (in working tree, unpushed; NO APK until user says okay)
+- FLYING-MAIL IMPORT — REAL BUG FOUND + FIXED. The animation existed and
+  was wired, but never showed: MailOrganizerApp fired a background
+  ACCOUNT_CONNECTED sync the moment OAuth succeeded, which marked the
+  account synced BEFORE the user tapped "Continue" — so onConnected's
+  never-synced check skipped the import route every time. Fix: never-synced
+  accounts skip the background sync; the import flow owns the first sync.
+  "Not now" now fires a background sync via ImportViewModel.skipImport()
+  so the inbox still populates without the animation.
+- LOGOS EVERYWHERE: mail rows now show the company logo (Mail list, company
+  detail, thread view, search results). ThreadItem carries senderDomain
+  (canonical company domain via CompanyDetector; null = personal sender
+  keeps letter avatar). MailRowLayout renders CompanyLogo when present.
+- MISSING LOGOS: Kick bundled (official K-mark from Kick's favicon,
+  upscaled losslessly to 512px) + redditmail.com aliased to the Reddit logo
+  (Reddit notifications come from redditmail.com, not reddit.com).
+  Devpost was already correct (its monochrome glyph IS a D).
+- TAB-SWITCH REDONE: (1) old crossfade drew both screens at half opacity
+  simultaneously = washed-out flash. Replaced with Material fade-through:
+  exit fades out first (200ms), enter fades in after 120ms delay (350ms)
+  with a subtle 0.97→1.0 scale. (2) The real cause of the "refresh" feel:
+  tab navigation used plain navigate() (stacked a FRESH screen per tap) or
+  popUpTo without saveState (destroyed the tab). All 7 tab sites now use
+  one navigatePrimary helper with popUpTo(HOME){saveState} +
+  launchSingleTop + restoreState — tabs keep ViewModel/scroll/loaded data.
+- ROWS +35% (shared MoSpacing tokens, identical everywhere): mail row
+  88→120dp, avatar 40→54dp, company row 64→86dp, thread header 48→65dp,
+  search row 72→97dp. The ROW grows, not the gap.
+- Tests: 936 run, 928 pass; only the same 8 env-broken Robolectric
+  classes fail. New: ThreadItemSenderDomainTest (4), resolver kick/redditmail.
+- Test-lesson: R class in kotlin-classes/debug is stale (predates logo
+  PNGs) — fresh R.jar FIRST on the JUnitCore classpath.
