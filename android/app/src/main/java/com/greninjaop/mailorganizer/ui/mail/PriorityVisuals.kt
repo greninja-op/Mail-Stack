@@ -52,6 +52,9 @@ fun Priority.visuals(): PriorityVisuals? = when (this) {
 
 /**
  * Compact priority badge for mail rows. Renders nothing for NORMAL/LOW.
+ *
+ * Neutral tonal M3 chip (2026-10-12): one style for every priority — no
+ * per-level colors. The label text carries the meaning.
  */
 @Composable
 fun PriorityBadge(
@@ -59,13 +62,10 @@ fun PriorityBadge(
     modifier: Modifier = Modifier,
 ) {
     val visuals = remember(priority) { priority.visuals() } ?: return
-    val badgeColor = when (priority) {
-        Priority.CRITICAL -> MaterialTheme.colorScheme.error
-        else -> MaterialTheme.colorScheme.tertiary
-    }
     Surface(
         shape = RoundedCornerShape(MoSpacing.xs),
-        color = badgeColor.copy(alpha = 0.14f),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         modifier = modifier.semantics {
             contentDescription = visuals.contentDescription
         },
@@ -73,7 +73,6 @@ fun PriorityBadge(
         Text(
             text = visuals.label,
             style = MaterialTheme.typography.labelSmall,
-            color = badgeColor,
             modifier = Modifier.padding(
                 horizontal = MoSpacing.xs,
                 vertical = MoSpacing.xxs,

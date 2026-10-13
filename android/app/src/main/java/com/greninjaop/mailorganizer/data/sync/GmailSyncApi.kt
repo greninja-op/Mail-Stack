@@ -48,6 +48,12 @@ data class MessagePage(
     val messages: List<RemoteMessage>,
     /** Null = end of pagination. Never ignored, never re-requested blindly. */
     val nextPageToken: String?,
+    /**
+     * Gmail's `resultSizeEstimate` for the list query — an estimate of the
+     * total matching messages. Used for honest sync progress percentages
+     * (2026-10-12); null when the server omits it.
+     */
+    val resultSizeEstimate: Int? = null,
 )
 
 /** Incremental change set (phase §23). */
@@ -107,6 +113,17 @@ interface GmailSyncApi {
     ): MessagePage
 
     /**
+     * Fetch one page of SPAM-labeled messages (2026-10-13). Spam is not in
+     * the INBOX list, so the Spam destination needs its own bounded pass
+     * during the initial sync. Incremental syncs already see spam via the
+     * history API's messageAdded events.
+     */
+    suspend fun fetchSpamPage(
+        accountId: AccountId,
+        pageSize: Int,
+    ): MessagePage
+
+    /**
      * Fetch changes since [historyCursor] (Gmail history API).
      * Throws [SyncApiException.HistoryInvalid] when the cursor expired.
      */
@@ -142,6 +159,11 @@ class DeferredGmailSyncApi : GmailSyncApi {
         accountId: AccountId,
         historyCursor: String,
     ): ChangePage = fail()
+
+    override suspend fun fetchSpamPage(
+        accountId: AccountId,
+        pageSize: Int,
+    ): MessagePage = fail()
 
     override suspend fun latestHistoryCursor(accountId: AccountId): String = fail()
 }

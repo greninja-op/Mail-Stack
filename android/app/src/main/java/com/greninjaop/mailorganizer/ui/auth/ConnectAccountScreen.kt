@@ -1,7 +1,6 @@
 package com.greninjaop.mailorganizer.ui.auth
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -12,6 +11,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
@@ -35,7 +35,7 @@ import androidx.lifecycle.LifecycleEventObserver
 @Composable
 fun ConnectAccountScreen(
     viewModel: ConnectAccountViewModel,
-    onConnected: () -> Unit,
+    onConnected: (accountId: String) -> Unit,
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -60,13 +60,16 @@ fun ConnectAccountScreen(
         context.startActivity(intent)
     }
 
+    Surface(
+        modifier = modifier.fillMaxSize(),
+        // Surface provides LocalContentColor = onBackground, so child Text
+        // defaults stay readable in both light and dark themes (2026-10-12:
+        // bare Column + background() left text black-on-dark).
+        color = MaterialTheme.colorScheme.background,
+    ) {
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxSize()
-            // Paint the theme background explicitly: the activity's platform
-            // theme is light, so any unpainted area would flash white even
-            // when the app theme is dark.
-            .background(MaterialTheme.colorScheme.background)
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
@@ -122,7 +125,7 @@ fun ConnectAccountScreen(
                 )
                 Spacer(modifier = Modifier.height(16.dp))
                 Button(
-                    onClick = onConnected,
+                    onClick = { onConnected(state.accountId) },
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text("Continue")
@@ -153,6 +156,7 @@ fun ConnectAccountScreen(
             Text("Back")
         }
     }
+    }
 }
 
 /**
@@ -161,6 +165,7 @@ fun ConnectAccountScreen(
 sealed interface ConnectAccountUiState {
     data object Idle : ConnectAccountUiState
     data object Connecting : ConnectAccountUiState
-    data class Success(val email: String) : ConnectAccountUiState
+    /** accountId is needed to route new accounts to the import flow. */
+    data class Success(val accountId: String, val email: String) : ConnectAccountUiState
     data class Error(val message: String) : ConnectAccountUiState
 }
