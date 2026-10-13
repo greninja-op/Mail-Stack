@@ -148,7 +148,10 @@ fun ImportFlowScreen(
                 ImportIntroScreen(
                     account = s.account,
                     onImportNow = viewModel::startImport,
-                    onNotNow = onDone,
+                    onNotNow = {
+                        viewModel.skipImport()
+                        onDone()
+                    },
                 )
             }
             is ImportViewModel.ImportUiState.Importing -> {

@@ -75,17 +75,40 @@ class MailOrganizerApp : Application() {
                     kotlinx.coroutines.runBlocking {
                         c.authRepository.observeOAuthResults().collect { result ->
                             if (result is AuthResult.Success) {
-                                try {
-                                    c.syncScheduler.requestSync(
-                                        result.accountId,
-                                        SyncTrigger.ACCOUNT_CONNECTED,
-                                    )
+                                // 2026-10-13: the first sync belongs to the
+                                // import flow (flying-mail animation). A
+                                // background sync here used to race ahead of
+                                // the user's "Continue" tap, mark the account
+                                // synced, and make onConnected skip the import
+                                // route — so the animation never appeared.
+                                // Only auto-sync accounts that HAVE synced
+                                // before (re-auth); never-synced accounts wait
+                                // for the import flow's startImport().
+                                val neverSynced = try {
+                                    c.syncStateRepository
+                                        .ensureForAccount(result.accountId.value)
+                                        .lastSuccessfulSyncEpochMs == null
+                                } catch (t: Throwable) {
+                                    false
+                                }
+                                if (neverSynced) {
                                     MoLogger.i(
                                         TAG,
-                                        "Post-connect sync requested for ${result.email}",
+                                        "First sync deferred to import flow for ${result.email}",
                                     )
-                                } catch (t: Throwable) {
-                                    MoLogger.e(TAG, "post-connect sync failed (non-fatal)", t)
+                                } else {
+                                    try {
+                                        c.syncScheduler.requestSync(
+                                            result.accountId,
+                                            SyncTrigger.ACCOUNT_CONNECTED,
+                                        )
+                                        MoLogger.i(
+                                            TAG,
+                                            "Post-connect sync requested for ${result.email}",
+                                        )
+                                    } catch (t: Throwable) {
+                                        MoLogger.e(TAG, "post-connect sync failed (non-fatal)", t)
+                                    }
                                 }
                             }
                         }

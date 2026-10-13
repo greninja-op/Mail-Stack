@@ -1,5 +1,7 @@
 package com.greninjaop.mailorganizer.ui.mail
 
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.core.email.AttachmentMeta
 import com.greninjaop.mailorganizer.data.local.MessageRecord
 import com.greninjaop.mailorganizer.data.local.Priority
@@ -84,6 +86,13 @@ data class ThreadItem(
     val threadId: String,
     val accountId: String,
     val senderDisplay: String,
+    /**
+     * Canonical company domain of the latest message's sender (null for
+     * personal senders / undetectable). Drives the company logo in the row
+     * — CompanyDetector already canonicalizes (strips mailing subdomains)
+     * and excludes personal mailbox domains.
+     */
+    val senderDomain: String? = null,
     val subject: String,
     val snippet: String,
     val timestampEpochMs: Long,
@@ -149,10 +158,17 @@ fun ThreadRecord.toThreadItem(latest: MessageRecord?): ThreadItem {
         ?: latest?.fromName?.takeIf { it.isNotBlank() }
         ?: latest?.fromAddress
         ?: "Unknown sender"
+    // Canonical company domain for the row logo (null = personal sender).
+    val senderDomain = latest?.fromAddress?.takeIf { it.isNotBlank() }?.let { address ->
+        CompanyDetector.detect(
+            CompanyDetectionInput(fromAddress = address, fromName = latest.fromName),
+        )?.normalizedDomain
+    }
     return ThreadItem(
         threadId = threadId,
         accountId = accountId,
         senderDisplay = sender,
+        senderDomain = senderDomain,
         subject = MailFormatting.subjectDisplay(subject),
         snippet = latest?.snippet?.trim().orEmpty(),
         timestampEpochMs = latestMessageEpochMs,

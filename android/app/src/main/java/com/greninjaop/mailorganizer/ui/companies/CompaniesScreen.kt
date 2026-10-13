@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -113,6 +114,7 @@ fun CompaniesScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .heightIn(min = MoSpacing.companyRowMinHeight)
                             .animateItem()
                             .clickable { onOpenCompany(entry.record.companyId) }
                             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
@@ -274,6 +276,9 @@ fun CompanyDetailScreen(
                         MailRowLayout(
                             sender = message.senderName,
                             senderKey = message.senderName,
+                            // Every row in a company view shows that
+                            // company's logo (2026-10-13), not a letter.
+                            senderDomain = content.company.normalizedDomain,
                             subject = MailFormatting.subjectDisplay(message.subject),
                             snippet = "",
                             timeText = timeText,

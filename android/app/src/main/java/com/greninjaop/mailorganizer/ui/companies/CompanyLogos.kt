@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.R
 import com.greninjaop.mailorganizer.ui.mail.SenderAvatar
+import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
@@ -89,6 +90,10 @@ object CompanyLogoResolver {
         "github.com" -> R.drawable.company_github
         "x.com" -> R.drawable.company_x
         "twitter.com" -> R.drawable.company_x
+        // 2026-10-13: Kick (official K-mark) + Reddit's mail domain
+        // (Reddit notifications come from redditmail.com, not reddit.com).
+        "kick.com" -> R.drawable.company_kick
+        "redditmail.com" -> R.drawable.company_reddit
         else -> null
     }
 
@@ -254,7 +259,7 @@ object CompanyLogoLoader {
 }
 
 /**
- * Company logo in a circle (default 40dp), Gmail-style.
+ * Company logo in a circle (default 54dp), Gmail-style.
  *
  * Resolution order: bundled artwork (tinted on a tonal circle when the
  * bundle is a monochrome glyph) → ICONS-ASSETS repo via [CompanyLogoLoader]
@@ -267,7 +272,7 @@ fun CompanyLogo(
     domain: String,
     name: String,
     modifier: Modifier = Modifier,
-    size: Dp = 40.dp,
+    size: Dp = MoSpacing.rowAvatar,
 ) {
     val bundled = remember(domain) { CompanyLogoResolver.bundledRes(domain) }
     if (bundled != null) {

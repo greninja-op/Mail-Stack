@@ -69,6 +69,19 @@ class ImportViewModel(
         }
     }
 
+    /**
+     * "Not now": skip the animated import but still sync in the background,
+     * so the inbox populates. The import flow owns the first sync (see
+     * MailOrganizerApp) — skipping must not mean "never sync".
+     */
+    fun skipImport() {
+        val acc = account ?: return
+        if (_uiState.value is ImportUiState.Importing) return
+        viewModelScope.launch(dispatchers.io) {
+            syncCoordinator.syncNow(AccountId(accountId), SyncTrigger.MANUAL)
+        }
+    }
+
     /** Starts the real first sync; progress drives the animation. */
     fun startImport() {
         val acc = account ?: return
