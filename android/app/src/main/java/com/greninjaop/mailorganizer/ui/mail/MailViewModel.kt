@@ -96,6 +96,15 @@ class MailViewModel(
         private const val TAG = "MailViewModel"
 
         /**
+         * Gmail's native category labels (2026-10-13). The Promotions /
+         * Social / Spam destinations follow Gmail's tab semantics exactly —
+         * these server-assigned labels, not our classifier's categories.
+         */
+        private const val GMAIL_LABEL_PROMOTIONS = "CATEGORY_PROMOTIONS"
+        private const val GMAIL_LABEL_SOCIAL = "CATEGORY_SOCIAL"
+        private const val GMAIL_LABEL_SPAM = "SPAM"
+
+        /**
          * Startup classification guards: the background pass waits for
          * seeding, then for an account, but never blocks the UI — both
          * waits are bounded.
@@ -241,6 +250,12 @@ class MailViewModel(
                                         else MailboxContent.Empty(EmptyKind.NO_STARRED)
                                     } else MailboxContent.Messages(items)
                                 }
+                        // Gmail Primary tab semantics, unified (2026-10-13).
+                        MailboxDestination.PRIMARY ->
+                            mail.observeUnifiedPrimary(key.limit)
+                                .mapLatest { threads ->
+                                    buildThreadContent(threads, key)
+                                }
                         else ->
                             mail.observeUnifiedThreads(key.limit)
                                 .mapLatest { threads ->
@@ -260,22 +275,25 @@ class MailViewModel(
                     }
                 key.dest == MailboxDestination.PROMOTIONAL ->
                     if (key.companyId != null) {
-                        mail.observeMessagesByCompanyAndCategory(
+                        mail.observeMessagesByCompanyAndLabel(
                             key.account!!.accountId,
-                            MailCategory.PROMOTIONS,
                             key.companyId,
+                            GMAIL_LABEL_PROMOTIONS,
                             key.limit,
                         ).mapLatest { messages ->
                             buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_COMPANY_RESULTS)
                         }
                     } else {
-                        intelligence.observeByCategory(
+                        // Gmail Promotions tab semantics (2026-10-13): the
+                        // Gmail CATEGORY_PROMOTIONS label, not our classifier
+                        // category — consistent with Social/Spam.
+                        mail.observeByLabel(
                             key.account!!.accountId,
-                            MailCategory.PROMOTIONS,
+                            GMAIL_LABEL_PROMOTIONS,
                             key.limit,
-                        ).mapLatest { records ->
-                            buildCategoryContent(records.map { it.messageId }, key)
+                        ).mapLatest { messages ->
+                            buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_PROMOTIONS)
                         }
                     }
@@ -284,14 +302,14 @@ class MailViewModel(
                         mail.observeMessagesByCompanyAndLabel(
                             key.account!!.accountId,
                             key.companyId,
-                            "CATEGORY_SOCIAL",
+                            GMAIL_LABEL_SOCIAL,
                             key.limit,
                         ).mapLatest { messages ->
                             buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_COMPANY_RESULTS)
                         }
                     } else {
-                        mail.observeByLabel(key.account!!.accountId, "CATEGORY_SOCIAL", key.limit)
+                        mail.observeByLabel(key.account!!.accountId, GMAIL_LABEL_SOCIAL, key.limit)
                             .mapLatest { messages ->
                                 buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_SOCIAL)
@@ -302,14 +320,14 @@ class MailViewModel(
                         mail.observeMessagesByCompanyAndLabel(
                             key.account!!.accountId,
                             key.companyId,
-                            "SPAM",
+                            GMAIL_LABEL_SPAM,
                             key.limit,
                         ).mapLatest { messages ->
                             buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_COMPANY_RESULTS)
                         }
                     } else {
-                        mail.observeByLabel(key.account!!.accountId, "SPAM", key.limit)
+                        mail.observeByLabel(key.account!!.accountId, GMAIL_LABEL_SPAM, key.limit)
                             .mapLatest { messages ->
                                 buildMessageContent(messages.map { it.toMessageItem() }, key)
                                 ?: MailboxContent.Empty(EmptyKind.NO_SPAM)
@@ -326,7 +344,12 @@ class MailViewModel(
                             } else MailboxContent.Messages(items)
                         }
                 else ->
-                    mail.observeThreads(key.account!!.accountId, key.limit)
+                    // PRIMARY gets the Gmail Primary tab semantics
+                    // (2026-10-13); ALL_INBOX keeps the unfiltered thread list.
+                    (if (key.dest == MailboxDestination.PRIMARY)
+                        mail.observePrimary(key.account!!.accountId, key.limit)
+                    else
+                        mail.observeThreads(key.account!!.accountId, key.limit))
                         .mapLatest { threads ->
                             buildThreadContent(threads, key)
                         }
@@ -353,11 +376,11 @@ class MailViewModel(
         }.flatMapLatest { (account, dest, selected) ->
             val scope = when (dest) {
                 MailboxDestination.PROMOTIONAL ->
-                    CompanyScope.Category(MailCategory.PROMOTIONS)
+                    CompanyScope.Label(GMAIL_LABEL_PROMOTIONS)
                 MailboxDestination.SOCIAL ->
-                    CompanyScope.Label("CATEGORY_SOCIAL")
+                    CompanyScope.Label(GMAIL_LABEL_SOCIAL)
                 MailboxDestination.SPAM ->
-                    CompanyScope.Label("SPAM")
+                    CompanyScope.Label(GMAIL_LABEL_SPAM)
                 else -> null
             }
             if (account == null || scope == null) {
@@ -365,18 +388,10 @@ class MailViewModel(
             } else {
                 companyIntelligence.observeCompanyFilterList(account.accountId)
                     .mapLatest { companies ->
-                        val counts = when (scope) {
-                            is CompanyScope.Category ->
-                                companyIntelligence.companyCountsForCategory(
-                                    account.accountId,
-                                    scope.category,
-                                )
-                            is CompanyScope.Label ->
-                                companyIntelligence.companyCountsForLabel(
-                                    account.accountId,
-                                    scope.label,
-                                )
-                        }
+                        val counts = companyIntelligence.companyCountsForLabel(
+                            account.accountId,
+                            scope.label,
+                        )
                         val entries = companies.mapNotNull { company ->
                             val count = counts[company.companyId] ?: 0
                             if (count <= 0) null
@@ -407,7 +422,6 @@ class MailViewModel(
 
     /** Destination scope for company counts (Phase 8). */
     private sealed interface CompanyScope {
-        data class Category(val category: MailCategory) : CompanyScope
         data class Label(val label: String) : CompanyScope
     }
 
@@ -520,11 +534,21 @@ class MailViewModel(
     init {
         syncScheduler?.onAppStart()
 
-        // Honest sync progress (stages, never fabricated percentages — §16).
+        // Honest sync progress (2026-10-12): stages plus a real percentage
+        // derived from Gmail's resultSizeEstimate — never fabricated.
         syncCoordinator.progress
             .onEach { progress ->
                 if (progress is SyncProgress.Running) {
-                    syncUi.value = SyncUiState.Syncing(stageText(progress.stage))
+                    val total = progress.totalEstimate
+                    val pct = if (total != null && total > 0) {
+                        (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 1f)
+                    } else null
+                    syncUi.value = SyncUiState.Syncing(
+                        stageText = stageText(progress.stage),
+                        progress = pct,
+                        processed = progress.messagesProcessed,
+                        totalEstimate = total,
+                    )
                 }
             }
             .launchIn(viewModelScope)
@@ -830,7 +854,8 @@ class MailViewModel(
         SyncStage.FINALIZING -> "Finishing…"
     }
 
-    private fun friendlySyncError(error: MoError): String = when (error) {        is MoError.InvalidConfiguration ->
+    private fun friendlySyncError(error: MoError): String = when (error) {
+        is MoError.InvalidConfiguration ->
             "Gmail isn't connected yet — sync will work once you connect an account."
         is MoError.Network ->
             "No internet connection. Your synced mail is still available."
@@ -838,7 +863,28 @@ class MailViewModel(
             "Gmail authorization expired. Reconnect your account to sync."
         is MoError.RateLimited ->
             "Gmail is rate-limiting sync right now. Please try again in a bit."
-        else -> "Sync failed. Please try again."
+        is MoError.PermissionDenied ->
+            "Gmail permission was denied. Reconnect your account to sync."
+        is MoError.Parsing ->
+            "Couldn't read some messages from Gmail. Please try again."
+        is MoError.Api ->
+            "Gmail API error${error.code?.let { " ($it)" } ?: ""}. Please try again."
+        // Diagnostic detail (2026-10-12): sync failures used to surface only
+        // "Sync failed. Please try again.", hiding the real cause. The
+        // underlying exception is now named so a failure can be diagnosed
+        // from the message alone.
+        is MoError.Database ->
+            "Sync failed${error.cause.toShortDetail()}. Please try again."
+        is MoError.Unexpected ->
+            "Sync failed${error.cause.toShortDetail()}. Please try again."
+        is MoError.Integration ->
+            "${error.integration} sync failed. Please try again."
+    }
+
+    private fun Throwable?.toShortDetail(): String {
+        if (this == null) return ""
+        val msg = message?.take(100)?.trim()?.takeIf { it.isNotEmpty() }
+        return " (" + javaClass.simpleName + (msg?.let { ": $it" } ?: "") + ")"
     }
 }
 
@@ -869,6 +915,15 @@ data class MailScreenState(
 /** Sync affordance state: idle, honestly-staged progress, or a result message. */
 sealed interface SyncUiState {
     data object Idle : SyncUiState
-    data class Syncing(val stageText: String) : SyncUiState
+    /**
+     * @param progress 0..1 when the total is known (initial sync), null for
+     * indeterminate (incremental) syncs.
+     */
+    data class Syncing(
+        val stageText: String,
+        val progress: Float? = null,
+        val processed: Int = 0,
+        val totalEstimate: Int? = null,
+    ) : SyncUiState
     data class Result(val message: String) : SyncUiState
 }
