@@ -624,6 +624,18 @@ class AppContainer(private val appContext: Context) {
         )
     }
 
+    /**
+     * Fetch-on-open for message bodies (2026-10-13). The sync stores
+     * metadata only; bodies are fetched from Gmail when a thread is opened.
+     */
+    val fetchMessageBodyUseCase: com.greninjaop.mailorganizer.domain.mail.FetchMessageBodyUseCase by lazy {
+        com.greninjaop.mailorganizer.domain.mail.FetchMessageBodyUseCase(
+            api = gmailApiClient,
+            mail = mailRepository,
+            dispatchers = dispatchers,
+        )
+    }
+
     private companion object {
         const val DATABASE_NAME = "mail_organizer.db"
         const val TAG = "AppContainer"
