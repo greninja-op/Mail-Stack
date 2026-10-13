@@ -6,6 +6,14 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
@@ -14,9 +22,15 @@ import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.ui.foundation.FoundationViewModel
 import com.greninjaop.mailorganizer.ui.foundation.StartupErrorScreen
 import com.greninjaop.mailorganizer.ui.navigation.AppNavGraph
+import com.greninjaop.mailorganizer.ui.splash.SplashScreen
 import com.greninjaop.mailorganizer.ui.theme.MailOrganizerTheme
 
 class MainActivity : ComponentActivity() {
+
+    /** Cold-launch splash guard: shown at most once per process. */
+    private companion object {
+        var splashShown = false
+    }
 
     private val foundationViewModel: FoundationViewModel by viewModels {
         object : ViewModelProvider.Factory {
@@ -58,7 +72,34 @@ class MainActivity : ComponentActivity() {
         handlePossibleOAuthRedirect(intent)
         setContent {
             MailOrganizerTheme(themeMode = foundationViewModel.themeMode) {
-                AppNavGraph(container = app.container)
+                // Cold-launch splash (2026-10-14): shown only on a fresh
+                // process with no restored state — never on resume from
+                // recents, never on rotation — and only once per process.
+                // The app content is composed underneath and loads during
+                // the splash; the splash overlays it, then fades away.
+                var splashVisible by remember {
+                    mutableStateOf(savedInstanceState == null && !splashShown)
+                }
+                if (splashVisible) {
+                    // Raw preference flow: its first emission is the real
+                    // stored mode (the StateFlow's SYSTEM initial would be
+                    // ambiguous). The splash holds until it arrives, so it
+                    // can never flash the wrong card.
+                    val splashMode by app.container.themePreferences.themeMode
+                        .collectAsState(initial = null)
+                    Box(Modifier.fillMaxSize()) {
+                        AppNavGraph(container = app.container)
+                        SplashScreen(
+                            themeMode = splashMode,
+                            onDone = {
+                                splashShown = true
+                                splashVisible = false
+                            },
+                        )
+                    }
+                } else {
+                    AppNavGraph(container = app.container)
+                }
             }
         }
     }

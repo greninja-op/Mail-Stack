@@ -259,3 +259,24 @@
 - Tests: 939 run, 931 pass; same 8 env-broken Robolectric classes.
   APK (debug, unverified on phone): backgrounds confirmed inside
   (77969 + 71495 bytes), 17.5 MB total.
+
+## 2026-10-14 ~00:35 IST — Cold-launch splash (NO APK until user says okay)
+- User's final splash cards implemented. Light card in light mode, dark
+  card in dark mode. One plain fade: fade in 450ms (FastOutSlowIn) ->
+  hold 650ms -> fade out 450ms (FastOutLinearIn), total ~1.55s. No
+  slides, no gimmicks.
+- Cold-launch only: shows iff savedInstanceState == null AND a
+  per-process `splashShown` flag is false — never on resume from
+  recents, never on rotation, only once per process. Fully closing the
+  app and re-entering replays it. Error screen bypasses the splash.
+- Theme gate: the animation does not start until the stored theme-mode
+  preference emits (raw DataStore flow; its first emission is the real
+  stored value), so the splash can never flash the wrong card. The app
+  content is composed underneath and loads during the splash.
+- Cards extended top/bottom by mirror extension (941x1672 -> 941x2512,
+  9:24): the 280-row edge bands are flipped so the inner edge matches
+  the original exactly (no seam) and stretched to 420px/side. Artwork
+  untouched; ContentScale.Crop covers any phone without distortion.
+- Artwork: drawable-nodpi/splash_light.jpg + splash_dark.jpg (exact
+  extended bytes); base64 backups in assets/backgrounds/ with md5s in
+  its README. Tests: 939 run, 931 pass, same 8 env-broken classes.
