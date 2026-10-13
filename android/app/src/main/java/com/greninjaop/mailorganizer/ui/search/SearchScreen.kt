@@ -3,7 +3,9 @@ package com.greninjaop.mailorganizer.ui.search
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -27,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SingleChoiceSegmentedButtonRow
@@ -43,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
@@ -58,6 +62,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 
 /**
  * Dedicated search experience (Phase 10, phase §9–§11).
@@ -88,8 +93,12 @@ fun SearchScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back")
@@ -116,12 +125,22 @@ fun SearchScreen(
                             onSearch = { focusManager.clearFocus() },
                         ),
                         colors = TextFieldDefaults.colors(
+                            focusedContainerColor = rememberGlassPalette().bar,
+                            unfocusedContainerColor = rememberGlassPalette().bar,
+                            disabledContainerColor = rememberGlassPalette().bar,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent,
                         ),
+                        shape = RoundedCornerShape(MoSpacing.xxl),
                         modifier = Modifier
                             .fillMaxWidth()
-                            .focusRequester(focusRequester),
+                            .focusRequester(focusRequester)
+                            .border(
+                                width = 1.dp,
+                                color = rememberGlassPalette().barBorder,
+                                shape = RoundedCornerShape(MoSpacing.xxl),
+                            ),
                     )
                 },
             )
@@ -234,7 +253,14 @@ private fun SearchResults(
 ) {
     val terms = outcome.parsed.terms
     val phrases = outcome.parsed.phrases
-    LazyColumn(modifier = modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+        contentPadding = PaddingValues(
+            horizontal = MoSpacing.md,
+            vertical = MoSpacing.sm,
+        ),
+        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+    ) {
         item {
             Column(modifier = Modifier.padding(horizontal = MoSpacing.md)) {
                 Spacer(Modifier.height(MoSpacing.xs))

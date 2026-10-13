@@ -31,6 +31,7 @@ import com.greninjaop.mailorganizer.core.actions.ExternalEffect
 import com.greninjaop.mailorganizer.data.local.ActionItemRecord
 import com.greninjaop.mailorganizer.data.local.ActionType
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -132,16 +133,14 @@ fun ActionCard(
 ) {
     var showWhy by remember(card.id) { mutableStateOf(false) }
 
-    Card(
+    // 2026-10-13 (Breeze redesign): translucent glass card.
+    GlassCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics {
                 contentDescription = "${card.actionType.label()}: ${card.title}. " +
                     "${card.urgency.label()} urgency."
             },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
             // 1. What needs attention?

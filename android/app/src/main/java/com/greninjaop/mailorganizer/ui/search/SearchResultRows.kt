@@ -13,11 +13,13 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -29,6 +31,7 @@ import com.greninjaop.mailorganizer.core.search.SearchResult
 import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.mail.SenderAvatar
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -81,7 +84,12 @@ fun SearchMessageRow(
     val timeText = remember(record.timestampEpochMs) {
         MailFormatting.relativeTime(record.timestampEpochMs, System.currentTimeMillis())
     }
+    GlassCard(
+        modifier = modifier.fillMaxWidth(),
+        onClick = onClick,
+    ) {
     ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 HighlightedText(
@@ -128,12 +136,8 @@ fun SearchMessageRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .clickable(
-                onClick = onClick,
-            ),
     )
+    }
 }
 
 /** One thread hit: subject, match count, newest matched preview. */
@@ -156,7 +160,14 @@ fun SearchThreadRow(
         )?.normalizedDomain
     }
     val senderName = MailFormatting.senderDisplay(preview.fromName, preview.fromAddress)
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(min = MoSpacing.searchRowMinHeight),
+        onClick = onClick,
+    ) {
     ListItem(
+        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
             if (senderDomain != null) {
                 CompanyLogo(domain = senderDomain, name = senderName)
@@ -201,11 +212,8 @@ fun SearchThreadRow(
                 overflow = TextOverflow.Ellipsis,
             )
         },
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = MoSpacing.searchRowMinHeight)
-            .clickable(onClick = onClick),
     )
+    }
 }
 
 /**
