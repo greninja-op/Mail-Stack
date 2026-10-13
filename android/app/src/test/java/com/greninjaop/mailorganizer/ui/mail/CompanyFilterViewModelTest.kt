@@ -168,7 +168,7 @@ class CompanyFilterViewModelTest {
                     snippet = null,
                     bodyText = "body",
                     timestampEpochMs = 1_000L,
-                    labels = listOf("INBOX"),
+                    labels = listOf("INBOX", "CATEGORY_PROMOTIONS"),
                 ),
             ),
         )
@@ -220,11 +220,6 @@ class CompanyFilterViewModelTest {
             savePromoMessage("a1", "deals@amazon.com", "Clearance sale")
             savePromoMessage("a2", "offers@mail.amazon.com", "Deal of the day")
             savePromoMessage("f1", "sale@flipkart.com", "Big billion sale")
-            mail.categoryByMessageId = mapOf(
-                "a1" to MailCategory.PROMOTIONS,
-                "a2" to MailCategory.PROMOTIONS,
-                "f1" to MailCategory.PROMOTIONS,
-            )
             val vm = viewModel()
             advanceUntilIdle()
             vm.setDestination(MailboxDestination.PROMOTIONAL)
@@ -248,10 +243,6 @@ class CompanyFilterViewModelTest {
             seedAccount()
             savePromoMessage("a1", "deals@amazon.com", "Clearance sale")
             savePromoMessage("f1", "sale@flipkart.com", "Big billion sale")
-            mail.categoryByMessageId = mapOf(
-                "a1" to MailCategory.PROMOTIONS,
-                "f1" to MailCategory.PROMOTIONS,
-            )
             val vm = viewModel()
             advanceUntilIdle()
             vm.setDestination(MailboxDestination.PROMOTIONAL)
@@ -280,11 +271,6 @@ class CompanyFilterViewModelTest {
             savePromoMessage("a1", "deals@amazon.com", "Clearance sale")
             savePromoMessage("a2", "offers@amazon.com", "Deal of the day")
             savePromoMessage("f1", "sale@flipkart.com", "Big billion sale")
-            mail.categoryByMessageId = mapOf(
-                "a1" to MailCategory.PROMOTIONS,
-                "a2" to MailCategory.PROMOTIONS,
-                "f1" to MailCategory.PROMOTIONS,
-            )
             val vm = viewModel()
             advanceUntilIdle()
             vm.setDestination(MailboxDestination.PROMOTIONAL)
@@ -306,7 +292,6 @@ class CompanyFilterViewModelTest {
         runTest(testDispatcher) {
             seedAccount()
             savePromoMessage("a1", "deals@amazon.com", "Clearance sale")
-            mail.categoryByMessageId = mapOf("a1" to MailCategory.PROMOTIONS)
             val vm = viewModel()
             advanceUntilIdle()
 

@@ -131,11 +131,15 @@ fun ThreadScreen(
                         ThreadSummarySection(
                             state = summaryState,
                             onRequestSummary = { viewModel.requestThreadSummary() },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                     if (s.conversation != null && s.conversation.state != com.greninjaop.mailorganizer.core.conversation.ConversationState.NO_ACTION) {
                         item(key = "conversation_intelligence") {
-                            ConversationIntelligenceSection(result = s.conversation)
+                            ConversationIntelligenceSection(
+                                result = s.conversation,
+                                modifier = Modifier.animateItem(),
+                            )
                         }
                     }
                     items(s.messages, key = { it.messageId }) { message ->
@@ -148,6 +152,8 @@ fun ThreadScreen(
                             },
                             classification = s.classifications[message.messageId],
                             priority = s.priorities[message.messageId],
+                            // Fetch-on-open body state (2026-10-13).
+                            bodyFetchState = s.bodyFetchStates[message.messageId],
                             // Phase 13: extracted meetings/deadlines.
                             temporalItems = s.temporalItems[message.messageId].orEmpty(),
                             // Phase 22: Gmail write actions (confirmation dialog
@@ -172,6 +178,7 @@ fun ThreadScreen(
                                 )
                                 correctingMessage = message
                             },
+                            modifier = Modifier.animateItem(),
                         )
                     }
                 }

@@ -130,9 +130,14 @@ class SearchIndexStore(private val db: SupportSQLiteDatabase) {
     /**
      * Batch idempotent upsert of multiple documents using compiled statements
      * (Phase 24 performance optimization).
+     *
+     * Best-effort (2026-10-12): on devices without FTS5 the table may not
+     * exist — bail out instead of throwing, so callers persisting messages
+     * are never broken by search indexing.
      */
     fun indexDocuments(docs: List<FtsDocument>) {
         if (docs.isEmpty()) return
+        if (!tableExists()) return
         val delStmt = db.compileStatement("DELETE FROM messages_fts WHERE messageId = ?")
         val insStmt = db.compileStatement(
             "INSERT INTO messages_fts " +
