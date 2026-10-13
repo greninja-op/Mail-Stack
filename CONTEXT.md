@@ -223,3 +223,39 @@
   (memory + disk, per domain) so each domain is fetched once.
 - New: CompanyLogoLoaderTest (3 tests: URL shape, globe match/mismatch).
   Total: 939 run, 931 pass, same 8 env-broken Robolectric classes.
+
+## 2026-10-13 ~23:45 IST — "Breeze" glassmorphism redesign (app-wide; NO APK until user says okay)
+- User-directed departure from strict Material 3 (their explicit request
+  overrides the standing M3 rule): glassmorphism everywhere, not just the
+  mail tab. Translucent cards + frosted-glass bars over the user-supplied
+  Breeze background artwork (exact bytes, never recreated).
+- Backgrounds: `drawable-nodpi/breeze_background_light.jpg` (pastel
+  blue/white/mint) + `breeze_background_dark.jpg` (deep navy/blue-green).
+  Base64 backups in `assets/backgrounds/` (light_mode_background.jpg.b64,
+  dark_mode_background.jpg.b64 + README with md5 + recovery command) —
+  the GitHub API stores content as text, so .b64 lands byte-exact while
+  raw binaries corrupt. Drawn ONCE behind the NavHost in AppNavGraph, so
+  every destination shows it and it stays static during tab transitions.
+- New `ui/theme/Glass.kt`: BreezeBackground, GlassCard (24dp radius,
+  1dp border, 6dp shadow), GlassPalette (light = white 62% / dark = navy
+  62%), warning/amber chip colors. Dark/light read from the active
+  scheme's background luminance, so it follows the theme-mode setting.
+- Mail (reference target): glass search pill, glass mail cards (16dp
+  sides, 12dp gaps), amber "Action required" pill with warning icon,
+  amber "High priority" pill, glass drawer, transparent scaffold/top bar.
+- Bottom nav: frosted-glass bar FLUSH with the bottom (never floating),
+  hairline top border, selected = solid primary pill + white icon + primary
+  label. M3 1.4 lesson: NavigationBarItemDefaults.colors(...) multi-arg
+  is not Kotlin-visible; use .colors().copy(...) instead.
+- Home/Categories/Companies/Actions/Thread/Search/CompanyDetail: glass
+  cards for rows/tiles + transparent scaffolds/top bars.
+- All other destinations (Settings, Accounts, Rules, Integrations,
+  Cleanup, Privacy, Analytics, Automation, Foundation, Connect, Import):
+  transparent scaffold/top-bar roots so the background shows; inner
+  content cards unchanged (dialogs/overlays stay opaque for readability).
+- Account indicator ("C" avatar) in mail rows is UNCHANGED — the
+  reference screenshots show it (account avatar + sender avatar); it is
+  the existing multi-account indicator, not a mockup artifact.
+- Tests: 939 run, 931 pass; same 8 env-broken Robolectric classes.
+  APK (debug, unverified on phone): backgrounds confirmed inside
+  (77969 + 71495 bytes), 17.5 MB total.
