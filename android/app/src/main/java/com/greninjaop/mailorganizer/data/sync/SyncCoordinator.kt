@@ -23,7 +23,17 @@ enum class SyncStage { CONNECTING, FETCHING, SAVING, PROCESSING, FINALIZING }
 
 sealed interface SyncProgress {
     data object Idle : SyncProgress
-    data class Running(val stage: SyncStage, val messagesProcessed: Int) : SyncProgress
+    /**
+     * @param totalEstimate honest total for percentage display (2026-10-12):
+     * Gmail's `resultSizeEstimate`, or null when unknown (incremental sync).
+     * Percentages shown in UI are derived from this real estimate — never
+     * fabricated.
+     */
+    data class Running(
+        val stage: SyncStage,
+        val messagesProcessed: Int,
+        val totalEstimate: Int? = null,
+    ) : SyncProgress
     data class Succeeded(val summary: SyncSummary) : SyncProgress
     data class Failed(val error: MoError) : SyncProgress
 }
@@ -52,8 +62,12 @@ data class SyncConfig(
      * Max messages synced in one run (phase §11: never blindly download an
      * unlimited mailbox). The run stops early with the page cursor saved;
      * the next run resumes where this one stopped.
+     *
+     * Raised 500 → 1000 (2026-10-13): users with large inboxes saw "missing"
+     * mail after a single sync; 1000 keeps a run under ~4 minutes at the
+     * current 8-way fetch concurrency and is trivial quota-wise.
      */
-    val maxMessagesPerRun: Int = 500,
+    val maxMessagesPerRun: Int = 1000,
 )
 
 /**
@@ -201,13 +215,20 @@ class SyncCoordinator(
         var processed = 0
         var inserted = 0
         var updated = 0
+        // Honest progress total (2026-10-12): captured from the first page's
+        // resultSizeEstimate, bounded by maxMessagesPerRun since a run stops
+        // there and resumes next time.
+        var totalEstimate: Int? = null
         do {
-            _progress.value = SyncProgress.Running(SyncStage.FETCHING, processed)
+            _progress.value = SyncProgress.Running(SyncStage.FETCHING, processed, totalEstimate)
             val page = retryPolicy.withRetries {
                 api.fetchPage(accountId, pageToken, config.pageSize)
             }
+            if (totalEstimate == null) {
+                totalEstimate = page.resultSizeEstimate?.let { minOf(it, config.maxMessagesPerRun) }
+            }
             if (page.messages.isEmpty() && page.nextPageToken == null) break
-            _progress.value = SyncProgress.Running(SyncStage.SAVING, processed)
+            _progress.value = SyncProgress.Running(SyncStage.SAVING, processed, totalEstimate)
             val (pageInserted, pageUpdated) = persistPage(accountId, page.messages)
             inserted += pageInserted
             updated += pageUpdated
@@ -218,7 +239,24 @@ class SyncCoordinator(
             if (processed >= config.maxMessagesPerRun && pageToken != null) break
         } while (pageToken != null)
 
-        _progress.value = SyncProgress.Running(SyncStage.FINALIZING, processed)
+        _progress.value = SyncProgress.Running(SyncStage.FINALIZING, processed, totalEstimate)
+        // Spam pass (2026-10-13): the INBOX list never includes spam, so the
+        // Spam destination needs its own bounded fetch. One page is enough —
+        // incremental syncs already see new spam via history messageAdded.
+        // Best-effort: a spam failure never fails the whole sync.
+        try {
+            val spamPage = retryPolicy.withRetries {
+                api.fetchSpamPage(accountId, SPAM_PAGE_SIZE)
+            }
+            if (spamPage.messages.isNotEmpty()) {
+                val (spamInserted, spamUpdated) = persistPage(accountId, spamPage.messages)
+                inserted += spamInserted
+                updated += spamUpdated
+                processed += spamPage.messages.size
+            }
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "Spam pass skipped (${t.javaClass.simpleName}); inbox sync unaffected")
+        }
         return if (pageToken == null) {
             // Initial sync reached end of pagination: seed incremental mode.
             val historyId = retryPolicy.withRetries { api.latestHistoryCursor(accountId) }
@@ -316,7 +354,20 @@ class SyncCoordinator(
         var inserted = 0
         var updated = 0
         for ((gmailThreadId, threadRemote) in remote.groupBy { it.threadId }) {
-            val records = threadRemote.map { it.toMessageRecord(accountId) }
+            // Sync-hardening (2026-10-12, narrowed 2026-10-12): per-message
+            // isolation lives at the MAPPING layer — one corrupt message is
+            // skipped, the rest of its thread still saves. Persistence
+            // failures propagate loudly; swallowing them here once masked a
+            // systemic FTS outage as "100% synced, 0 saved".
+            val records = threadRemote.mapNotNull { remote ->
+                try {
+                    remote.toMessageRecord(accountId)
+                } catch (t: Throwable) {
+                    MoLogger.w(TAG, "Skipping unmappable message ${remote.id}: ${t.javaClass.simpleName}")
+                    null
+                }
+            }
+            if (records.isEmpty()) continue
             val thread = mail.getThreadByGmailId(accountId.value, gmailThreadId)
                 ?: buildThreadRecord(accountId, gmailThreadId, records, clock())
             mail.saveThreadWithMessages(thread, records)
@@ -384,6 +435,11 @@ class SyncCoordinator(
 
     private companion object {
         const val TAG = "SyncCoordinator"
+        /**
+         * Spam pass size (2026-10-13): one bounded page per initial sync.
+         * Spam is low-volume; the destination just needs to be truthful.
+         */
+        const val SPAM_PAGE_SIZE = 100
         const val ERROR_NETWORK = "network"
         const val ERROR_API = "api"
         const val ERROR_RATE_LIMITED = "rate_limited"

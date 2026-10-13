@@ -12,13 +12,17 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,6 +36,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.ClassificationRecord
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
@@ -41,15 +46,20 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 /**
- * Expanded message detail (Phase 6, phase §20–21, §27–30).
+ * Conversation message as a Gmail-style card (2026-10-12).
  *
- * - Sender / recipients via progressive "Show details" disclosure (§21).
- * - Body: sanitized HTML rendered by [SafeHtmlText], plain-text fallback,
- *   safe empty state (§29). Bodies over [LARGE_BODY_CHARS] fall back to
- *   plain text so one enormous message can't stall the UI (§31).
- * - Attachment *metadata* only — never downloaded automatically (§27).
- * - Missing data uses safe fallbacks (§28); raw MIME headers are never
- *   shown (§20).
+ * Each message is an M3 filled-tonal Card (12dp corners): header row with
+ * the sender's 40dp avatar, sender name, a "to me ▾" recipient line that
+ * expands to the full headers, date at the right edge, star display and
+ * the existing overflow menu for write actions. Collapsed messages show
+ * only the header (existing expand/collapse behavior, newest expanded).
+ *
+ * Body text uses typography.bodyLarge (16sp Roboto — Gmail's message font).
+ * All Phase 7/9/12/13/22 semantics are preserved: classification chips are
+ * now neutral tonal chips, the correction affordance, temporal items, the
+ * "Show details" header disclosure, HTML/text rendering, link handling and
+ * attachment metadata are unchanged. Write actions stay behind the
+ * confirmation dialog exactly as before.
  */
 @Composable
 fun MessageCard(
@@ -76,30 +86,52 @@ fun MessageCard(
      * explicit confirmation dialog first (never executed directly).
      */
     onWriteAction: ((MessageItem, com.greninjaop.mailorganizer.domain.write.GmailWriteOperation) -> Unit)? = null,
+    /**
+     * Fetch-on-open state (2026-10-13). While LOADING the body is being
+     * fetched from Gmail; FAILED keeps the honest "No content available"
+     * fallback. Null/absent = no fetch in flight.
+     */
+    bodyFetchState: BodyFetchState? = null,
 ) {
-    Column(modifier = modifier.fillMaxWidth()) {
-        MessageHeader(
-            message = message,
-            expanded = expanded,
-            onToggleExpanded = onToggleExpanded,
-            onWriteAction = onWriteAction,
-        )
-        if (expanded) {
-            MessageBody(
+    // "Show details" disclosure lives in the header ("to me ▾"); hoisted so
+    // the header toggle and the body details share one state.
+    var showDetails by remember(message.messageId) { mutableStateOf(false) }
+    Card(
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+        ),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+    ) {
+        Column(modifier = Modifier.fillMaxWidth()) {
+            MessageHeader(
                 message = message,
-                classification = classification,
-                priority = priority,
-                onCorrect = onCorrect,
-                temporalItems = temporalItems,
-                onOpenLink = onOpenLink,
-                modifier = Modifier.padding(
-                    start = MoSpacing.md,
-                    end = MoSpacing.md,
-                    bottom = MoSpacing.md,
-                ),
+                expanded = expanded,
+                showDetails = showDetails,
+                onToggleDetails = { showDetails = !showDetails },
+                onToggleExpanded = onToggleExpanded,
+                onWriteAction = onWriteAction,
             )
+            if (expanded) {
+                MessageBody(
+                    message = message,
+                    showDetails = showDetails,
+                    classification = classification,
+                    priority = priority,
+                    onCorrect = onCorrect,
+                    temporalItems = temporalItems,
+                    onOpenLink = onOpenLink,
+                    bodyFetchState = bodyFetchState,
+                    modifier = Modifier.padding(
+                        start = MoSpacing.md,
+                        end = MoSpacing.md,
+                        bottom = MoSpacing.md,
+                    ),
+                )
+            }
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 
@@ -107,6 +139,8 @@ fun MessageCard(
 private fun MessageHeader(
     message: MessageItem,
     expanded: Boolean,
+    showDetails: Boolean,
+    onToggleDetails: () -> Unit,
     onToggleExpanded: () -> Unit,
     modifier: Modifier = Modifier,
     onWriteAction: ((MessageItem, com.greninjaop.mailorganizer.domain.write.GmailWriteOperation) -> Unit)? = null,
@@ -131,27 +165,59 @@ private fun MessageHeader(
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
+        SenderAvatar(
+            key = message.messageId,
+            displayName = message.fromName,
+            emailAddress = message.fromAddress,
+        )
+        Spacer(Modifier.width(MoSpacing.sm))
         Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = sender,
-                style = MaterialTheme.typography.titleSmall.copy(
-                    fontWeight = if (message.unread) FontWeight.Bold else FontWeight.Normal,
-                ),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
             Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = sender,
+                    style = MaterialTheme.typography.titleMedium.copy(
+                        fontWeight = if (message.unread) FontWeight.Bold else FontWeight.Normal,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 if (timeText.isNotBlank()) {
+                    Spacer(Modifier.width(MoSpacing.xs))
                     Text(
                         text = timeText,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
                     )
                 }
+            }
+            // Gmail-style recipient line: "to me ▾" expands to full headers.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clickable(onClick = onToggleDetails)
+                    .semantics {
+                        contentDescription =
+                            if (showDetails) "Hide email details" else "Show email details"
+                    },
+            ) {
+                Text(
+                    text = "to me",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Icon(
+                    imageVector = if (showDetails) Icons.Filled.KeyboardArrowUp
+                    else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(MoSpacing.lg),
+                )
                 if (message.attachments.isNotEmpty()) {
                     Spacer(Modifier.width(MoSpacing.xs))
-                    // No paperclip in the bundled core icon set: an exact count
-                    // is more informative than an icon anyway.
                     val count = message.attachments.size
                     Text(
                         text = if (count == 1) "1 file" else "$count files",
@@ -169,6 +235,17 @@ private fun MessageHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
             }
+        }
+        // Star is display-only (read-only phase, §6).
+        if (message.starred) {
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = "Starred",
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier
+                    .padding(start = MoSpacing.xs)
+                    .size(MoSpacing.lg),
+            )
         }
         IconButton(onClick = onToggleExpanded) {
             Icon(
@@ -235,6 +312,7 @@ private fun MessageWriteMenu(
 @Composable
 private fun MessageBody(
     message: MessageItem,
+    showDetails: Boolean,
     onOpenLink: (String) -> Unit,
     modifier: Modifier = Modifier,
     classification: ClassificationRecord? = null,
@@ -244,8 +322,9 @@ private fun MessageBody(
     onCorrect: (() -> Unit)? = null,
     /** Phase 13: extracted meetings/deadlines. */
     temporalItems: List<ExtractedTemporal> = emptyList(),
+    /** Fetch-on-open state (2026-10-13); null when no fetch is in flight. */
+    bodyFetchState: BodyFetchState? = null,
 ) {
-    var showDetails by remember { mutableStateOf(false) }
     Column(
         modifier = modifier,
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
@@ -278,19 +357,7 @@ private fun MessageBody(
                     .semantics { contentDescription = "Correct category or priority" },
             )
         }
-        // Progressive disclosure for full headers (§21).
-        Text(
-            text = if (showDetails) "Hide details" else "Show details",
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier
-                .clickable { showDetails = !showDetails }
-                .padding(vertical = MoSpacing.xs)
-                .semantics {
-                    contentDescription =
-                        if (showDetails) "Hide email details" else "Show email details"
-                },
-        )
+        // Full headers, disclosed from the header's "to me ▾" line (§21).
         if (showDetails) {
             HeaderDetails(message)
         }
@@ -298,6 +365,11 @@ private fun MessageBody(
         val html = message.bodyHtml
         val text = message.bodyText
         when {
+            bodyFetchState == BodyFetchState.LOADING && html.isNullOrBlank() && text.isNullOrBlank() -> {
+                // Fetch-on-open in flight: honest loading state, never the
+                // "no content" fallback while Gmail may still deliver.
+                BodyLoadingIndicator()
+            }
             !html.isNullOrBlank() && html.length <= LARGE_BODY_CHARS -> {
                 val blocks = remember(html) { SafeHtmlRenderer.render(html) }
                 if (blocks.isNotEmpty()) {
@@ -343,6 +415,23 @@ private fun EmptyBodyText() {
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
+}
+
+/**
+ * Fetch-on-open loading state (2026-10-13): the body is on its way from
+ * Gmail. Strict M3 — indeterminate LinearProgressIndicator with a plain
+ * status line, no custom artwork.
+ */
+@Composable
+private fun BodyLoadingIndicator() {
+    Column(verticalArrangement = Arrangement.spacedBy(MoSpacing.xs)) {
+        LinearProgressIndicator(modifier = Modifier.fillMaxWidth())
+        Text(
+            text = "Loading message…",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable

@@ -2,6 +2,7 @@ package com.greninjaop.mailorganizer.data.repository
 
 import androidx.room.withTransaction
 import com.greninjaop.mailorganizer.core.AppDispatchers
+import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.local.AppDatabase
 import com.greninjaop.mailorganizer.data.local.MailCategory
 import com.greninjaop.mailorganizer.data.local.MessageRecord
@@ -22,6 +23,14 @@ interface MailRepository {
     suspend fun saveThreadWithMessages(thread: ThreadRecord, messages: List<MessageRecord>)
     fun observeThreads(accountId: String, limit: Int = 50): Flow<List<ThreadRecord>>
     fun observeUnifiedThreads(limit: Int = 50): Flow<List<ThreadRecord>> = emptyFlow()
+    /**
+     * Gmail Primary (2026-10-13): threads whose latest message is not
+     * Social/Promotions/Spam — the Gmail Primary tab semantics. Defaults to
+     * the unfiltered thread list; the Room implementation filters properly.
+     */
+    fun observePrimary(accountId: String, limit: Int = 50): Flow<List<ThreadRecord>> =
+        observeThreads(accountId, limit)
+    fun observeUnifiedPrimary(limit: Int = 50): Flow<List<ThreadRecord>> = emptyFlow()
     fun observeMessages(threadId: String, limit: Int = 100): Flow<List<MessageRecord>>
     fun observeUnread(accountId: String, limit: Int = 50): Flow<List<MessageRecord>>
     fun observeUnifiedUnread(limit: Int = 50): Flow<List<MessageRecord>> = emptyFlow()
@@ -36,6 +45,14 @@ interface MailRepository {
      * Gmail confirms the remote change — Gmail is the source of truth.
      */
     suspend fun setLabels(messageId: String, labels: List<String>)
+
+    /**
+     * Persists a fetched full body for one message (fetch-on-open,
+     * 2026-10-13). The search index is refreshed best-effort so newly
+     * fetched bodies become searchable; an indexing failure never breaks
+     * the body save. No-op by default; the Room implementation persists.
+     */
+    suspend fun updateMessageBody(messageId: String, bodyText: String?, bodyHtml: String?) {}
     suspend fun countByAccount(accountId: String): Int
 
     /**
@@ -192,24 +209,33 @@ class RoomMailRepository(
      * Writes FTS documents for [messages] inside the caller's transaction.
      * Company names resolve account-scoped (company ids are deterministic
      * across accounts — never leak another account's company row).
+     *
+     * Best-effort (2026-10-12): FTS indexing must NEVER break message
+     * persistence. On devices without FTS5 (or any indexing failure), the
+     * messages are still saved — search simply degrades, as it does in
+     * [com.greninjaop.mailorganizer.domain.search.SearchIndexUseCase].
      */
     private suspend fun indexMessagesForSearch(messages: List<MessageRecord>) {
         val store = searchIndex ?: return
         if (messages.isEmpty()) return
-        store.ensureCreated()
-        val uniqueCompanyKeys = messages.mapNotNull { m ->
-            m.companyId?.let { cid -> m.accountId to cid }
-        }.distinct()
-        val companyNameMap = mutableMapOf<Pair<String, String>, String?>()
-        for ((accountId, cid) in uniqueCompanyKeys) {
-            val comp = db.companyDao().getByAccountAndId(accountId, cid)
-            companyNameMap[accountId to cid] = comp?.let { it.userOverrideName ?: it.canonicalName }
+        try {
+            store.ensureCreated()
+            val uniqueCompanyKeys = messages.mapNotNull { m ->
+                m.companyId?.let { cid -> m.accountId to cid }
+            }.distinct()
+            val companyNameMap = mutableMapOf<Pair<String, String>, String?>()
+            for ((accountId, cid) in uniqueCompanyKeys) {
+                val comp = db.companyDao().getByAccountAndId(accountId, cid)
+                companyNameMap[accountId to cid] = comp?.let { it.userOverrideName ?: it.canonicalName }
+            }
+            val docs = messages.map { m ->
+                val companyName = m.companyId?.let { cid -> companyNameMap[m.accountId to cid] }
+                SearchIndexStore.FtsDocument.fromMessage(m, companyName)
+            }
+            store.indexDocuments(docs)
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "FTS indexing skipped (${t.javaClass.simpleName}); messages still saved")
         }
-        val docs = messages.map { m ->
-            val companyName = m.companyId?.let { cid -> companyNameMap[m.accountId to cid] }
-            SearchIndexStore.FtsDocument.fromMessage(m, companyName)
-        }
-        store.indexDocuments(docs)
     }
 
     override fun observeThreads(accountId: String, limit: Int): Flow<List<ThreadRecord>> =
@@ -217,6 +243,12 @@ class RoomMailRepository(
 
     override fun observeUnifiedThreads(limit: Int): Flow<List<ThreadRecord>> =
         db.threadDao().observeUnified(limit)
+
+    override fun observePrimary(accountId: String, limit: Int): Flow<List<ThreadRecord>> =
+        db.threadDao().observePrimaryByAccount(accountId, limit)
+
+    override fun observeUnifiedPrimary(limit: Int): Flow<List<ThreadRecord>> =
+        db.threadDao().observeUnifiedPrimary(limit)
 
     override fun observeMessages(threadId: String, limit: Int): Flow<List<MessageRecord>> =
         db.messageDao().observeByThread(threadId, limit)
@@ -290,6 +322,30 @@ class RoomMailRepository(
         withContext(dispatchers.io) {
             db.messageDao().setLabels(messageId, labels)
         }
+
+    override suspend fun updateMessageBody(
+        messageId: String,
+        bodyText: String?,
+        bodyHtml: String?,
+    ) = withContext(dispatchers.io) {
+        db.messageDao().updateBody(messageId, bodyText, bodyHtml)
+        // Refresh the search index best-effort so the fetched body becomes
+        // searchable. Mirrors indexMessagesForSearch: never break the save.
+        try {
+            val store = searchIndex ?: return@withContext
+            val record = db.messageDao().getById(messageId) ?: return@withContext
+            store.ensureCreated()
+            val companyName = record.companyId?.let { cid ->
+                db.companyDao().getByAccountAndId(record.accountId, cid)
+                    ?.let { it.userOverrideName ?: it.canonicalName }
+            }
+            store.indexDocuments(
+                listOf(SearchIndexStore.FtsDocument.fromMessage(record, companyName)),
+            )
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "FTS re-index skipped after body fetch (${t.javaClass.simpleName})")
+        }
+    }
 
     override suspend fun countByAccount(accountId: String): Int =
         withContext(dispatchers.io) {
@@ -435,5 +491,9 @@ class RoomMailRepository(
         limit: Int,
     ): List<String> = withContext(dispatchers.io) {
         db.messageDao().getIdsByCompany(accountId, companyId, limit)
+    }
+
+    companion object {
+        private const val TAG = "MailRepository"
     }
 }
