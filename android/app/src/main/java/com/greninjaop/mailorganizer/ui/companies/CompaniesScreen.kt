@@ -38,6 +38,7 @@ import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.CategoryChip
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.mail.MailRowLayout
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
@@ -74,7 +75,7 @@ fun CompaniesScreen(
     viewModel: CompaniesViewModel,
     onNavigate: (String) -> Unit,
     onOpenCompany: (companyId: String) -> Unit,
-    onOpenSearch: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -84,8 +85,7 @@ fun CompaniesScreen(
         modifier = modifier,
         topBar = {
             MoAppTopBar(
-                title = "Companies",
-                account = account,
+                                account = account,
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,
@@ -113,6 +113,7 @@ fun CompaniesScreen(
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .animateItem()
                             .clickable { onOpenCompany(entry.record.companyId) }
                             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
                             .semantics {
@@ -121,6 +122,11 @@ fun CompaniesScreen(
                             },
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
+                        CompanyLogo(
+                            domain = entry.record.normalizedDomain,
+                            name = name,
+                        )
+                        Spacer(Modifier.width(MoSpacing.sm))
                         Column(Modifier.weight(1f)) {
                             Text(
                                 text = name,
@@ -257,47 +263,38 @@ fun CompanyDetailScreen(
                         }
                     }
                     items(content.messages, key = { it.messageId }) { message ->
-                        Row(
+                        // Gmail-exact row (shared with the main mail list).
+                        // The per-message category chip is intentionally not
+                        // shown here — Gmail rows carry no chips, and this is
+                        // already a company-filtered view.
+                        val timeText = MailFormatting.relativeTime(
+                            message.timestampEpochMs,
+                            System.currentTimeMillis(),
+                        )
+                        MailRowLayout(
+                            sender = message.senderName,
+                            senderKey = message.senderName,
+                            subject = MailFormatting.subjectDisplay(message.subject),
+                            snippet = "",
+                            timeText = timeText,
+                            unread = message.unread,
+                            showStar = false,
+                            showAttachment = false,
+                            messageCount = 1,
+                            priority = null,
+                            account = null,
+                            showAccountIndicator = false,
+                            onClick = { onOpenThread(message.threadId) },
                             modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onOpenThread(message.threadId) }
-                                .padding(
-                                    horizontal = MoSpacing.md,
-                                    vertical = MoSpacing.sm,
-                                ),
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Column(Modifier.weight(1f)) {
-                                Text(
-                                    text = message.senderName,
-                                    style = MaterialTheme.typography.bodyMedium.copy(
-                                        fontWeight = if (message.unread) FontWeight.SemiBold
-                                        else FontWeight.Normal,
-                                    ),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                                Text(
-                                    text = message.subject,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
-                            if (message.category != null) {
-                                CategoryChip(category = message.category)
-                                Spacer(Modifier.width(MoSpacing.sm))
-                            }
-                            Text(
-                                text = MailFormatting.relativeTime(
-                                    message.timestampEpochMs,
-                                    System.currentTimeMillis(),
-                                ),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                                .animateItem()
+                                .semantics {
+                                    contentDescription =
+                                        "${if (message.unread) "Unread email" else "Email"} " +
+                                            "from ${message.senderName}, " +
+                                            "subject: ${MailFormatting.subjectDisplay(message.subject)}" +
+                                            (if (timeText.isNotBlank()) ", $timeText" else "")
+                                },
+                        )
                     }
                 }
             }

@@ -101,6 +101,14 @@ interface MessageDao {
     @Query("UPDATE messages SET labels = :labels WHERE messageId = :messageId")
     suspend fun setLabels(messageId: String, labels: List<String>)
 
+    /**
+     * Stores a fetched full body (fetch-on-open, 2026-10-13). Only the body
+     * columns are touched — headers, labels and flags stay exactly as the
+     * sync wrote them.
+     */
+    @Query("UPDATE messages SET bodyText = :bodyText, bodyHtml = :bodyHtml WHERE messageId = :messageId")
+    suspend fun updateBody(messageId: String, bodyText: String?, bodyHtml: String?)
+
     @Query("SELECT COUNT(*) FROM messages WHERE accountId = :accountId")
     suspend fun countByAccount(accountId: String): Int
 
