@@ -42,6 +42,7 @@ import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.ClassificationRecord
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
 import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import java.time.Instant
 import java.time.ZoneId
@@ -99,14 +100,11 @@ fun MessageCard(
     // "Show details" disclosure lives in the header ("to me ▾"); hoisted so
     // the header toggle and the body details share one state.
     var showDetails by remember(message.messageId) { mutableStateOf(false) }
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-        ),
+    // 2026-10-13 (Breeze redesign): translucent glass card.
+    GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+            .padding(vertical = MoSpacing.xs),
     ) {
         Column(modifier = Modifier.fillMaxWidth()) {
             MessageHeader(

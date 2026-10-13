@@ -3,6 +3,8 @@ package com.greninjaop.mailorganizer.ui.mail
 import android.content.Intent
 import com.greninjaop.mailorganizer.domain.write.GmailWriteOperation as WriteOp
 import com.greninjaop.mailorganizer.domain.write.GmailWriteOutcome as WriteOutcome
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -15,6 +17,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -27,7 +30,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.core.net.toUri
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
@@ -86,8 +91,12 @@ fun ThreadScreen(
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbar) },
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.ArrowBack, contentDescription = "Back to mail")
@@ -126,6 +135,11 @@ fun ThreadScreen(
                     modifier = Modifier
                         .padding(padding)
                         .fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        horizontal = MoSpacing.md,
+                        vertical = MoSpacing.sm,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
                 ) {
                     item(key = "thread_summary") {
                         ThreadSummarySection(

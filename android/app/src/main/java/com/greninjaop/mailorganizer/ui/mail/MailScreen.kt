@@ -1,6 +1,7 @@
 package com.greninjaop.mailorganizer.ui.mail
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -35,6 +36,7 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
@@ -50,6 +52,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.greninjaop.mailorganizer.ui.components.MoSearchField
@@ -57,6 +60,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 import kotlinx.coroutines.launch
 
 /**
@@ -106,6 +110,7 @@ fun MailScreen(
         modifier = modifier,
     ) {
         Scaffold(
+            containerColor = Color.Transparent,
             topBar = {
                 MailTopBar(
                     state = state,
@@ -128,9 +133,6 @@ fun MailScreen(
             },
         ) { padding ->
             Column(Modifier.padding(padding).fillMaxSize()) {
-                if (state.isSampleData) {
-                    SampleDataBanner()
-                }
                 if (state.isOffline) {
                     OfflineBanner()
                 }
@@ -217,6 +219,9 @@ private fun MailTopBar(
 ) {
     val syncing = state.syncUi is SyncUiState.Syncing
     TopAppBar(
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.Transparent,
+        ),
         navigationIcon = {
             IconButton(onClick = onMenuClick) {
                 Icon(Icons.Filled.Menu, contentDescription = "Open mailbox menu")
@@ -259,7 +264,9 @@ private fun MailDrawer(
     state: MailScreenState,
     onSelect: (MailboxDestination) -> Unit,
 ) {
-    ModalDrawerSheet {
+    ModalDrawerSheet(
+        drawerContainerColor = rememberGlassPalette().drawer,
+    ) {
         val account = state.activeAccount
         Column(
             modifier = Modifier.padding(MoSpacing.md),
@@ -332,39 +339,12 @@ private val MailboxDestination.icon
         MailboxDestination.STARRED -> Icons.Filled.Star
     }
 
-@Composable
-private fun SampleDataBanner() {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(Modifier.width(MoSpacing.xs))
-            Text(
-                text = "Sample data — fixtures for UI development",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.semantics {
-                    contentDescription =
-                        "Sample data: the mail shown is fixture data for development, not real Gmail"
-                },
-            )
-        }
-    }
-}
 
 @Composable
 private fun OfflineBanner() {
+    val glass = rememberGlassPalette()
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = glass.bar,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -412,7 +392,14 @@ private fun MailContent(
                         onRefresh = onRetry,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                     ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                horizontal = MoSpacing.md,
+                                vertical = MoSpacing.sm,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                        ) {
                             items(content.items, key = { it.threadId }) { item ->
                                 val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
                                 ThreadRow(
@@ -446,7 +433,14 @@ private fun MailContent(
                         onRefresh = onRetry,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                     ) {
-                        LazyColumn(modifier = Modifier.fillMaxSize()) {
+                        LazyColumn(
+                            modifier = Modifier.fillMaxSize(),
+                            contentPadding = PaddingValues(
+                                horizontal = MoSpacing.md,
+                                vertical = MoSpacing.sm,
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                        ) {
                             items(content.items, key = { it.messageId }) { item ->
                                 val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
                                 StarredMessageRow(
