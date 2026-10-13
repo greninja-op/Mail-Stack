@@ -64,7 +64,7 @@ fun HomeScreen(
     onOpenThread: (threadId: String) -> Unit,
     onOpenCategory: (MailCategory) -> Unit,
     onOpenCompany: (companyId: String) -> Unit,
-    onOpenSearch: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -74,8 +74,7 @@ fun HomeScreen(
         modifier = modifier,
         topBar = {
             MoAppTopBar(
-                title = "Home",
-                account = account,
+                                account = account,
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,

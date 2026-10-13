@@ -2,6 +2,7 @@ package com.greninjaop.mailorganizer.ui.mail
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.AppDispatchers
 import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.core.temporal.ExtractedTemporal
@@ -9,6 +10,7 @@ import com.greninjaop.mailorganizer.data.local.ClassificationRecord
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
 import com.greninjaop.mailorganizer.data.repository.IntelligenceRepository
 import com.greninjaop.mailorganizer.data.repository.MailRepository
+import com.greninjaop.mailorganizer.domain.mail.FetchMessageBodyUseCase
 import com.greninjaop.mailorganizer.domain.temporal.toExtractedTemporal
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -51,10 +53,25 @@ class ThreadViewModel @JvmOverloads constructor(
      * the user sees *which* account a write targets (phase §46).
      */
     private val accounts: com.greninjaop.mailorganizer.data.repository.AccountRepository? = null,
+    /**
+     * Fetch-on-open for message bodies (2026-10-13). Null in tests — the UI
+     * then shows the stored body (or "No content available") with no fetch.
+     */
+    private val fetchBody: FetchMessageBodyUseCase? = null,
 ) : ViewModel() {
 
     private val expandedIds = MutableStateFlow<Set<String>>(emptySet())
     private var defaultExpanded = false
+
+    /**
+     * Fetch-on-open state per message id. Entries appear only while a fetch
+     * is in flight or has failed; a successful fetch writes the body to the
+     * DB, which re-emits through [messages] and clears the entry naturally.
+     */
+    private val _bodyFetchStates = MutableStateFlow<Map<String, BodyFetchState>>(emptyMap())
+
+    /** Message ids already attempted this session (success or fail). */
+    private val bodyFetchAttempted = mutableSetOf<String>()
 
     private val messages = mail.observeMessages(threadId, MAX_THREAD_MESSAGES)
         .map { records -> records.map { it.toMessageItem() }.inThreadOrder() }
@@ -64,11 +81,52 @@ class ThreadViewModel @JvmOverloads constructor(
                 defaultExpanded = true
                 expandedIds.value = setOf(items.last().messageId)
             }
+            triggerBodyFetch(items)
         }
         .catch { t ->
             MoLogger.e(TAG, "Thread load failed: ${t.javaClass.simpleName}")
             emit(emptyList())
         }
+
+    /**
+     * Fetch-on-open (2026-10-13): messages synced as metadata-only have no
+     * body; fetch it from Gmail the first time the thread is viewed. Each
+     * message is attempted at most once per session — a success writes the
+     * body to the DB (re-emitted through [messages]), a failure is recorded
+     * so the UI can show its honest fallback instead of retrying in a loop.
+     */
+    private fun triggerBodyFetch(items: List<MessageItem>) {
+        val fetch = fetchBody ?: return
+        if (items.isEmpty()) return
+        // Prune entries for messages that now carry a body (fetch landed).
+        val withBodies = items
+            .filter { !it.bodyText.isNullOrBlank() || !it.bodyHtml.isNullOrBlank() }
+            .map { it.messageId }
+            .toSet()
+        if (withBodies.isNotEmpty()) {
+            _bodyFetchStates.value = _bodyFetchStates.value - withBodies
+        }
+        val accountId = AccountId(items.first().accountId)
+        val missing = items.filter { item ->
+            item.syncedWithGmail &&
+                item.bodyText.isNullOrBlank() &&
+                item.bodyHtml.isNullOrBlank() &&
+                bodyFetchAttempted.add(item.messageId)
+        }
+        for (item in missing) {
+            _bodyFetchStates.value = _bodyFetchStates.value + (item.messageId to BodyFetchState.LOADING)
+            viewModelScope.launch(dispatchers.io) {
+                val ok = try {
+                    fetch.ensureBody(accountId, item.messageId)
+                } catch (t: Throwable) {
+                    MoLogger.w(TAG, "Body fetch failed: ${t.javaClass.simpleName}")
+                    false
+                }
+                _bodyFetchStates.value = _bodyFetchStates.value +
+                    (item.messageId to if (ok) BodyFetchState.LOADED else BodyFetchState.FAILED)
+            }
+        }
+    }
 
     /**
      * Phase 7: classification per message (batch lookup, no N+1).
@@ -135,23 +193,32 @@ class ThreadViewModel @JvmOverloads constructor(
         }
 
     private val baseState = combine(
-        messages,
-        expandedIds,
-        classifications,
-        priorities,
-        temporalItems,
-    ) { items, expanded, classById, prioById, temporalById ->
-        if (items.isEmpty()) {
-            ThreadDetailState.Empty
+        combine(
+            messages,
+            expandedIds,
+            classifications,
+            priorities,
+            temporalItems,
+        ) { items, expanded, classById, prioById, temporalById ->
+            if (items.isEmpty()) {
+                ThreadDetailState.Empty
+            } else {
+                ThreadDetailState.Content(
+                    messages = items,
+                    expandedIds = expanded,
+                    classifications = classById,
+                    priorities = prioById,
+                    temporalItems = temporalById,
+                    conversation = null,
+                )
+            }
+        },
+        _bodyFetchStates,
+    ) { base, bodyFetch ->
+        if (base is ThreadDetailState.Content) {
+            base.copy(bodyFetchStates = bodyFetch)
         } else {
-            ThreadDetailState.Content(
-                messages = items,
-                expandedIds = expanded,
-                classifications = classById,
-                priorities = prioById,
-                temporalItems = temporalById,
-                conversation = null,
-            )
+            base
         }
     }
 
@@ -353,8 +420,27 @@ sealed interface ThreadDetailState {
         val temporalItems: Map<String, List<ExtractedTemporal>> = emptyMap(),
         /** Thread-level conversation analysis result (Phase 21). */
         val conversation: ConversationAnalysisResult? = null,
+        /**
+         * Fetch-on-open state by message id (2026-10-13). Absent = no fetch
+         * needed or already landed (the body arrived via the DB flow).
+         */
+        val bodyFetchStates: Map<String, BodyFetchState> = emptyMap(),
     ) : ThreadDetailState
     data object Empty : ThreadDetailState
+}
+
+/**
+ * Fetch-on-open state for one message's body (2026-10-13).
+ * The sync stores metadata only; the full body is fetched from Gmail when
+ * the thread is opened.
+ */
+enum class BodyFetchState {
+    /** Fetch in flight — show an honest loading indicator. */
+    LOADING,
+    /** Fetch landed — the body arrives via the DB flow momentarily. */
+    LOADED,
+    /** Fetch failed (offline, revoked, deleted) — show the fallback text. */
+    FAILED,
 }
 
 /** State for user-initiated on-demand thread summarization (Phase 26 §49, §57). */
