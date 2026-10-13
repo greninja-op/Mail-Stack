@@ -23,8 +23,11 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.Priority
+import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -70,6 +73,7 @@ fun ThreadRow(
     MailRowLayout(
         sender = item.senderDisplay,
         senderKey = item.threadId,
+        senderDomain = item.senderDomain,
         subject = MailFormatting.subjectDisplay(item.subject),
         snippet = item.snippet,
         timeText = timeText,
@@ -109,6 +113,14 @@ fun StarredMessageRow(
     MailRowLayout(
         sender = sender,
         senderKey = item.messageId,
+        senderDomain = remember(item.fromAddress) {
+            CompanyDetector.detect(
+                CompanyDetectionInput(
+                    fromAddress = item.fromAddress,
+                    fromName = item.fromName,
+                ),
+            )?.normalizedDomain
+        },
         subject = MailFormatting.subjectDisplay(item.subject),
         snippet = item.snippet,
         timeText = timeText,
@@ -128,6 +140,8 @@ fun StarredMessageRow(
 internal fun MailRowLayout(
     sender: String,
     senderKey: String,
+    /** Canonical company domain (null = personal sender → letter avatar). */
+    senderDomain: String? = null,
     subject: String,
     snippet: String,
     timeText: String,
@@ -146,7 +160,7 @@ internal fun MailRowLayout(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = 88.dp)
+            .heightIn(min = MoSpacing.rowMinHeight)
             .clickable(onClick = onClick)
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -155,11 +169,18 @@ internal fun MailRowLayout(
             AccountAvatar(account = account, size = MoSpacing.xxl)
             Spacer(Modifier.width(MoSpacing.sm))
         }
-        SenderAvatar(
-            key = senderKey,
-            displayName = sender,
-            emailAddress = sender,
-        )
+        // Company senders show their logo everywhere a mail row appears
+        // (2026-10-13); personal senders keep the letter avatar.
+        if (senderDomain != null) {
+            CompanyLogo(domain = senderDomain, name = sender, size = MoSpacing.rowAvatar)
+        } else {
+            SenderAvatar(
+                key = senderKey,
+                displayName = sender,
+                emailAddress = sender,
+                size = MoSpacing.rowAvatar,
+            )
+        }
         Spacer(Modifier.width(MoSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
             // Line 1: sender (left) + timestamp (right edge).

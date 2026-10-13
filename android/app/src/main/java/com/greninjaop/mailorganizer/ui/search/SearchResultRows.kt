@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
@@ -21,9 +22,13 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.style.TextOverflow
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.core.search.SearchHighlight
 import com.greninjaop.mailorganizer.core.search.SearchResult
+import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.mail.SenderAvatar
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -142,7 +147,27 @@ fun SearchThreadRow(
     modifier: Modifier = Modifier,
 ) {
     val preview = result.preview
+    val senderDomain = remember(preview.fromAddress) {
+        CompanyDetector.detect(
+            CompanyDetectionInput(
+                fromAddress = preview.fromAddress,
+                fromName = preview.fromName,
+            ),
+        )?.normalizedDomain
+    }
+    val senderName = MailFormatting.senderDisplay(preview.fromName, preview.fromAddress)
     ListItem(
+        leadingContent = {
+            if (senderDomain != null) {
+                CompanyLogo(domain = senderDomain, name = senderName)
+            } else {
+                SenderAvatar(
+                    key = preview.fromAddress,
+                    displayName = preview.fromName,
+                    emailAddress = preview.fromAddress,
+                )
+            }
+        },
         headlineContent = {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
                 HighlightedText(
@@ -178,6 +203,7 @@ fun SearchThreadRow(
         },
         modifier = modifier
             .fillMaxWidth()
+            .heightIn(min = MoSpacing.searchRowMinHeight)
             .clickable(onClick = onClick),
     )
 }

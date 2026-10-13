@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.core.temporal.ExtractedTemporal
 import com.greninjaop.mailorganizer.domain.write.GmailWriteOperation as WriteOp
 import androidx.compose.foundation.layout.heightIn
@@ -39,6 +41,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.ClassificationRecord
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
+import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import java.time.Instant
 import java.time.ZoneId
@@ -155,7 +158,7 @@ private fun MessageHeader(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MoSpacing.huge)
+            .heightIn(min = MoSpacing.messageHeaderMinHeight)
             .clickable(onClick = onToggleExpanded)
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
             .semantics {
@@ -165,11 +168,25 @@ private fun MessageHeader(
             },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SenderAvatar(
-            key = message.messageId,
-            displayName = message.fromName,
-            emailAddress = message.fromAddress,
-        )
+        // Company senders show their logo (2026-10-13); personal senders
+        // keep the letter avatar.
+        val senderDomain = remember(message.fromAddress) {
+            CompanyDetector.detect(
+                CompanyDetectionInput(
+                    fromAddress = message.fromAddress,
+                    fromName = message.fromName,
+                ),
+            )?.normalizedDomain
+        }
+        if (senderDomain != null) {
+            CompanyLogo(domain = senderDomain, name = sender)
+        } else {
+            SenderAvatar(
+                key = message.messageId,
+                displayName = message.fromName,
+                emailAddress = message.fromAddress,
+            )
+        }
         Spacer(Modifier.width(MoSpacing.sm))
         Column(modifier = Modifier.weight(1f)) {
             Row(verticalAlignment = Alignment.CenterVertically) {

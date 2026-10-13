@@ -18,7 +18,7 @@ import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlin.math.abs
 
 /**
- * Gmail-style circular sender avatar (40dp): sender initial on a
+ * Gmail-style circular sender avatar (54dp): sender initial on a
  * deterministic theme-container color derived from the sender key.
  *
  * Same discipline as [AccountAvatar]: the color always comes from the
@@ -31,7 +31,7 @@ fun SenderAvatar(
     displayName: String?,
     emailAddress: String,
     modifier: Modifier = Modifier,
-    size: Dp = MoSpacing.xxxl,
+    size: Dp = MoSpacing.rowAvatar,
 ) {
     val containers = listOf(
         MaterialTheme.colorScheme.primaryContainer to MaterialTheme.colorScheme.onPrimaryContainer,
