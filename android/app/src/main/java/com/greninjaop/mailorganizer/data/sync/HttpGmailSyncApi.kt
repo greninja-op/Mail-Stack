@@ -9,6 +9,9 @@ import com.greninjaop.mailorganizer.core.JsonParser.string
 import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.auth.AuthRepository
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import com.greninjaop.mailorganizer.data.http.HttpTransport
@@ -35,10 +38,34 @@ class HttpGmailSyncApi(
     private val transport: HttpTransport = UrlConnectionTransport(),
 ) : GmailSyncApi {
 
+    /**
+     * Bounded parallelism for per-message metadata fetches (2026-10-12).
+     * 8 concurrent `messages.get` calls ≈ 40 quota units per burst — far
+     * inside Gmail's per-user limits — while cutting first-sync time from
+     * ~5 minutes to well under 2.
+     */
+    private val fetchDispatcher = Dispatchers.IO.limitedParallelism(FETCH_CONCURRENCY)
+
     override suspend fun fetchPage(
         accountId: AccountId,
         pageToken: String?,
         pageSize: Int,
+    ): MessagePage = fetchLabeledPage(accountId, pageToken, pageSize, labelId = null)
+
+    override suspend fun fetchSpamPage(
+        accountId: AccountId,
+        pageSize: Int,
+    ): MessagePage = fetchLabeledPage(accountId, pageToken = null, pageSize, labelId = "SPAM")
+
+    /**
+     * Shared list+metadata fetch. [labelId] null = the default INBOX list;
+     * "SPAM" = the spam-only pass the Spam destination needs (2026-10-13).
+     */
+    private suspend fun fetchLabeledPage(
+        accountId: AccountId,
+        pageToken: String?,
+        pageSize: Int,
+        labelId: String?,
     ): MessagePage = withContext(Dispatchers.IO) {
         val token = requireToken(accountId)
         val capped = pageSize.coerceIn(1, MAX_PAGE_SIZE)
@@ -47,6 +74,7 @@ class HttpGmailSyncApi(
             // Sync the primary mailbox view. Label filtering for
             // Promotional/Social/Spam happens locally (Phase 7/8).
         )
+        if (labelId != null) params["labelIds"] = labelId
         if (pageToken != null) params["pageToken"] = pageToken
         val listJson = get(token, "$apiBase/gmail/v1/users/me/messages", params)
             ?: throw SyncApiException.NetworkError()
@@ -57,19 +85,19 @@ class HttpGmailSyncApi(
             if (id != null && threadId != null) id to threadId else null
         }
         val nextPageToken = listJson.string("nextPageToken")
+        // Honest progress total: Gmail's estimate of messages matching the query.
+        val resultSizeEstimate = listJson.long("resultSizeEstimate")?.toInt()
 
-        // Fetch metadata for each message (sequential; page sizes are small).
-        val remote = messages.mapNotNull { (id, threadId) ->
-            try {
-                fetchMessageMetadata(token, id, threadId)
-            } catch (e: SyncApiException) {
-                // A single message failing must not kill the whole page;
-                // 404s (deleted between list and get) are simply skipped.
-                MoLogger.w(TAG, "Skipping message $id: ${e.javaClass.simpleName}")
-                null
-            }
-        }
-        MessagePage(messages = remote, nextPageToken = nextPageToken)
+        // Fetch metadata for each message with bounded concurrency
+        // (2026-10-12): sequential fetching made a 500-message first sync
+        // take ~5 minutes; 8 parallel requests bring it under ~2 minutes
+        // while staying far inside Gmail's per-user quota.
+        val remote = fetchMetadataConcurrently(token, messages, "Skipping message")
+        MessagePage(
+            messages = remote,
+            nextPageToken = nextPageToken,
+            resultSizeEstimate = resultSizeEstimate,
+        )
     }
 
     override suspend fun fetchChanges(
@@ -112,19 +140,35 @@ class HttpGmailSyncApi(
                 }
             }
         }
-        val remote = addedIds.mapNotNull { (id, threadId) ->
-            try {
-                fetchMessageMetadata(token, id, threadId)
-            } catch (e: SyncApiException) {
-                MoLogger.w(TAG, "Skipping changed message $id: ${e.javaClass.simpleName}")
-                null
-            }
-        }
+        val remote = fetchMetadataConcurrently(token, addedIds, "Skipping changed message")
         ChangePage(
             messages = remote,
             deletedRemoteIds = deletedIds.distinct(),
             nextHistoryCursor = json.string("historyId") ?: historyCursor,
         )
+    }
+
+    /**
+     * Fetches per-message metadata with bounded concurrency (2026-10-12).
+     * A single message failing (SyncApiException) is skipped and logged —
+     * 404s (deleted between list and get) must not kill the whole batch.
+     * Non-API throwables propagate: they indicate bugs, not bad messages.
+     */
+    private suspend fun fetchMetadataConcurrently(
+        token: String,
+        ids: List<Pair<String, String>>,
+        skipLogPrefix: String,
+    ): List<RemoteMessage> = coroutineScope {
+        ids.map { (id, threadId) ->
+            async(fetchDispatcher) {
+                try {
+                    fetchMessageMetadata(token, id, threadId)
+                } catch (e: SyncApiException) {
+                    MoLogger.w(TAG, "$skipLogPrefix $id: ${e.javaClass.simpleName}")
+                    null
+                }
+            }
+        }.awaitAll().filterNotNull()
     }
 
     override suspend fun latestHistoryCursor(accountId: AccountId): String =
@@ -227,6 +271,8 @@ class HttpGmailSyncApi(
     companion object {
         private const val TAG = "HttpGmailSyncApi"
         private const val MAX_PAGE_SIZE = 25
+        /** Bounded parallelism for per-message metadata fetches. */
+        private const val FETCH_CONCURRENCY = 8
 
         /**
          * Maps a Gmail `messages.get` metadata response to [RemoteMessage].

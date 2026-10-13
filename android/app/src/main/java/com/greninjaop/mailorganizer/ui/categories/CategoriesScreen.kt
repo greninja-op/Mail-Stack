@@ -1,22 +1,28 @@
 package com.greninjaop.mailorganizer.ui.categories
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -24,8 +30,11 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateMapOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -37,8 +46,8 @@ import com.greninjaop.mailorganizer.di.AppContainer
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
-import com.greninjaop.mailorganizer.ui.mail.CategoryChip
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.mail.MailRowLayout
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
@@ -63,10 +72,18 @@ class CategoriesViewModelFactory(
 }
 
 /**
- * Categories destination — Phase 11 (phase §21–§24).
+ * Categories destination — Phase 11 (phase §21–§24), regrouped 2026-10-12.
  *
  * Category browsing backed by Phase 7 classification. Counts are real
  * local counts (§23); empty categories get an honest empty state (§24).
+ *
+ * Presentation (2026-10-12): instead of eleven per-category colored rows,
+ * five calm groups ("Needs attention", "Promotions", "Updates",
+ * "Work & learning", "Everything else") — each with one NEUTRAL tonal icon
+ * and text labels. The [MailCategory] enum and the classifier are untouched;
+ * this is a display grouping only. Tapping a group expands it inline with
+ * animation, revealing its member categories; tapping a member opens the
+ * existing category detail destination.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -75,7 +92,7 @@ fun CategoriesScreen(
     onNavigate: (String) -> Unit,
     onOpenCategory: (MailCategory) -> Unit,
     onOpenThread: (threadId: String) -> Unit,
-    onOpenSearch: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -85,8 +102,7 @@ fun CategoriesScreen(
         modifier = modifier,
         topBar = {
             MoAppTopBar(
-                title = "Categories",
-                account = account,
+                                account = account,
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,
@@ -104,46 +120,11 @@ fun CategoriesScreen(
                 message = "Loading categories…",
                 modifier = Modifier.padding(padding),
             )
-            is CategoriesContent.Ready -> LazyColumn(
+            is CategoriesContent.Ready -> CategoryGroupList(
+                counts = content.counts,
+                onOpenCategory = onOpenCategory,
                 modifier = Modifier.padding(padding).fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
-            ) {
-                items(
-                    MailCategory.entries
-                        .filter { (content.counts[it] ?: 0) > 0 }
-                        .sortedByDescending { content.counts[it] ?: 0 },
-                    key = { it.name },
-                ) { category ->
-                    val visuals = category.visuals()
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onOpenCategory(category) }
-                            .padding(
-                                horizontal = MoSpacing.md,
-                                vertical = MoSpacing.sm,
-                            )
-                            .semantics {
-                                contentDescription =
-                                    "${visuals.label}, ${content.counts[category]} messages"
-                            },
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(Modifier.weight(1f)) {
-                            Text(
-                                text = visuals.label,
-                                style = MaterialTheme.typography.bodyLarge,
-                            )
-                            Text(
-                                text = "${content.counts[category]} messages",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        CategoryChip(category = category)
-                    }
-                }
-            }
+            )
             is CategoriesContent.Empty -> MoEmptyState(
                 title = "No categories yet",
                 message = if (content.hasAccount) {
@@ -159,6 +140,107 @@ fun CategoriesScreen(
                 onRetry = { /* re-collect on next subscription */ },
                 modifier = Modifier.padding(padding),
             )
+        }
+    }
+}
+
+/**
+ * The five presentation groups as an M3 list. One row per group: neutral
+ * tonal icon container, group name + total count, subtitle naming the
+ * contained categories. Tapping expands inline (animated) to the member
+ * categories, which navigate to the existing detail destination.
+ */
+@Composable
+private fun CategoryGroupList(
+    counts: Map<MailCategory, Int>,
+    onOpenCategory: (MailCategory) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val expandedGroups = remember { mutableStateMapOf<String, Boolean>() }
+    val groups = remember(counts) {
+        CATEGORY_GROUPS.mapNotNull { group ->
+            val total = group.totalCount(counts)
+            if (total > 0) group to total else null
+        }
+    }
+    LazyColumn(modifier = modifier) {
+        items(groups, key = { (group, _) -> group.id }) { (group, total) ->
+            val expanded = expandedGroups[group.id] == true
+            val members = remember(group, counts) {
+                group.members.filter { (counts[it] ?: 0) > 0 }
+            }
+            ListItem(
+                headlineContent = { Text(group.title) },
+                supportingContent = {
+                    Column {
+                        Text(
+                            text = "$total messages",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                        Text(
+                            text = group.subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                leadingContent = {
+                    Box(
+                        modifier = Modifier
+                            .size(MoSpacing.xxxl)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = group.icon,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                },
+                trailingContent = {
+                    Icon(
+                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp
+                        else Icons.Filled.KeyboardArrowDown,
+                        contentDescription = if (expanded) "Collapse" else "Expand",
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                },
+                modifier = Modifier
+                    .clickable { expandedGroups[group.id] = !expanded }
+                    .semantics {
+                        contentDescription =
+                            "${group.title}, $total messages. " +
+                                if (expanded) "Expanded." else "Collapsed. Tap to expand."
+                    },
+            )
+            // Inline expansion, animated: member categories as sub-rows.
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.fillMaxWidth()) {
+                    members.forEach { member ->
+                        val label = remember(member) { member.visuals().label }
+                        val count = counts[member] ?: 0
+                        ListItem(
+                            headlineContent = { Text(label) },
+                            trailingContent = {
+                                Text(
+                                    text = "$count",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            },
+                            modifier = Modifier
+                                .clickable { onOpenCategory(member) }
+                                .padding(start = MoSpacing.giant)
+                                .semantics {
+                                    contentDescription = "$label, $count messages"
+                                },
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -223,44 +305,37 @@ fun CategoryDetailScreen(
                             )
                         }
                         items(content.messages, key = { it.messageId }) { message ->
-                            Row(
+                            // Gmail-exact row (shared with the main mail list):
+                            // 40dp avatar, sender+time / subject / snippet,
+                            // 88dp minimum — not the old compact row.
+                            val timeText = MailFormatting.relativeTime(
+                                message.timestampEpochMs,
+                                System.currentTimeMillis(),
+                            )
+                            MailRowLayout(
+                                sender = message.senderName,
+                                senderKey = message.senderName,
+                                subject = MailFormatting.subjectDisplay(message.subject),
+                                snippet = "",
+                                timeText = timeText,
+                                unread = message.unread,
+                                showStar = false,
+                                showAttachment = false,
+                                messageCount = 1,
+                                priority = null,
+                                account = null,
+                                showAccountIndicator = false,
+                                onClick = { onOpenThread(message.threadId) },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable { onOpenThread(message.threadId) }
-                                    .padding(
-                                        horizontal = MoSpacing.md,
-                                        vertical = MoSpacing.sm,
-                                    ),
-                                verticalAlignment = Alignment.CenterVertically,
-                            ) {
-                                Column(Modifier.weight(1f)) {
-                                    Text(
-                                        text = message.senderName,
-                                        style = MaterialTheme.typography.bodyMedium.copy(
-                                            fontWeight = if (message.unread) FontWeight.SemiBold
-                                            else FontWeight.Normal,
-                                        ),
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                    Text(
-                                        text = message.subject,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                    )
-                                }
-                                Spacer(Modifier.width(MoSpacing.sm))
-                                Text(
-                                    text = MailFormatting.relativeTime(
-                                        message.timestampEpochMs,
-                                        System.currentTimeMillis(),
-                                    ),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                                    .animateItem()
+                                    .semantics {
+                                        contentDescription =
+                                            "${if (message.unread) "Unread email" else "Email"} " +
+                                                "from ${message.senderName}, " +
+                                                "subject: ${MailFormatting.subjectDisplay(message.subject)}" +
+                                                (if (timeText.isNotBlank()) ", $timeText" else "")
+                                    },
+                            )
                         }
                     }
                 }

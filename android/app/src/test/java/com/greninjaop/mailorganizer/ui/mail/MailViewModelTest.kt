@@ -265,13 +265,14 @@ class MailViewModelTest {
     }
 
     @Test
-    fun `promotional destination shows classified promotions`() = runTest(testDispatcher) {
+    fun `promotional destination shows gmail promotions label`() = runTest(testDispatcher) {
         seedAccount("real-acct")
         saveMessage(
             "promo-1", "real-acct", "t-promo",
             from = "deals@shop.example.com",
             subject = "Clearance: limited time offer",
             body = "Our clearance sale ends Sunday.",
+            labels = listOf("INBOX", "CATEGORY_PROMOTIONS"),
         )
         saveMessage(
             "plain-1", "real-acct", "t-plain",
