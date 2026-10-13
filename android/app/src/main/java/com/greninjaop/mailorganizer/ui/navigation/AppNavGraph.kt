@@ -4,11 +4,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -244,9 +242,15 @@ fun AppNavGraph(
             navController.navigate(route)
         }
     }
-    NavHost(
-        navController = navController,
-        startDestination = AppDestinations.HOME,
+    // 2026-10-13 (Breeze redesign): the background artwork lives here, once,
+    // behind the whole NavHost — every destination shows it, and it stays
+    // static while screens fade through above it. Screens use transparent
+    // Scaffold containers so the artwork shows through.
+    Box(modifier = Modifier.fillMaxSize()) {
+        com.greninjaop.mailorganizer.ui.theme.BreezeBackground()
+        NavHost(
+            navController = navController,
+            startDestination = AppDestinations.HOME,
         // 2026-10-13 (redone): Material fade-through on every route change.
         // The outgoing screen fades out FIRST; the incoming one fades in
         // after a short delay with a subtle scale — the two never blend
@@ -268,7 +272,6 @@ fun AppNavGraph(
             fadeOut(animationSpec = MoMotion.fadeThroughExit) +
                 scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
         },
-        modifier = Modifier.background(MaterialTheme.colorScheme.background),
     ) {
         // Phase 11: the real Home dashboard (replaces the Phase 1
         // foundation screen).
@@ -691,5 +694,6 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() },
             )
         }
+    }
     }
 }

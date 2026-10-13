@@ -1,12 +1,17 @@
 package com.greninjaop.mailorganizer.ui.mail
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -20,9 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.Priority
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 
 /**
  * Priority presentation (Phase 9).
@@ -53,8 +60,10 @@ fun Priority.visuals(): PriorityVisuals? = when (this) {
 /**
  * Compact priority badge for mail rows. Renders nothing for NORMAL/LOW.
  *
- * Neutral tonal M3 chip (2026-10-12): one style for every priority — no
- * per-level colors. The label text carries the meaning.
+ * 2026-10-13 (Breeze redesign): amber warning pill per the reference —
+ * pale amber container + amber-brown text + thin amber border in light
+ * mode, dark amber tint + amber text in dark mode. The label text still
+ * carries the meaning (never color alone).
  */
 @Composable
 fun PriorityBadge(
@@ -62,10 +71,12 @@ fun PriorityBadge(
     modifier: Modifier = Modifier,
 ) {
     val visuals = remember(priority) { priority.visuals() } ?: return
+    val glass = rememberGlassPalette()
     Surface(
         shape = RoundedCornerShape(MoSpacing.xs),
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+        color = glass.warningContainer,
+        contentColor = glass.warningContent,
+        border = BorderStroke(1.dp, glass.warningBorder),
         modifier = modifier.semantics {
             contentDescription = visuals.contentDescription
         },
@@ -135,7 +146,11 @@ fun PriorityWithExplanation(
 /**
  * Action-required filter chip (Phase 9). Toggles the "action required"
  * view — mail classified ACTION_REQUIRED by the deterministic engine.
- * A text chip with a checkmark state; honest about what it filters.
+ *
+ * 2026-10-13 (Breeze redesign): amber warning pill per the reference —
+ * amber exclamation icon + amber text on a pale amber container with a
+ * thin amber border, in both modes. The active state adds a stronger
+ * border; the label still carries the meaning.
  */
 @Composable
 fun ActionRequiredFilterChip(
@@ -143,6 +158,7 @@ fun ActionRequiredFilterChip(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val glass = rememberGlassPalette()
     androidx.compose.material3.FilterChip(
         selected = active,
         onClick = onToggle,
@@ -150,8 +166,33 @@ fun ActionRequiredFilterChip(
             Text(
                 text = "Action required",
                 style = MaterialTheme.typography.labelMedium,
+                color = glass.warningContent,
             )
         },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Filled.Warning,
+                contentDescription = null,
+                tint = glass.warningContent,
+                modifier = Modifier.size(MoSpacing.md),
+            )
+        },
+        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
+            containerColor = glass.warningContainer,
+            selectedContainerColor = glass.warningContainer,
+            labelColor = glass.warningContent,
+            selectedLabelColor = glass.warningContent,
+            iconColor = glass.warningContent,
+            selectedLeadingIconColor = glass.warningContent,
+        ),
+        border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
+            borderColor = glass.warningBorder,
+            selectedBorderColor = glass.warningContent,
+            borderWidth = 1.dp,
+            selectedBorderWidth = 1.5.dp,
+            enabled = true,
+            selected = active,
+        ),
         modifier = modifier.semantics {
             contentDescription = if (active) {
                 "Showing action-required mail. Tap to show all mail."
