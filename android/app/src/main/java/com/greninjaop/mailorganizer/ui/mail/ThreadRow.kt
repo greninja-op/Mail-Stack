@@ -22,20 +22,27 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.Priority
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
- * One row in the mail list (Phase 6, phase §9–11).
+ * One row in the mail list — Gmail conversation-row fidelity (2026-10-12).
  *
- * A flat row — not a card (design.md: no unnecessary shadows). Hierarchy:
- * sender / subject / preview / timestamp, with a clear unread distinction
- * (bold sender+subject). Long text is ellipsis-bounded so one rogue email
- * can't break the layout (§11). Minimum 48dp touch target (§42).
+ * Layout mirrors the Gmail Android app:
+ * - 40dp circular sender avatar at the left (deterministic theme-container
+ *   color, sender initial).
+ * - Three text lines: sender + timestamp / subject / snippet, with the
+ *   unread distinction carried by bold sender+subject and a primary-colored
+ *   timestamp (Gmail's own unread treatment).
+ * - Star indicator on the right edge, display-only (read-only phase, §6).
+ * - No dividers between rows — Gmail has none.
+ * - Min height 88dp: slightly roomier than before, still a generous
+ *   48dp+ touch target (§42).
  *
- * The star is a *display* of synced starred state only — read-only phase,
- * no toggle (§6).
+ * Long text is ellipsis-bounded so one rogue email can't break the layout
+ * (§11). Every row keeps its full content description for screen readers.
  */
 @Composable
 fun ThreadRow(
@@ -62,6 +69,7 @@ fun ThreadRow(
     }
     MailRowLayout(
         sender = item.senderDisplay,
+        senderKey = item.threadId,
         subject = MailFormatting.subjectDisplay(item.subject),
         snippet = item.snippet,
         timeText = timeText,
@@ -91,13 +99,16 @@ fun StarredMessageRow(
     val timeText = remember(item.timestampEpochMs, now / 60_000) {
         MailFormatting.relativeTime(item.timestampEpochMs, now)
     }
+    val sender = remember(item.fromName, item.fromAddress) {
+        MailFormatting.senderDisplay(item.fromName, item.fromAddress)
+    }
     val description = remember(item) {
-        "Starred email from ${
-            MailFormatting.senderDisplay(item.fromName, item.fromAddress)
-        }, subject: ${MailFormatting.subjectDisplay(item.subject)}, $timeText"
+        "Starred email from $sender, subject: " +
+            "${MailFormatting.subjectDisplay(item.subject)}, $timeText"
     }
     MailRowLayout(
-        sender = MailFormatting.senderDisplay(item.fromName, item.fromAddress),
+        sender = sender,
+        senderKey = item.messageId,
         subject = MailFormatting.subjectDisplay(item.subject),
         snippet = item.snippet,
         timeText = timeText,
@@ -114,8 +125,9 @@ fun StarredMessageRow(
 }
 
 @Composable
-private fun MailRowLayout(
+internal fun MailRowLayout(
     sender: String,
+    senderKey: String,
     subject: String,
     snippet: String,
     timeText: String,
@@ -134,7 +146,7 @@ private fun MailRowLayout(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MoSpacing.huge)
+            .heightIn(min = 88.dp)
             .clickable(onClick = onClick)
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -143,11 +155,18 @@ private fun MailRowLayout(
             AccountAvatar(account = account, size = MoSpacing.xxl)
             Spacer(Modifier.width(MoSpacing.sm))
         }
+        SenderAvatar(
+            key = senderKey,
+            displayName = sender,
+            emailAddress = sender,
+        )
+        Spacer(Modifier.width(MoSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
+            // Line 1: sender (left) + timestamp (right edge).
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = sender,
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = emphasis),
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = emphasis),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
@@ -156,13 +175,15 @@ private fun MailRowLayout(
                     Spacer(Modifier.width(MoSpacing.xs))
                     Text(
                         text = timeText,
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = if (unread) MaterialTheme.colorScheme.primary
                         else MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
                     )
                 }
             }
+            Spacer(Modifier.width(MoSpacing.xxs))
+            // Line 2: subject.
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = subject,
@@ -171,43 +192,31 @@ private fun MailRowLayout(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f),
                 )
-                if (showStar) {
+                if (priority != null && priority.visuals() != null) {
                     Spacer(Modifier.width(MoSpacing.xs))
-                    Icon(
-                        imageVector = Icons.Filled.Star,
-                        contentDescription = "Starred",
-                        tint = MaterialTheme.colorScheme.tertiary,
-                        modifier = Modifier.size(MoSpacing.md),
-                    )
+                    PriorityBadge(priority = priority)
                 }
+            }
+            // Line 3: snippet.
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = snippet.ifBlank { "—" },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f),
+                )
                 if (showAttachment) {
                     Spacer(Modifier.width(MoSpacing.xs))
-                    // No paperclip in the bundled core icon set: a compact text chip
-                    // is honest and needs no invented icon.
+                    // No paperclip in the bundled core icon set: a compact text
+                    // chip is honest and needs no invented icon.
                     Text(
                         text = "Files",
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                if (priority != null && priority.visuals() != null) {
-                    Spacer(Modifier.width(MoSpacing.xs))
-                    PriorityBadge(priority = priority)
-                }
-                if (conversationState != null && conversationState != com.greninjaop.mailorganizer.core.conversation.ConversationState.NO_ACTION) {
-                    Spacer(Modifier.width(MoSpacing.xs))
-                    ConversationStateBadge(state = conversationState)
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = snippet.ifBlank { "—" },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
-                )
                 if (messageCount > 1) {
                     Spacer(Modifier.width(MoSpacing.xs))
                     Text(
@@ -219,7 +228,21 @@ private fun MailRowLayout(
                         },
                     )
                 }
+                if (conversationState != null && conversationState != com.greninjaop.mailorganizer.core.conversation.ConversationState.NO_ACTION) {
+                    Spacer(Modifier.width(MoSpacing.xs))
+                    ConversationStateBadge(state = conversationState)
+                }
             }
+        }
+        // Right edge: star indicator, display-only (read-only phase, §6).
+        if (showStar) {
+            Spacer(Modifier.width(MoSpacing.sm))
+            Icon(
+                imageVector = Icons.Filled.Star,
+                contentDescription = "Starred",
+                tint = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.size(MoSpacing.lg),
+            )
         }
     }
 }

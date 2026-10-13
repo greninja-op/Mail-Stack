@@ -34,10 +34,39 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 2
+        versionCode = 11
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
-        versionName = "1.0.1"
+        // 1.0.2: circular no-padding launcher icon.
+        // 1.0.3: user's own circular logo (round) + OG square logo (square).
+        // 1.0.4: user's circular file used EXACTLY (black bg kept, 72dp safe
+        //        zone so no launcher mask can zoom/crop it).
+        // 1.0.5: sync hardening — real error surfaced in the failure message,
+        //        per-thread save isolation, stale "later phase" text fixed.
+        // 1.0.6: dark-mode contrast fix (Connect screen); sync progress with
+        //        real %; 8x concurrent fetch (~5min -> <2min); animated
+        //        import flow with flying-mail progress for new accounts.
+        // 1.0.7: ROOT-CAUSE fix for "100% but no mails" — FTS indexing is now
+        //        best-effort (devices without FTS5 no longer abort every
+        //        save); per-message isolation narrowed to the mapping layer
+        //        so systemic save failures stay loud; progress label handles
+        //        processed > estimate.
+        // 1.0.8: adaptive icon background solid black (was transparent) —
+        //        matches the logo file's own background; more robust across
+        //        launchers. Icon resources otherwise byte-identical to 1.0.4.
+        // 1.0.9: Gmail-fidelity UI overhaul — mail list rows mirror Gmail's
+        //        exact row layout (avatar/sender+time/subject/snippet/star,
+        //        88dp, no dividers, pull-to-refresh, animateItem); thread
+        //        view uses Gmail-style message cards with "to me" expander;
+        //        12 rainbow categories consolidated into 5 neutral groups.
+        // 1.0.10: company logos in the Companies section — real logos from
+        //        the user's ICONS-ASSETS repo in 40dp circles (8 bundled for
+        //        offline: Adobe, Amazon, AWS, Apple, ClickUp, Duolingo,
+        //        Devpost, Alibaba Cloud); on-demand loader fetches any of
+        //        the repo's ~1000 icons with memory+disk cache; letter
+        //        avatar fallback. Standing no-emoji rule: app-created emojis
+        //        stripped from sample data, never added anywhere.
+        versionName = "1.0.10"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

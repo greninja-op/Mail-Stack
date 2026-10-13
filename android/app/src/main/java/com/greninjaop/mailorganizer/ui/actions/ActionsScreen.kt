@@ -70,7 +70,7 @@ fun ActionsScreen(
     viewModel: ActionsViewModel,
     onNavigate: (String) -> Unit,
     onOpenThread: (threadId: String) -> Unit,
-    onOpenSearch: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.state.collectAsState()
@@ -104,8 +104,7 @@ fun ActionsScreen(
         modifier = modifier,
         topBar = {
             MoAppTopBar(
-                title = "Actions",
-                account = account,
+                                account = account,
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,

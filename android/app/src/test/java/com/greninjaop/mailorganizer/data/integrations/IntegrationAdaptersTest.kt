@@ -53,6 +53,10 @@ class IntegrationAdaptersTest {
             accountId: AccountId,
             historyCursor: String,
         ): ChangePage = throw UnsupportedOperationException()
+        override suspend fun fetchSpamPage(
+            accountId: AccountId,
+            pageSize: Int,
+        ): MessagePage = throw UnsupportedOperationException()
         override suspend fun latestHistoryCursor(accountId: AccountId): String = "cursor-1"
     }
 

@@ -2,20 +2,18 @@ package com.greninjaop.mailorganizer.ui.mail
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -103,8 +101,13 @@ fun MailCategory.visuals(): CategoryVisuals {
 }
 
 /**
- * Small category chip: accent dot + text label. Color is never the only
- * indicator — the label text and content description carry the meaning.
+ * Neutral category chip (2026-10-12): a tonal M3 chip with the category
+ * label — no per-category accent colors. Color is never the indicator;
+ * the label text and content description carry the meaning.
+ *
+ * Deliberately non-interactive (a Surface, not a clickable chip): in
+ * [CategoryChipWithExplanation] the chip sits inside the tappable "Why?"
+ * row, and a clickable chip would swallow those taps.
  */
 @Composable
 fun CategoryChip(
@@ -112,24 +115,21 @@ fun CategoryChip(
     modifier: Modifier = Modifier,
 ) {
     val visuals = remember(category) { category.visuals() }
-    val accent = if (isSystemInDarkTheme()) visuals.accentDark else visuals.accentLight
-    Row(
+    Surface(
+        shape = RoundedCornerShape(MoSpacing.sm),
+        color = MaterialTheme.colorScheme.secondaryContainer,
+        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
         modifier = modifier.semantics {
             contentDescription = visuals.contentDescription
         },
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Box(
-            modifier = Modifier
-                .size(MoSpacing.sm)
-                .clip(CircleShape)
-                .background(accent),
-        )
-        Spacer(Modifier.width(MoSpacing.xs))
         Text(
             text = visuals.label,
             style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(
+                horizontal = MoSpacing.sm,
+                vertical = MoSpacing.xxs,
+            ),
         )
     }
 }
