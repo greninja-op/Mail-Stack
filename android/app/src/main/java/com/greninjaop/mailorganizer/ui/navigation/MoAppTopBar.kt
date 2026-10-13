@@ -3,7 +3,6 @@ package com.greninjaop.mailorganizer.ui.navigation
 import androidx.compose.foundation.clickable
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -20,39 +19,43 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.shape.CircleShape
 import com.greninjaop.mailorganizer.data.local.AccountRecord
+import com.greninjaop.mailorganizer.ui.components.MoSearchField
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 
 /**
  * Shared top app bar for the Phase 11 primary destinations (phase §7,
- * §34–§36): title, a prominent search entry point, the account identity
- * (tapping it opens Accounts), and an overflow menu for the secondary
- * destinations (Integrations, Settings, Privacy, Accounts).
+ * §34–§36): the same Gmail-style search pill as the mailbox (2026-10-13),
+ * the account identity (tapping it opens Accounts), and an overflow menu
+ * for the secondary destinations (Integrations, Settings, Privacy,
+ * Accounts).
  *
- * Search is always one tap away (§34); the account avatar always shows
- * which account's data is on screen (§36).
+ * Submitting the search field opens the dedicated Search screen with the
+ * typed query; the current destination stays readable via the selected
+ * bottom-nav item (§34).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MoAppTopBar(
-    title: String,
     account: AccountRecord?,
-    onOpenSearch: () -> Unit,
+    onOpenSearch: (String) -> Unit,
     onOpenAccounts: () -> Unit,
     onOpenSecondary: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
 
     TopAppBar(
-        title = { Text(title) },
+        title = {
+            MoSearchField(
+                value = query,
+                onValueChange = { query = it },
+                onSearchSubmit = { onOpenSearch(query) },
+                placeholder = "Search mail",
+            )
+        },
         modifier = modifier,
         actions = {
-            IconButton(onClick = onOpenSearch) {
-                Icon(
-                    imageVector = Icons.Filled.Search,
-                    contentDescription = "Search mail",
-                )
-            }
             if (account != null) {
                 IconButton(onClick = onOpenAccounts) {
                     AccountAvatar(

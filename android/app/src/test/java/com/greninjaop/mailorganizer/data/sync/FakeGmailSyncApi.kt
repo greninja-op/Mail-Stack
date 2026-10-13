@@ -101,6 +101,23 @@ class FakeGmailSyncApi : GmailSyncApi {
             ?: throw SyncApiException.InvalidRequest("no changes scripted for ${accountId.value}")
     }
 
+    /**
+     * Spam pass fake (2026-10-13): returns an empty page by default; tests
+     * can script spam via [scriptSpamPage].
+     */
+    var spamPage: MessagePage = MessagePage(emptyList(), null, 0)
+    var fetchSpamPageCount = 0
+        private set
+
+    fun scriptSpamPage(page: MessagePage) {
+        spamPage = page
+    }
+
+    override suspend fun fetchSpamPage(accountId: AccountId, pageSize: Int): MessagePage {
+        fetchSpamPageCount++
+        return spamPage
+    }
+
     override suspend fun latestHistoryCursor(accountId: AccountId): String =
         historyCursor[accountId.value]
             ?: throw SyncApiException.InvalidRequest("no history cursor for ${accountId.value}")

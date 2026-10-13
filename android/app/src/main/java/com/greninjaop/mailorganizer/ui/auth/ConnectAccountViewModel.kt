@@ -45,7 +45,7 @@ class ConnectAccountViewModel(
                     awaitingResult = false
                     _uiState.value = when (result) {
                         is AuthResult.Success ->
-                            ConnectAccountUiState.Success(result.email)
+                            ConnectAccountUiState.Success(result.accountId.value, result.email)
                         is AuthResult.Cancelled ->
                             ConnectAccountUiState.Idle
                         is AuthResult.Failure ->

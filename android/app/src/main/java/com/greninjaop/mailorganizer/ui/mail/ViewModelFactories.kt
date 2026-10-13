@@ -55,6 +55,8 @@ class ThreadViewModelFactory(
                 dispatchers = container.dispatchers,
             ),
             accounts = container.accountRepository,
+            // Fetch-on-open for message bodies (2026-10-13).
+            fetchBody = container.fetchMessageBodyUseCase,
         ) as T
     }
 }

@@ -33,6 +33,36 @@ interface ThreadDao {
     fun observeByAccount(accountId: String, limit: Int): Flow<List<ThreadRecord>>
 
     /**
+     * Gmail Primary (2026-10-13): inbox threads whose latest message is NOT
+     * categorized as Social/Promotions and is NOT spam — the Gmail Primary
+     * tab semantics. Label matching reuses the exact unit-separator pattern
+     * from MessageDao's label queries.
+     */
+    @Query(
+        "SELECT t.* FROM threads t JOIN messages m ON m.messageId = t.latestMessageId " +
+            "WHERE t.accountId = :accountId " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'CATEGORY_SOCIAL' || char(31)) = 0 " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'CATEGORY_PROMOTIONS' || char(31)) = 0 " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'SPAM' || char(31)) = 0 " +
+            "ORDER BY t.latestMessageEpochMs DESC LIMIT :limit",
+    )
+    fun observePrimaryByAccount(accountId: String, limit: Int): Flow<List<ThreadRecord>>
+
+    /**
+     * Unified Gmail Primary across enabled accounts (2026-10-13).
+     */
+    @Query(
+        "SELECT t.* FROM threads t JOIN messages m ON m.messageId = t.latestMessageId " +
+            "JOIN accounts a ON a.accountId = t.accountId " +
+            "WHERE a.isEnabled = 1 " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'CATEGORY_SOCIAL' || char(31)) = 0 " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'CATEGORY_PROMOTIONS' || char(31)) = 0 " +
+            "AND instr(char(31) || m.labels || char(31), char(31) || 'SPAM' || char(31)) = 0 " +
+            "ORDER BY t.latestMessageEpochMs DESC LIMIT :limit",
+    )
+    fun observeUnifiedPrimary(limit: Int): Flow<List<ThreadRecord>>
+
+    /**
      * Unified presentation query (Phase 18): observes threads across all
      * enabled accounts ordered by latest message epoch descending.
      */
