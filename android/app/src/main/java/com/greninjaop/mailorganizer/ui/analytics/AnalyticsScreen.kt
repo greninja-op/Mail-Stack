@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Card
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
@@ -98,9 +99,13 @@ fun AnalyticsScreen(
     val account by viewModel.currentAccount.collectAsState()
 
     Scaffold(
+        containerColor = Color.Transparent,
         modifier = modifier,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text("Analytics & Insights") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
