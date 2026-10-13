@@ -49,7 +49,8 @@ import java.security.MessageDigest
  * constants, no Android framework calls).
  *
  * Resolution order used by [CompanyLogo]: bundled artwork first, then the
- * user's ICONS-ASSETS repo ([CompanyLogoLoader]), then a letter avatar.
+ * user's ICONS-ASSETS repo ([CompanyLogoLoader]), then the sender's
+ * website favicon (same loader), then a letter avatar.
  */
 object CompanyLogoResolver {
 
@@ -137,6 +138,14 @@ object CompanyLogoLoader {
     private const val MAX_BYTES = 2 * 1024 * 1024
     private const val TIMEOUT_MS = 10_000
 
+    /** Google favicon service: any domain's website favicon, 128px. */
+    private const val FAVICON_BASE = "https://www.google.com/s2/favicons?domain="
+    private const val FAVICON_SIZE = 128
+    /** Reserved `.invalid` TLD — can never have a favicon; calibrates the globe. */
+    private const val CALIBRATION_DOMAIN = "this-domain-cannot-exist-xyz123.invalid"
+    /** Synthetic cache name for favicon entries (distinct from repo files). */
+    private const val FAVICON_CACHE_NAME = "favicon.png"
+
     private val memCache = object : LruCache<String, Bitmap>(cacheSizeKb()) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
     }
@@ -167,37 +176,114 @@ object CompanyLogoLoader {
         }
     }
 
+    /**
+     * Resolution chain (2026-10-13): ICONS-ASSETS repo first, then the
+     * sender's own website favicon — so ANY organisation sender gets its
+     * real logo, not just the bundled/known ones. Personal senders never
+     * reach this loader (CompanyDetector excludes them), so a favicon is
+     * only ever fetched for an organisation.
+     *
+     * Privacy: a favicon fetch reveals the sender's domain to Google,
+     * exactly like the repo fetch reveals it to GitHub. Domains are never
+     * sent anywhere else, and results are cached on disk per domain.
+     */
     suspend fun load(context: Context, domain: String): Bitmap? =
         withContext(Dispatchers.IO) {
             val appContext = context.applicationContext
             memCache.get(domain)?.let { return@withContext it }
-            val file = CompanyLogoResolver.remoteFile(
-                domain,
-                availableNames(appContext),
-            ) ?: return@withContext null
-            val diskFile = diskFile(appContext, domain, file)
-            if (diskFile.exists()) {
-                decodeFile(diskFile)?.let { bitmap ->
-                    memCache.put(domain, bitmap)
-                    return@withContext bitmap
-                }
-                diskFile.delete() // corrupt entry — drop it so we refetch
-            }
-            val bitmap = download(file) ?: return@withContext null
-            writeDisk(diskFile, bitmap)
-            memCache.put(domain, bitmap)
-            bitmap
+            loadFromRepo(appContext, domain)?.let { return@withContext it }
+            loadFromFavicon(appContext, domain)?.let { return@withContext it }
+            null
         }
+
+    /** Stage 1: the user's ICONS-ASSETS repo (disk cache → download). */
+    private fun loadFromRepo(context: Context, domain: String): Bitmap? {
+        val file = CompanyLogoResolver.remoteFile(
+            domain,
+            availableNames(context),
+        ) ?: return null
+        val diskFile = diskFile(context, domain, file)
+        if (diskFile.exists()) {
+            decodeFile(diskFile)?.let { bitmap ->
+                memCache.put(domain, bitmap)
+                return bitmap
+            }
+            diskFile.delete() // corrupt entry — drop it so we refetch
+        }
+        val bitmap = downloadBitmap(REPO_BASE + file) ?: return null
+        writeDisk(diskFile, bitmap)
+        memCache.put(domain, bitmap)
+        return bitmap
+    }
+
+    /** Stage 2: the sender's website favicon (disk cache → download). */
+    private fun loadFromFavicon(context: Context, domain: String): Bitmap? {
+        val diskFile = diskFile(context, domain, FAVICON_CACHE_NAME)
+        if (diskFile.exists()) {
+            decodeFile(diskFile)?.let { bitmap ->
+                memCache.put(domain, bitmap)
+                return bitmap
+            }
+            diskFile.delete() // corrupt entry — drop it so we refetch
+        }
+        val bitmap = downloadFavicon(domain) ?: return null
+        writeDisk(diskFile, bitmap)
+        memCache.put(domain, bitmap)
+        return bitmap
+    }
+
+    /**
+     * Fetches a favicon, or null when the sender has no real one. The
+     * service returns a generic globe for unknown domains instead of
+     * failing, so the result is byte-compared against a globe calibrated
+     * at runtime (see [fetchDefaultGlobe]) — a match means "no logo".
+     */
+    private fun downloadFavicon(domain: String): Bitmap? {
+        val bytes = downloadBytes(faviconUrl(domain)) ?: return null
+        val globe = fetchDefaultGlobe()
+        if (globe != null && isDefaultGlobe(bytes, globe)) return null
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
+    /**
+     * Calibrates the default globe once per process by fetching the
+     * favicon for a domain that cannot exist (`.invalid` is reserved, so
+     * it can never have a favicon). Cached — one extra fetch per process,
+     * only when an unknown sender is looked up. Null when the calibration
+     * fetch itself fails (offline); the favicon is then accepted as-is.
+     */
+    private var defaultGlobeBytes: ByteArray? = null
+    private var defaultGlobeFetched = false
+
+    private fun fetchDefaultGlobe(): ByteArray? {
+        if (defaultGlobeFetched) return defaultGlobeBytes
+        defaultGlobeFetched = true
+        defaultGlobeBytes = downloadBytes(faviconUrl(CALIBRATION_DOMAIN))
+        return defaultGlobeBytes
+    }
+
+    /** Favicon-service URL for a domain (128px). */
+    fun faviconUrl(domain: String): String =
+        "$FAVICON_BASE$domain&sz=$FAVICON_SIZE"
+
+    /** True when [bytes] are the service's default globe, not a real logo. */
+    fun isDefaultGlobe(bytes: ByteArray, globeBytes: ByteArray): Boolean =
+        bytes.contentEquals(globeBytes)
 
     private fun diskFile(context: Context, domain: String, file: String): File {
         val dir = File(context.cacheDir, DISK_DIR).apply { mkdirs() }
         return File(dir, sha1("$domain:$file") + ".png")
     }
 
-    private fun download(file: String): Bitmap? {
+    private fun downloadBitmap(url: String): Bitmap? {
+        val bytes = downloadBytes(url) ?: return null
+        return BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+    }
+
+    private fun downloadBytes(url: String): ByteArray? {
         var connection: HttpURLConnection? = null
         return try {
-            connection = (URL(REPO_BASE + file).openConnection() as HttpURLConnection).apply {
+            connection = (URL(url).openConnection() as HttpURLConnection).apply {
                 connectTimeout = TIMEOUT_MS
                 readTimeout = TIMEOUT_MS
                 instanceFollowRedirects = true
@@ -206,8 +292,7 @@ object CompanyLogoLoader {
             if (connection.responseCode != HttpURLConnection.HTTP_OK) return null
             val contentType = connection.contentType ?: ""
             if (!contentType.startsWith("image/", ignoreCase = true)) return null
-            val bytes = readCapped(connection, MAX_BYTES) ?: return null
-            BitmapFactory.decodeByteArray(bytes, 0, bytes.size)
+            readCapped(connection, MAX_BYTES)
         } catch (_: Exception) {
             null
         } finally {

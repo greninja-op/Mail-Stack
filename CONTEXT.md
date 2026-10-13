@@ -203,3 +203,23 @@
   classes fail. New: ThreadItemSenderDomainTest (4), resolver kick/redditmail.
 - Test-lesson: R class in kotlin-classes/debug is stale (predates logo
   PNGs) — fresh R.jar FIRST on the JUnitCore classpath.
+
+## 2026-10-13 ~14:15 IST — Universal logos: favicon fallback (in working tree; NO APK until user says okay)
+- User asked: logos must exist for EVERY sender, not just familiar ones.
+  Answer built: favicon fallback chain in CompanyLogoLoader.
+  Resolution order now: bundled logo -> ICONS-ASSETS repo -> sender's
+  website favicon (Google favicon service, 128px) -> letter avatar.
+  Personal senders never reach the loader (CompanyDetector excludes
+  them), so a favicon is only ever fetched for an organisation — a
+  friend's Gmail never gets a Gmail logo.
+- TRAP HANDLED: the favicon service returns a generic globe for unknown
+  domains instead of failing (verified: 16x16 globe, byte-identical for
+  bogus.invalid and example.com). The loader calibrates the globe at
+  runtime by fetching it for a reserved `.invalid` domain (once per
+  process), byte-compares every favicon result against it, and treats a
+  match as "no logo" -> letter avatar.
+- Privacy note in code: a favicon fetch reveals the sender's domain to
+  Google, same as the repo fetch reveals it to GitHub. Results cached
+  (memory + disk, per domain) so each domain is fetched once.
+- New: CompanyLogoLoaderTest (3 tests: URL shape, globe match/mismatch).
+  Total: 939 run, 931 pass, same 8 env-broken Robolectric classes.
