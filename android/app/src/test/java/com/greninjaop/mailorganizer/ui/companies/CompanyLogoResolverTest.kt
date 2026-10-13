@@ -56,6 +56,9 @@ class CompanyLogoResolverTest {
         assertEquals(R.drawable.company_github, CompanyLogoResolver.bundledRes("github.com"))
         assertEquals(R.drawable.company_x, CompanyLogoResolver.bundledRes("x.com"))
         assertEquals(R.drawable.company_x, CompanyLogoResolver.bundledRes("twitter.com"))
+        // Kick + Reddit's mail domain (notifications come from redditmail.com).
+        assertEquals(R.drawable.company_kick, CompanyLogoResolver.bundledRes("kick.com"))
+        assertEquals(R.drawable.company_reddit, CompanyLogoResolver.bundledRes("redditmail.com"))
     }
 
     @Test
@@ -63,6 +66,7 @@ class CompanyLogoResolverTest {
         assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_canva))
         assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_github))
         assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_x))
+        assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_kick))
     }
 
     @Test

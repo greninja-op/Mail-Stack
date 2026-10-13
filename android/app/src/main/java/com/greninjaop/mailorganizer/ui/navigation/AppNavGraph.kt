@@ -2,6 +2,8 @@ package com.greninjaop.mailorganizer.ui.navigation
 
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -225,18 +227,47 @@ fun AppNavGraph(
     container: AppContainer,
     navController: NavHostController = rememberNavController(),
 ) {
+    // 2026-10-13 (redone): single tab-navigation path. Primary tabs use
+    // the standard saveState/restoreState pattern — switching tabs keeps
+    // each tab's back stack, ViewModel, scroll position and loaded data,
+    // so a tab switch never rebuilds or reloads the screen (the old
+    // plain navigate() stacked a fresh screen per tap, which read as a
+    // refresh). Non-primary routes still push normally.
+    val navigatePrimary: (String) -> Unit = { route ->
+        if (PrimaryDestination.entries.any { it.route == route }) {
+            navController.navigate(route) {
+                popUpTo(AppDestinations.HOME) { saveState = true }
+                launchSingleTop = true
+                restoreState = true
+            }
+        } else {
+            navController.navigate(route)
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = AppDestinations.HOME,
-        // 2026-10-13: explicit crossfade on every route change. The
-        // previous default left the raw window background visible while
-        // the old screen faded out, which read as a white flash when
-        // switching tabs. Fading in/out with matched timing over the
-        // theme background makes it a true, smooth crossfade.
-        enterTransition = { fadeIn(animationSpec = MoMotion.crossfade) },
-        exitTransition = { fadeOut(animationSpec = MoMotion.crossfade) },
-        popEnterTransition = { fadeIn(animationSpec = MoMotion.crossfade) },
-        popExitTransition = { fadeOut(animationSpec = MoMotion.crossfade) },
+        // 2026-10-13 (redone): Material fade-through on every route change.
+        // The outgoing screen fades out FIRST; the incoming one fades in
+        // after a short delay with a subtle scale — the two never blend
+        // into a washed-out double image, which was the old crossfade's
+        // flash. See MoMotion.
+        enterTransition = {
+            fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+        },
+        exitTransition = {
+            fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+        },
+        popEnterTransition = {
+            fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+        },
+        popExitTransition = {
+            fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+        },
         modifier = Modifier.background(MaterialTheme.colorScheme.background),
     ) {
         // Phase 11: the real Home dashboard (replaces the Phase 1
@@ -245,7 +276,7 @@ fun AppNavGraph(
             val vm: HomeViewModel = viewModel(factory = HomeViewModelFactory(container))
             HomeScreen(
                 viewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
                 },
@@ -278,12 +309,7 @@ fun AppNavGraph(
                     navController.navigate(AppDestinations.searchRoute(query))
                 },
                 // Phase 11: primary-destination bottom bar.
-                onNavigatePrimary = { route ->
-                    navController.navigate(route) {
-                        popUpTo(AppDestinations.HOME)
-                        launchSingleTop = true
-                    }
-                },
+                onNavigatePrimary = navigatePrimary,
             )
         }
         // Phase 11: category browsing + detail.
@@ -292,7 +318,7 @@ fun AppNavGraph(
                 viewModel(factory = CategoriesViewModelFactory(container))
             CategoriesScreen(
                 viewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onOpenCategory = { category ->
                     navController.navigate(AppDestinations.categoryRoute(category))
                 },
@@ -341,7 +367,7 @@ fun AppNavGraph(
                 viewModel(factory = CompaniesViewModelFactory(container))
             CompaniesScreen(
                 viewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onOpenCompany = { companyId ->
                     navController.navigate(AppDestinations.companyRoute(companyId))
                 },
@@ -380,7 +406,7 @@ fun AppNavGraph(
                 viewModel(factory = ActionsViewModelFactory(container))
             ActionsScreen(
                 viewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
                 },
@@ -514,7 +540,7 @@ fun AppNavGraph(
                 viewModel(factory = AppearanceViewModelFactory(container))
             SettingsScreen(
                 appearanceViewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onBack = { navController.popBackStack() },
             )
         }
@@ -626,7 +652,7 @@ fun AppNavGraph(
                 )
             com.greninjaop.mailorganizer.ui.settings.AiSettingsScreen(
                 viewModel = vm,
-                onNavigate = { route -> navController.navigate(route) },
+                onNavigate = navigatePrimary,
                 onBack = { navController.popBackStack() },
             )
         }
