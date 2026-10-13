@@ -1,8 +1,8 @@
 package com.greninjaop.mailorganizer.ui.companies
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -27,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +47,7 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /** Factory for the Phase 11 Companies destination. */
@@ -84,6 +87,7 @@ fun CompaniesScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -106,22 +110,30 @@ fun CompaniesScreen(
             )
             is CompaniesContent.Ready -> LazyColumn(
                 modifier = Modifier.padding(padding).fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
+                contentPadding = PaddingValues(
+                    horizontal = MoSpacing.md,
+                    vertical = MoSpacing.sm,
+                ),
+                verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
             ) {
                 items(content.companies, key = { it.record.companyId }) { entry ->
                     val name = entry.record.userOverrideName
                         ?: entry.record.canonicalName
-                    Row(
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = MoSpacing.companyRowMinHeight)
                             .animateItem()
-                            .clickable { onOpenCompany(entry.record.companyId) }
-                            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
                             .semantics {
                                 contentDescription =
                                     "$name, ${entry.messageCount} messages"
                             },
+                        onClick = { onOpenCompany(entry.record.companyId) },
+                    ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         CompanyLogo(
@@ -147,6 +159,7 @@ fun CompaniesScreen(
                             style = MaterialTheme.typography.labelLarge,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
                     }
                 }
             }
@@ -187,8 +200,12 @@ fun CompanyDetailScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = {
                     Text(
                         when (val d = detail) {
@@ -217,7 +234,14 @@ fun CompanyDetailScreen(
             is CompanyDetailContent.Loaded -> {
                 val name = content.company.userOverrideName
                     ?: content.company.canonicalName
-                LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.padding(padding).fillMaxSize(),
+                    contentPadding = PaddingValues(
+                        horizontal = MoSpacing.md,
+                        vertical = MoSpacing.sm,
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                ) {
                     item {
                         Column(
                             modifier = Modifier.padding(

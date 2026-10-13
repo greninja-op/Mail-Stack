@@ -2,9 +2,10 @@ package com.greninjaop.mailorganizer.ui.categories
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -23,8 +24,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ListItem
+import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -34,6 +37,7 @@ import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -53,6 +57,7 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /** Factory for the Phase 11 Categories destination. */
@@ -100,6 +105,7 @@ fun CategoriesScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -163,13 +169,31 @@ private fun CategoryGroupList(
             if (total > 0) group to total else null
         }
     }
-    LazyColumn(modifier = modifier) {
+    LazyColumn(
+        modifier = modifier,
+        contentPadding = PaddingValues(
+            horizontal = MoSpacing.md,
+            vertical = MoSpacing.sm,
+        ),
+        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+    ) {
         items(groups, key = { (group, _) -> group.id }) { (group, total) ->
             val expanded = expandedGroups[group.id] == true
             val members = remember(group, counts) {
                 group.members.filter { (counts[it] ?: 0) > 0 }
             }
+            GlassCard(
+                modifier = Modifier
+                    .animateItem()
+                    .semantics {
+                        contentDescription =
+                            "${group.title}, $total messages. " +
+                                if (expanded) "Expanded." else "Collapsed. Tap to expand."
+                    },
+                onClick = { expandedGroups[group.id] = !expanded },
+            ) {
             ListItem(
+                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                 headlineContent = { Text(group.title) },
                 supportingContent = {
                     Column {
@@ -208,21 +232,24 @@ private fun CategoryGroupList(
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 },
-                modifier = Modifier
-                    .clickable { expandedGroups[group.id] = !expanded }
-                    .semantics {
-                        contentDescription =
-                            "${group.title}, $total messages. " +
-                                if (expanded) "Expanded." else "Collapsed. Tap to expand."
-                    },
             )
+            }
             // Inline expansion, animated: member categories as sub-rows.
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     members.forEach { member ->
                         val label = remember(member) { member.visuals().label }
                         val count = counts[member] ?: 0
+                        GlassCard(
+                            modifier = Modifier
+                                .padding(start = MoSpacing.xl)
+                                .semantics {
+                                    contentDescription = "$label, $count messages"
+                                },
+                            onClick = { onOpenCategory(member) },
+                        ) {
                         ListItem(
+                            colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             headlineContent = { Text(label) },
                             trailingContent = {
                                 Text(
@@ -231,13 +258,8 @@ private fun CategoryGroupList(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
                             },
-                            modifier = Modifier
-                                .clickable { onOpenCategory(member) }
-                                .padding(start = MoSpacing.giant)
-                                .semantics {
-                                    contentDescription = "$label, $count messages"
-                                },
                         )
+                        }
                     }
                 }
             }
@@ -265,8 +287,12 @@ fun CategoryDetailScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),
                 title = { Text(visuals.label) },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -292,7 +318,14 @@ fun CategoryDetailScreen(
                         modifier = Modifier.padding(padding),
                     )
                 } else {
-                    LazyColumn(modifier = Modifier.padding(padding).fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier.padding(padding).fillMaxSize(),
+                        contentPadding = PaddingValues(
+                            horizontal = MoSpacing.md,
+                            vertical = MoSpacing.sm,
+                        ),
+                        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                    ) {
                         item {
                             Text(
                                 text = "${content.messages.size} messages",

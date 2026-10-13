@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.ui.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +28,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -46,7 +46,9 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 
 /**
  * Home dashboard — Phase 11 (phase §8–§19).
@@ -72,6 +74,7 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier,
+        containerColor = Color.Transparent,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -143,25 +146,22 @@ private fun HomeLoaded(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = MoSpacing.md),
     ) {
-        if (content.isSampleData) {
-            SampleDataNote()
-        }
         if (content.isOffline) {
             OfflineNote()
         }
 
         AccountHeader(account = content.account, unreadCount = content.unreadCount)
         Spacer(Modifier.height(MoSpacing.xs))
-        Surface(
-            color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f),
-            shape = RoundedCornerShape(12.dp),
+        GlassCard(
             modifier = Modifier
                 .fillMaxWidth()
-                .clickable { onNavigate(AppDestinations.ANALYTICS) }
                 .padding(vertical = MoSpacing.xxs),
+            onClick = { onNavigate(AppDestinations.ANALYTICS) },
         ) {
             Row(
-                modifier = Modifier.padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
             ) {
@@ -248,11 +248,14 @@ private fun HomeLoaded(
                 onViewAll = { onNavigate(AppDestinations.COMPANIES) },
             ) {
                 content.companies.forEach { company ->
+                    GlassCard(
+                        modifier = Modifier.fillMaxWidth(),
+                        onClick = { onOpenCompany(company.record.companyId) },
+                    ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { onOpenCompany(company.record.companyId) }
-                            .padding(vertical = MoSpacing.xs),
+                            .padding(vertical = MoSpacing.xs, horizontal = MoSpacing.md),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Column(Modifier.weight(1f)) {
@@ -277,6 +280,7 @@ private fun HomeLoaded(
                                 contentDescription = "${company.messageCount} messages"
                             },
                         )
+                    }
                     }
                 }
             }
@@ -352,7 +356,9 @@ private fun HomeSection(
             }
         }
         Spacer(Modifier.height(MoSpacing.xs))
-        content()
+        Column(verticalArrangement = Arrangement.spacedBy(MoSpacing.sm)) {
+            content()
+        }
     }
 }
 
@@ -361,17 +367,21 @@ private fun HomeMessageRow(
     message: HomeMessage,
     onClick: () -> Unit,
 ) {
-    Row(
+    GlassCard(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = MoSpacing.xs)
             .semantics {
                 contentDescription = buildString {
                     append(if (message.unread) "Unread. " else "")
                     append("From ${message.senderName}. ${message.subject}.")
                 }
             },
+        onClick = onClick,
+    ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = MoSpacing.xs, horizontal = MoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(Modifier.weight(1f)) {
@@ -404,6 +414,7 @@ private fun HomeMessageRow(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    }
 }
 
 @Composable
@@ -431,16 +442,14 @@ private fun CategoryOverviewGrid(
             ) {
                 row.forEach { category ->
                     val visuals = category.visuals()
-                    Surface(
-                        tonalElevation = MoSpacing.xs,
-                        shape = MaterialTheme.shapes.medium,
+                    GlassCard(
                         modifier = Modifier
                             .weight(1f)
-                            .clickable { onOpenCategory(category) }
                             .semantics {
                                 contentDescription =
                                     "${visuals.label}, ${counts[category]} messages"
                             },
+                        onClick = { onOpenCategory(category) },
                     ) {
                         Column(Modifier.padding(MoSpacing.sm)) {
                             Text(
@@ -465,35 +474,12 @@ private fun CategoryOverviewGrid(
     }
 }
 
-@Composable
-private fun SampleDataNote() {
-    Surface(
-        color = MaterialTheme.colorScheme.secondaryContainer,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Icon(
-                imageVector = Icons.Filled.Info,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-            Spacer(Modifier.width(MoSpacing.xs))
-            Text(
-                text = "Sample data — fixtures for UI development",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-            )
-        }
-    }
-}
 
 @Composable
 private fun OfflineNote() {
+    val glass = rememberGlassPalette()
     Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant,
+        color = glass.bar,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(
