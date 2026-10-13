@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -20,6 +21,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
@@ -44,8 +46,12 @@ fun StartupErrorScreen(
     val clipboard = LocalClipboardManager.current
     val details = errorDetails(error)
     Scaffold(
+        containerColor = Color.Transparent,
         modifier = modifier,
-        topBar = { TopAppBar(title = { Text("Mailstack couldn't start") }) },
+        topBar = { TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.Transparent,
+                ),title = { Text("Mailstack couldn't start") }) },
     ) { padding ->
         Column(
             modifier = Modifier

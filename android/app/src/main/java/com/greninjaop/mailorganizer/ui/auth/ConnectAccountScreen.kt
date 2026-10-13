@@ -19,6 +19,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -65,7 +66,8 @@ fun ConnectAccountScreen(
         // Surface provides LocalContentColor = onBackground, so child Text
         // defaults stay readable in both light and dark themes (2026-10-12:
         // bare Column + background() left text black-on-dark).
-        color = MaterialTheme.colorScheme.background,
+        // 2026-10-13 (Breeze): transparent so the background artwork shows.
+        color = Color.Transparent,
     ) {
     Column(
         modifier = Modifier

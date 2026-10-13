@@ -36,9 +36,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -72,9 +72,10 @@ fun ImportIntroScreen(
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 2026-10-13 (Breeze): transparent so the background artwork shows.
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        color = Color.Transparent,
     ) {
         Column(
             modifier = Modifier
@@ -134,9 +135,10 @@ fun ImportFlowScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
+    // 2026-10-13 (Breeze): transparent so the background artwork shows.
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = MaterialTheme.colorScheme.background,
+        color = Color.Transparent,
     ) {
         when (val s = state) {
             is ImportViewModel.ImportUiState.Loading -> {
