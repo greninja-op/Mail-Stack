@@ -1,7 +1,6 @@
 package com.greninjaop.mailorganizer.ui.automation
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +22,6 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.HorizontalDivider
@@ -59,6 +56,7 @@ import com.greninjaop.mailorganizer.core.automation.AutomationRule
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -217,14 +215,11 @@ private fun RulesListTab(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(rules, key = { it.id }) { rule ->
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { onEdit(rule.id) },
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                ),
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            // Switch + IconButtons inside are untouched.
+            GlassCard(
+                modifier = Modifier.fillMaxWidth(),
+                onClick = { onEdit(rule.id) },
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
                     Row(
@@ -310,12 +305,10 @@ private fun HistoryListTab(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(history, key = { it.executionId }) { item ->
-            Card(
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            // StatusPill inside is untouched.
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.sm)) {
                     Row(

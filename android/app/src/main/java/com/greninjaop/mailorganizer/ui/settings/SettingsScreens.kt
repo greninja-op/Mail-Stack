@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.ui.settings
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -74,6 +73,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first
@@ -181,8 +181,14 @@ fun SettingsScreen(
 
 @Composable
 private fun AboutSection(modifier: Modifier = Modifier) {
-    Column(
+    // 2026-10-14 (Breeze glass everywhere): plain column -> GlassCard.
+    GlassCard(
         modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+    ) {
+    Column(
+        modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
     ) {
@@ -195,6 +201,7 @@ private fun AboutSection(modifier: Modifier = Modifier) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    }
 }
 
 @Composable
@@ -204,12 +211,18 @@ private fun SettingsRow(
     subtitle: String,
     onClick: () -> Unit,
 ) {
+    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
+            .semantics { contentDescription = "$title. $subtitle." },
+        onClick = onClick,
+    ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
-            .semantics { contentDescription = "$title. $subtitle." },
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(
@@ -226,6 +239,7 @@ private fun SettingsRow(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+    }
     }
 }
 
@@ -498,10 +512,16 @@ fun AccountsScreen(
             ) {
                 // Unified Inbox option
                 val isUnified = activeSelection is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified
+                // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+                GlassCard(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+                    onClick = { viewModel.selectAccount(null) },
+                ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .clickable { viewModel.selectAccount(null) }
                         .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
@@ -535,6 +555,7 @@ fun AccountsScreen(
                         )
                     }
                 }
+                }
 
                 HorizontalDivider(modifier = Modifier.padding(vertical = MoSpacing.xs))
 
@@ -543,15 +564,11 @@ fun AccountsScreen(
                         is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Single -> sel.accountId == account.accountId
                         com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified -> false
                     }
-                    Row(
+                    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+                    GlassCard(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable {
-                                if (account.isEnabled) {
-                                    viewModel.selectAccount(account.accountId)
-                                }
-                            }
-                            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
+                            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
                             .semantics {
                                 contentDescription = buildString {
                                     append(account.displayName ?: account.emailAddress)
@@ -560,6 +577,16 @@ fun AccountsScreen(
                                     if (!account.isEnabled) append(" Account is disabled.")
                                 }
                             },
+                        onClick = {
+                            if (account.isEnabled) {
+                                viewModel.selectAccount(account.accountId)
+                            }
+                        },
+                    ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         AccountAvatar(account = account, size = MoSpacing.xxl)
@@ -609,6 +636,7 @@ fun AccountsScreen(
                                 tint = MaterialTheme.colorScheme.error,
                             )
                         }
+                    }
                     }
                 }
                 Spacer(Modifier.height(MoSpacing.md))
@@ -766,7 +794,13 @@ fun PrivacyScreen(
 
 @Composable
 private fun PrivacyPoint(title: String, body: String) {
-    Column(modifier = Modifier.padding(vertical = MoSpacing.sm)) {
+    // 2026-10-14 (Breeze glass everywhere): plain column -> GlassCard.
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = MoSpacing.xs),
+    ) {
+    Column(modifier = Modifier.padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)) {
         Text(text = title, style = MaterialTheme.typography.titleSmall)
         Spacer(Modifier.height(MoSpacing.xs))
         Text(
@@ -774,6 +808,7 @@ private fun PrivacyPoint(title: String, body: String) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+    }
     }
 }
 
@@ -823,7 +858,14 @@ fun AppearanceSection(
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
 
-    Column(modifier = modifier.padding(horizontal = MoSpacing.md)) {
+    // 2026-10-14 (Breeze glass everywhere): plain section -> GlassCard.
+    // The segmented control inside is untouched.
+    GlassCard(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
+    ) {
+    Column(modifier = Modifier.padding(horizontal = MoSpacing.md)) {
         Text(
             text = "Appearance",
             style = MaterialTheme.typography.titleSmall,
@@ -845,5 +887,6 @@ fun AppearanceSection(
             }
         }
         Spacer(Modifier.height(MoSpacing.md))
+    }
     }
 }

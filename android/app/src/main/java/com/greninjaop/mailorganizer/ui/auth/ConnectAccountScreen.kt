@@ -1,6 +1,6 @@
 package com.greninjaop.mailorganizer.ui.auth
 
-import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -21,6 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -69,12 +70,21 @@ fun ConnectAccountScreen(
         // 2026-10-13 (Breeze): transparent so the background artwork shows.
         color = Color.Transparent,
     ) {
+    // 2026-10-14 (Breeze glass everywhere): centred content block in a
+    // GlassCard; transparent root + centering unchanged. Buttons untouched.
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+    ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
             .padding(24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         Text(
             text = "Connect Gmail",
@@ -157,6 +167,8 @@ fun ConnectAccountScreen(
         ) {
             Text("Back")
         }
+    }
+    }
     }
     }
 }
