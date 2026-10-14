@@ -330,3 +330,12 @@
   provider card (Card->GlassCard there is 1:1 in braces); fixed, all
   files brace-balanced. Build OK; tests 939 run, 931 pass, same 8
   env-broken Robolectric classes (data.local / repository / sync).
+
+## 2026-10-14 ~11:55 IST — Glass everywhere + Mailstack 1.0.12 APK
+- GlassCard (exact existing look, Glass.kt untouched) extended to all
+  remaining screens: Settings rows/Accounts/Privacy/Appearance/About,
+  AI settings, Rules, Cleanup, Privacy Center, Integrations, Analytics,
+  Automation list + editor, Connect, Import. Dialogs, fields, switches,
+  buttons, chips, tabs, FABs, StatusPill badges, and StartupErrorScreen
+  untouched. Build OK; tests 939 run, 931 pass, same 8 env-broken.
+- Version bumped to 1.0.12 (versionCode 13) for the APK delivery.
