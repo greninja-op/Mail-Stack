@@ -1,7 +1,6 @@
 package com.greninjaop.mailorganizer.ui.integrations
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +26,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -59,6 +57,7 @@ import com.greninjaop.mailorganizer.core.integrations.IntegrationCapability
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.core.integrations.IntegrationStatus
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -208,10 +207,15 @@ fun IntegrationsScreen(
 /** Offline banner (phase §26): offline is not disconnected. */
 @Composable
 private fun OfflineBanner() {
+    // 2026-10-14 (Breeze glass everywhere): surfaceVariant row -> GlassCard.
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+    ) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(MoSpacing.sm),
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -227,6 +231,7 @@ private fun OfflineBanner() {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    }
 }
 
 @Composable
@@ -235,14 +240,21 @@ private fun IntegrationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Row(
+    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+    // StatusPill and badge inside are untouched.
+    GlassCard(
         modifier = modifier
             .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(MoSpacing.md)
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
             .semantics {
                 contentDescription = "${snapshot.displayName}, ${snapshot.statusLabel()}"
             },
+        onClick = onClick,
+    ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IntegrationBadge(id = snapshot.id)
@@ -266,6 +278,7 @@ private fun IntegrationRow(
             }
         }
         StatusPill(snapshot.status)
+    }
     }
 }
 
@@ -663,7 +676,8 @@ private fun DetailActions(
             // UNAVAILABLE: no Connect button — the integration isn't built.
             // The status reason already explains when it arrives (phase §27).
             IntegrationStatus.UNAVAILABLE -> {
-                Card {
+                // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+                GlassCard {
                     Text(
                         text = snapshot.statusReason,
                         style = MaterialTheme.typography.bodyMedium,

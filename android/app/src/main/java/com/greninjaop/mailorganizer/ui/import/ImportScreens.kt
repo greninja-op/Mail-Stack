@@ -4,7 +4,6 @@ import android.net.Uri
 import androidx.compose.animation.core.withInfiniteAnimationFrameNanos
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -52,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.R
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlin.math.abs
 
@@ -77,12 +77,21 @@ fun ImportIntroScreen(
         modifier = modifier.fillMaxSize(),
         color = Color.Transparent,
     ) {
+        // 2026-10-14 (Breeze glass everywhere): centred content block in a
+        // GlassCard; transparent root + centering unchanged. Buttons untouched.
+        Box(
+            modifier = Modifier.fillMaxSize(),
+            contentAlignment = Alignment.Center,
+        ) {
+        GlassCard(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(MoSpacing.xl),
+        ) {
         Column(
             modifier = Modifier
-                .fillMaxSize()
                 .padding(MoSpacing.xl),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
         ) {
             Image(
                 painter = painterResource(id = R.mipmap.ic_launcher_round),
@@ -123,6 +132,8 @@ fun ImportIntroScreen(
             TextButton(onClick = onNotNow) {
                 Text("Not now")
             }
+        }
+        }
         }
     }
 }
@@ -215,12 +226,21 @@ private fun ImportResultContent(
     secondaryLabel: String?,
     onSecondary: (() -> Unit)?,
 ) {
+    // 2026-10-14 (Breeze glass everywhere): centred content block in a
+    // GlassCard; centering unchanged. Buttons untouched.
+    Box(
+        modifier = Modifier.fillMaxSize(),
+        contentAlignment = Alignment.Center,
+    ) {
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MoSpacing.xl),
+    ) {
     Column(
         modifier = Modifier
-            .fillMaxSize()
             .padding(MoSpacing.xl),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
         icon()
         Spacer(Modifier.height(MoSpacing.lg))
@@ -239,6 +259,8 @@ private fun ImportResultContent(
             Spacer(Modifier.height(MoSpacing.sm))
             TextButton(onClick = onSecondary) { Text(secondaryLabel) }
         }
+    }
+    }
     }
 }
 

@@ -25,8 +25,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -58,6 +56,7 @@ import com.greninjaop.mailorganizer.core.privacy.PermissionScopeDisclosure
 import com.greninjaop.mailorganizer.core.privacy.SecurityAuditSnapshot
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -242,10 +241,9 @@ private fun OverviewSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(MoSpacing.md)) {
         // High level guarantee banner
-        Card(
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-            ),
+        // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+        GlassCard(
+            modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(MoSpacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -303,9 +301,9 @@ private fun OverviewSection(
             )
         } else {
             accounts.forEach { account ->
-                Card(
+                // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+                GlassCard(
                     modifier = Modifier.fillMaxWidth(),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Row(
                         modifier = Modifier
@@ -359,8 +357,14 @@ private fun PillarRow(
     title: String,
     description: String,
 ) {
-    Row(
+    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
+    ) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
         verticalAlignment = Alignment.Top,
     ) {
         Icon(
@@ -383,6 +387,7 @@ private fun PillarRow(
             )
         }
     }
+    }
 }
 
 @Composable
@@ -400,9 +405,9 @@ private fun DataInventorySection(inventory: List<DataInventoryItem>) {
         )
 
         inventory.forEach { item ->
-            Card(
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
                     Row(
@@ -499,9 +504,9 @@ private fun PermissionsSection(scopes: List<PermissionScopeDisclosure>) {
         )
 
         scopes.forEach { scope ->
-            Card(
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
                     Row(
@@ -602,9 +607,9 @@ private fun SecurityCheckItem(
     detail: String,
     isSafe: Boolean,
 ) {
-    Card(
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Row(
             modifier = Modifier
