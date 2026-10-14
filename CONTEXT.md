@@ -293,3 +293,40 @@
   `imageAlpha` (an unqualified `alpha` inside graphicsLayer{} resolved
   to the outer val and failed to compile).
 - Build OK; tests 939 run, 8 failures = same env-broken baseline.
+
+## 2026-10-14 ~11:30 IST — Breeze glass everywhere (NO APK until user says okay)
+- User constraint: the glass must look EXACTLY like the supplied glass —
+  nothing more, nothing less. So every conversion reuses `GlassCard`
+  verbatim (same palette, 24dp shape, 1dp border, 6dp shadow). No new
+  glass variant, palette, blur, tint, or effect was invented.
+- Converted (container surfaces/cards/rows -> GlassCard; all behaviour,
+  text, icons, click handlers, semantics, navigation, data unchanged):
+  Settings (SettingsRow, Accounts rows, PrivacyPoint, AppearanceSection,
+  AboutSection), Rules (RuleCard, ConditionRow, ActionRow, PreviewCard,
+  ConflictBanner), AI settings (toggle row, provider cards, remote
+  consent card, privacy audit card, CapabilityRow, StatusCard),
+  Cleanup (notice, group, newsletter cards), Privacy Center (guarantee
+  banner, PillarRow, account, inventory, permissions, security cards),
+  Integrations (OfflineBanner, IntegrationRow, unavailable card),
+  Analytics (FreshnessHeader Surface + all 7 cards incl. InsightCard),
+  Automation (rule + history cards, editor Trigger/Condition/Action/
+  Preview cards), Connect (centred content in GlassCard, transparent
+  root kept), Import (intro + result content in GlassCard).
+- Deliberately LEFT UNTOUCHED (no glass variant invented for them):
+  StatusPill badges (Automation + Integrations), SensitivityBadge
+  (Privacy Center), GroupReviewDialog candidate cards (inside a dialog),
+  ImportAnimationContent (full-screen flying-mail animation theater —
+  carding it would reframe the flight geometry), FoundationScreen +
+  PlaceholderScreen (no content cards), StartupErrorScreen (crash
+  diagnostic, readability first), all dialogs, text fields, switches,
+  buttons, segmented controls, chips, tabs, FABs, snackbars.
+- Notes: ConflictBanner/StatusCard/InsightCard lost only their container
+  tint/border; their warning signal stays via icon + tint + text
+  (e.g. InsightCard icon keeps its severity tint). Provider-card
+  selection stays via Check icon + bold text. Nested clickables
+  (Switch/IconButton inside clickable GlassCards) behave as before —
+  inner control consumes its tap.
+- One self-caught bug during the pass: an extra `}` in AiSettingsScreen
+  provider card (Card->GlassCard there is 1:1 in braces); fixed, all
+  files brace-balanced. Build OK; tests 939 run, 931 pass, same 8
+  env-broken Robolectric classes (data.local / repository / sync).
