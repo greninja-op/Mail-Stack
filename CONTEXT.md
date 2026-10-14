@@ -280,3 +280,16 @@
 - Artwork: drawable-nodpi/splash_light.jpg + splash_dark.jpg (exact
   extended bytes); base64 backups in assets/backgrounds/ with md5s in
   its README. Tests: 939 run, 931 pass, same 8 env-broken classes.
+
+## 2026-10-14 ~09:35 IST — Splash fade-out fix (NO APK until user says okay)
+- Bug caught before any APK: the fade-out animated only the artwork
+  alpha, while the splash Box kept an opaque solid background — so the
+  card dissolved into flat white/near-black, then hard-cut to the app.
+- Fix: fade-in still animates only the artwork alpha (over the opaque
+  placeholder); fade-out now animates a whole-splash `containerAlpha`
+  (graphicsLayer on the Box), dissolving background + artwork together
+  into the app underneath. Same 450/650/450ms timings, same theme gate,
+  same cold-launch-only guard. Also renamed the image animatable to
+  `imageAlpha` (an unqualified `alpha` inside graphicsLayer{} resolved
+  to the outer val and failed to compile).
+- Build OK; tests 939 run, 8 failures = same env-broken baseline.

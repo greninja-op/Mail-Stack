@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import com.greninjaop.mailorganizer.R
@@ -40,6 +41,13 @@ import kotlinx.coroutines.delay
  * loading. The animation does not start until the stored mode is known,
  * so the splash can never flash the wrong card — while waiting it holds
  * at alpha 0 over a solid background.
+ *
+ * Fade structure (fixed 2026-10-14): the fade-in animates only the
+ * artwork alpha, over the opaque solid placeholder — so the card fades
+ * in from a clean background. The fade-out animates the WHOLE splash
+ * (background + artwork) via [containerAlpha], dissolving into the app
+ * underneath. Fading only the artwork on the way out would dissolve
+ * the card into flat solid colour and then hard-cut to the app.
  */
 @Composable
 fun SplashScreen(
@@ -55,18 +63,21 @@ fun SplashScreen(
         ThemeMode.LIGHT -> false
         ThemeMode.SYSTEM, null -> systemDark
     }
-    val alpha = remember { Animatable(0f) }
+    val imageAlpha = remember { Animatable(0f) }
+    // Whole-splash alpha, used only for the fade-out (see doc comment).
+    val containerAlpha = remember { Animatable(1f) }
     var started by remember { mutableStateOf(false) }
 
     LaunchedEffect(themeMode) {
         if (themeMode != null && !started) {
             started = true
-            alpha.animateTo(
+            imageAlpha.animateTo(
                 targetValue = 1f,
                 animationSpec = tween(FADE_IN_MS, easing = FastOutSlowInEasing),
             )
             delay(HOLD_MS.toLong())
-            alpha.animateTo(
+            // Dissolve the whole splash into the app underneath.
+            containerAlpha.animateTo(
                 targetValue = 0f,
                 animationSpec = tween(FADE_OUT_MS, easing = FastOutLinearInEasing),
             )
@@ -77,6 +88,7 @@ fun SplashScreen(
     Box(
         modifier = modifier
             .fillMaxSize()
+            .graphicsLayer { alpha = containerAlpha.value }
             .background(if (dark) Color(0xFF05070F) else Color.White),
     ) {
         Image(
@@ -85,7 +97,7 @@ fun SplashScreen(
             ),
             contentDescription = null,
             contentScale = ContentScale.Crop,
-            alpha = alpha.value,
+            alpha = imageAlpha.value,
             modifier = Modifier.fillMaxSize(),
         )
     }
