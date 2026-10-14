@@ -23,9 +23,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Card
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -34,7 +32,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -66,6 +63,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.visuals
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -260,9 +258,8 @@ private fun FreshnessHeader(snapshot: AnalyticsSnapshot) {
         "Based on available synchronized local data"
     }
 
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        shape = RoundedCornerShape(8.dp),
+    // 2026-10-14 (Breeze glass everywhere): translucent Surface -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -303,10 +300,9 @@ private fun InsightCard(insight: Insight) {
         InsightSeverity.INFO -> MaterialTheme.colorScheme.outlineVariant
     }
 
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor.copy(alpha = 0.6f)),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    // Severity stays visible via the icon + its tint.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -339,9 +335,8 @@ private fun InsightCard(insight: Insight) {
 
 @Composable
 private fun InboxHealthSummaryCard(health: InboxHealthMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -392,9 +387,8 @@ private fun MetricColumn(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryDistributionCard(org: OrganizationMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -448,9 +442,8 @@ private fun CategoryDistributionCard(org: OrganizationMetrics) {
 
 @Composable
 private fun PriorityDistributionCard(priority: PriorityMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -481,9 +474,8 @@ private fun PriorityDistributionCard(priority: PriorityMetrics) {
 
 @Composable
 private fun AttentionConversationsCard(time: TimeMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -515,9 +507,8 @@ private fun AttentionConversationsCard(time: TimeMetrics) {
 
 @Composable
 private fun TopSourcesCard(sources: SourceMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -591,9 +582,8 @@ private fun TopSourcesCard(sources: SourceMetrics) {
 
 @Composable
 private fun NoiseSummaryCard(noise: NoiseMetrics) {
-    Card(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {

@@ -66,6 +66,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
+import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -221,10 +222,8 @@ private fun RecommendationsTabContent(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.md),
     ) {
         item {
-            Card(
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                ),
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -261,11 +260,9 @@ private fun CleanupGroupCard(
     onReviewClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(
+    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    GlassCard(
         modifier = modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
     ) {
         Column(
             modifier = Modifier
@@ -337,11 +334,9 @@ private fun NewslettersTabContent(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(senders, key = { it.senderAddress }) { sender ->
-            Card(
+            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            GlassCard(
                 modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                ),
             ) {
                 Column(
                     modifier = Modifier
