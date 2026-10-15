@@ -175,7 +175,7 @@ private fun CategoryGroupList(
             horizontal = MoSpacing.md,
             vertical = MoSpacing.sm,
         ),
-        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
     ) {
         items(groups, key = { (group, _) -> group.id }) { (group, total) ->
             val expanded = expandedGroups[group.id] == true
@@ -324,7 +324,7 @@ fun CategoryDetailScreen(
                             horizontal = MoSpacing.md,
                             vertical = MoSpacing.sm,
                         ),
-                        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
                     ) {
                         item {
                             Text(

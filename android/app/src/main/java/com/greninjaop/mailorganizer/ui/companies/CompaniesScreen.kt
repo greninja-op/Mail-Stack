@@ -114,7 +114,7 @@ fun CompaniesScreen(
                     horizontal = MoSpacing.md,
                     vertical = MoSpacing.sm,
                 ),
-                verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
             ) {
                 items(content.companies, key = { it.record.companyId }) { entry ->
                     val name = entry.record.userOverrideName
@@ -240,7 +240,7 @@ fun CompanyDetailScreen(
                         horizontal = MoSpacing.md,
                         vertical = MoSpacing.sm,
                     ),
-                    verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
                 ) {
                     item {
                         Column(

@@ -398,7 +398,7 @@ private fun MailContent(
                                 horizontal = MoSpacing.md,
                                 vertical = MoSpacing.sm,
                             ),
-                            verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
                         ) {
                             items(content.items, key = { it.threadId }) { item ->
                                 val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
@@ -439,7 +439,7 @@ private fun MailContent(
                                 horizontal = MoSpacing.md,
                                 vertical = MoSpacing.sm,
                             ),
-                            verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+                            verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
                         ) {
                             items(content.items, key = { it.messageId }) { item ->
                                 val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount

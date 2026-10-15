@@ -259,7 +259,7 @@ private fun SearchResults(
             horizontal = MoSpacing.md,
             vertical = MoSpacing.sm,
         ),
-        verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
+        verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
     ) {
         item {
             Column(modifier = Modifier.padding(horizontal = MoSpacing.md)) {

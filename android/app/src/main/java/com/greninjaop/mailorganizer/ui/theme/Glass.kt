@@ -2,17 +2,22 @@ package com.greninjaop.mailorganizer.ui.theme
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.luminance
@@ -112,6 +117,16 @@ val GlassCardShape: Shape = RoundedCornerShape(24.dp)
  * A translucent glass card: tinted surface + 1dp border + soft shadow.
  * Screens pass their row content as [content]; [onClick] keeps the row's
  * tap behaviour (and ripple) on the card itself.
+ *
+ * Rendering (2026-10-15): explicit layers — shadow, fill, border — with
+ * the SAME values as before (same fill, same 1dp border, same 24dp shape,
+ * same 6dp shadow). The previous `Surface` implementation left the
+ * content color unspecified for these custom translucent fills, so text
+ * without an explicit color fell back to black — unreadable on the dark
+ * card — and the combined Surface compositing produced bright stripe/line
+ * artifacts inside cards on-device. The explicit [LocalContentColor]
+ * below (theme `onSurface`) fixes the text; the explicit layers remove
+ * the Surface compositing path. The look is unchanged.
  */
 @Composable
 fun GlassCard(
@@ -121,16 +136,20 @@ fun GlassCard(
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val palette = rememberGlassPalette()
-    Surface(
-        modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
-        ),
-        shape = shape,
-        color = palette.card,
-        border = BorderStroke(1.dp, palette.cardBorder),
-        shadowElevation = 6.dp,
-        tonalElevation = 0.dp,
+    Box(
+        modifier = modifier
+            .shadow(6.dp, shape, clip = false)
+            .clip(shape)
+            .background(palette.card, shape)
+            .border(BorderStroke(1.dp, palette.cardBorder), shape)
+            .then(
+                if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+            ),
     ) {
-        Column(content = content)
+        CompositionLocalProvider(
+            LocalContentColor provides MaterialTheme.colorScheme.onSurface,
+        ) {
+            Column(content = content)
+        }
     }
 }

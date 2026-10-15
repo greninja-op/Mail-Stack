@@ -168,7 +168,7 @@ internal fun MailRowLayout(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
+                .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
         if (showAccountIndicator && account != null) {
