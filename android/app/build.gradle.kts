@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 21
+        versionCode = 22
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -88,7 +88,11 @@ android {
         //        sheet width and corrupted the drawer anchors, so it
         //        opened by itself on Mail entry and stuck the scrim
         //        on leaving Mail); drawer closes on leaving Mail.
-        versionName = "1.0.20"
+        // 1.0.21: skeleton only on the true first load — the 300ms
+        //        skeleton defer on every Mail tab entry is removed;
+        //        once the mailbox is cached, tab switches show the
+        //        cached list immediately.
+        versionName = "1.0.21"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
