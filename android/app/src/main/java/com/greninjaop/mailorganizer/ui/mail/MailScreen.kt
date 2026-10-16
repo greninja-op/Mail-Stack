@@ -33,9 +33,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -47,7 +45,6 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.edgeFade
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
-import kotlinx.coroutines.delay
 
 /**
  * Core inbox screen (Phase 6).
@@ -74,13 +71,6 @@ import kotlinx.coroutines.delay
 fun MailScreen(
     viewModel: MailViewModel,
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
-    /**
-     * True when Mail was entered via a primary-tab switch (vs popping
-     * back from a pushed route). The heavy lists defer past the
-     * tab-switch transition so the bubble/slide/pill animations run
-     * without competing against the list composition.
-     */
-    deferList: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -140,7 +130,6 @@ fun MailScreen(
                     onLoadMore = viewModel::loadMore,
                     isLoadingMore = isLoadingMore,
                     onClearFilter = viewModel::clearFilter,
-                    deferList = deferList,
                     modifier = Modifier.weight(1f),
                     header = {
                         // Phase 9: action-required view toggle — global
@@ -217,24 +206,18 @@ private fun MailContent(
     onLoadMore: () -> Unit,
     isLoadingMore: Boolean = false,
     onClearFilter: () -> Unit,
-    deferList: Boolean = false,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
         // Gmail parity: pull-to-refresh on the list, wired to the sync engine.
         val isRefreshing = state.syncUi is SyncUiState.Syncing
-        // Defer the heavy lists past the tab-switch transition (2026-10-16):
-        // the skeleton holds the list area for the first 300ms after
-        // entering via a tab switch, so the bubble/slide/pill animations
-        // run without competing against the list composition. Popping
-        // back from a pushed route shows the list immediately.
-        var listReady by remember { mutableStateOf(!deferList) }
-        LaunchedEffect(deferList) {
-            if (deferList) {
-                delay(300)
-                listReady = true
-            }
-        }
+        // Skeleton only on the true first load (2026-10-16 fix): the
+        // skeleton shows when content is Loading (nothing cached yet).
+        // Once the mailbox is loaded, the ViewModel caches it, so tab
+        // switches show the cached list immediately — no 300ms skeleton
+        // flash on every Mail entry. (The old 300ms defer protected the
+        // bubble animation, but the skeleton flash on every tab switch
+        // was worse; the cached list composes fast enough.)
         Column(modifier = modifier.fillMaxSize()) {
             header()
             when (val content = state.content) {
@@ -245,11 +228,6 @@ private fun MailContent(
                     modifier = Modifier.weight(1f),
                 )
                 is MailboxContent.Threads -> {
-                    if (!listReady) {
-                        // Deferring the list past the tab-switch
-                        // transition — the skeleton holds this area.
-                        MailListSkeleton(modifier = Modifier.weight(1f))
-                    } else {
                     val listState = rememberLazyListState()
                     // Gmail-style infinite scroll (2026-10-16): prefetch
                     // the next page when the user scrolls past the halfway
@@ -308,14 +286,8 @@ private fun MailContent(
                             }
                         }
                     }
-                    }
                 }
                 is MailboxContent.Messages -> {
-                    if (!listReady) {
-                        // Deferring the list past the tab-switch
-                        // transition — the skeleton holds this area.
-                        MailListSkeleton(modifier = Modifier.weight(1f))
-                    } else {
                     val listState = rememberLazyListState()
                     // Same infinite scroll as the thread list (2026-10-16):
                     // starred/promotions/social/spam lists used to stop
@@ -370,7 +342,6 @@ private fun MailContent(
                                 item { LoadingMoreFooter() }
                             }
                         }
-                    }
                     }
                 }
                 is MailboxContent.Empty -> {
