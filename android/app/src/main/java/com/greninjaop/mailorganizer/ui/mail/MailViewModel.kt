@@ -248,7 +248,11 @@ class MailViewModel(
                                     if (items.isEmpty()) {
                                         if (key.filter.isNotEmpty()) MailboxContent.Empty(EmptyKind.NO_FILTER_RESULTS)
                                         else MailboxContent.Empty(EmptyKind.NO_STARRED)
-                                    } else MailboxContent.Messages(items)
+                                    } else MailboxContent.Messages(
+                                        items,
+                                        hasMore = messages.size >= key.limit,
+                                        limit = key.limit,
+                                    )
                                 }
                         // Gmail Primary tab semantics, unified (2026-10-13).
                         MailboxDestination.PRIMARY ->
@@ -341,7 +345,11 @@ class MailViewModel(
                             if (items.isEmpty()) {
                                 if (key.filter.isNotEmpty()) MailboxContent.Empty(EmptyKind.NO_FILTER_RESULTS)
                                 else MailboxContent.Empty(EmptyKind.NO_STARRED)
-                            } else MailboxContent.Messages(items)
+                            } else MailboxContent.Messages(
+                                items,
+                                hasMore = messages.size >= key.limit,
+                                limit = key.limit,
+                            )
                         }
                 else ->
                     // PRIMARY gets the Gmail Primary tab semantics
@@ -359,6 +367,23 @@ class MailViewModel(
                 emit(MailboxContent.Error("Couldn't load your mail. Please try again."))
             }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), MailboxContent.Loading)
+
+    /**
+     * Gmail-style infinite scroll (2026-10-16): true while a bigger page
+     * is being fetched — i.e. the visible content was built for a smaller
+     * limit than the currently requested one. Drives the list's loading
+     * footer. Derived from the content itself, so no extra flag can drift
+     * out of sync with what the list actually shows.
+     */
+    val isLoadingMore: StateFlow<Boolean> =
+        combine(content, pageLimit) { cont, limit ->
+            val built = when (cont) {
+                is MailboxContent.Threads -> cont.limit
+                is MailboxContent.Messages -> cont.limit
+                else -> limit
+            }
+            built < limit
+        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
 
     /**
      * Company filter row state (Phase 8).
@@ -661,7 +686,29 @@ class MailViewModel(
         filterText.value = ""
     }
 
+    /**
+     * Gmail-style infinite scroll (2026-10-16): grows the page by one
+     * PAGE_SIZE. The UI calls this automatically when the user scrolls
+     * past the halfway mark of the loaded list — there is no button.
+     * Guarded so rapid scroll triggers can't stack requests: a no-op
+     * while a bigger page is already being fetched (the visible content
+     * was built for a smaller limit) or when the last page came back
+     * short (hasMore false).
+     */
     fun loadMore() {
+        val current = content.value
+        val hasMore = when (current) {
+            is MailboxContent.Threads -> current.hasMore
+            is MailboxContent.Messages -> current.hasMore
+            else -> false
+        }
+        if (!hasMore) return
+        val builtLimit = when (current) {
+            is MailboxContent.Threads -> current.limit
+            is MailboxContent.Messages -> current.limit
+            else -> return
+        }
+        if (builtLimit != pageLimit.value) return
         pageLimit.value = pageLimit.value + PAGE_SIZE
     }
 
@@ -778,7 +825,11 @@ class MailViewModel(
                 null
             }
         }
-        return MailboxContent.Messages(filtered)
+        return MailboxContent.Messages(
+            filtered,
+            hasMore = items.size >= key.limit,
+            limit = key.limit,
+        )
     }
 
     private suspend fun buildThreadContent(
@@ -805,7 +856,11 @@ class MailViewModel(
                 MailboxContent.Empty(EmptyKind.NO_MAIL)
             }
         }
-        return MailboxContent.Threads(items, hasMore = threads.size >= key.limit)
+        return MailboxContent.Threads(
+            items,
+            hasMore = threads.size >= key.limit,
+            limit = key.limit,
+        )
     }
 
     /**
