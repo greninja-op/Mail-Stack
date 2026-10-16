@@ -26,7 +26,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +55,7 @@ import com.greninjaop.mailorganizer.core.privacy.PermissionScopeDisclosure
 import com.greninjaop.mailorganizer.core.privacy.SecurityAuditSnapshot
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -87,12 +86,12 @@ fun PrivacyCenterScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Privacy Center") },
                 navigationIcon = {
@@ -241,8 +240,8 @@ private fun OverviewSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(MoSpacing.md)) {
         // High level guarantee banner
-        // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-        GlassCard(
+        // 2026-10-14 (Expressive redesign): Card -> MoCard.
+        MoCard(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -284,7 +283,6 @@ private fun OverviewSection(
             description = "Classification, priorities, and action detection run 100% on-device.",
         )
 
-        HorizontalDivider(modifier = Modifier.padding(vertical = MoSpacing.xs))
 
         // Connected Accounts Section
         Text(
@@ -301,8 +299,8 @@ private fun OverviewSection(
             )
         } else {
             accounts.forEach { account ->
-                // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-                GlassCard(
+                // 2026-10-14 (Expressive redesign): Card -> MoCard.
+                MoCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Row(
@@ -357,8 +355,8 @@ private fun PillarRow(
     title: String,
     description: String,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): plain row -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
     Row(
@@ -405,8 +403,8 @@ private fun DataInventorySection(inventory: List<DataInventoryItem>) {
         )
 
         inventory.forEach { item ->
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -454,7 +452,7 @@ private fun SensitivityBadge(sensitivity: DataSensitivity) {
 
     Box(
         modifier = Modifier
-            .background(color.copy(alpha = 0.15f), shape = RoundedCornerShape(4.dp))
+            .background(MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(4.dp))
             .padding(horizontal = 6.dp, vertical = 2.dp),
     ) {
         Text(
@@ -504,8 +502,8 @@ private fun PermissionsSection(scopes: List<PermissionScopeDisclosure>) {
         )
 
         scopes.forEach { scope ->
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -607,8 +605,8 @@ private fun SecurityCheckItem(
     detail: String,
     isSafe: Boolean,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

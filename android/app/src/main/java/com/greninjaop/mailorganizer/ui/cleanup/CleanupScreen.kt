@@ -26,7 +26,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,7 +65,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -98,12 +97,12 @@ fun CleanupScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = {
                     Column {
@@ -222,8 +221,8 @@ private fun RecommendationsTabContent(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.md),
     ) {
         item {
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Row(
@@ -260,8 +259,8 @@ private fun CleanupGroupCard(
     onReviewClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(
@@ -334,8 +333,8 @@ private fun NewslettersTabContent(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(senders, key = { it.senderAddress }) { sender ->
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(

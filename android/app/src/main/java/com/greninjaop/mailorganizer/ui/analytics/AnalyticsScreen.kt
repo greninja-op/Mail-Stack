@@ -26,7 +26,6 @@ import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
@@ -63,7 +62,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.visuals
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -97,12 +96,12 @@ fun AnalyticsScreen(
     val account by viewModel.currentAccount.collectAsState()
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Analytics & Insights") },
                 navigationIcon = {
@@ -135,7 +134,6 @@ fun AnalyticsScreen(
                 onSelectRange = viewModel::setDateRange,
             )
 
-            HorizontalDivider()
 
             when (val state = uiState) {
                 is AnalyticsUiState.Loading -> {
@@ -258,8 +256,8 @@ private fun FreshnessHeader(snapshot: AnalyticsSnapshot) {
         "Based on available synchronized local data"
     }
 
-    // 2026-10-14 (Breeze glass everywhere): translucent Surface -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): translucent Surface -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -300,9 +298,9 @@ private fun InsightCard(insight: Insight) {
         InsightSeverity.INFO -> MaterialTheme.colorScheme.outlineVariant
     }
 
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
     // Severity stays visible via the icon + its tint.
-    GlassCard(
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -335,8 +333,8 @@ private fun InsightCard(insight: Insight) {
 
 @Composable
 private fun InboxHealthSummaryCard(health: InboxHealthMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -349,7 +347,6 @@ private fun InboxHealthSummaryCard(health: InboxHealthMetrics) {
                 MetricColumn(title = "High Priority", value = health.highPriorityCount.toString())
             }
             Spacer(Modifier.height(MoSpacing.md))
-            HorizontalDivider()
             Spacer(Modifier.height(MoSpacing.md))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -387,8 +384,8 @@ private fun MetricColumn(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun CategoryDistributionCard(org: OrganizationMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -442,8 +439,8 @@ private fun CategoryDistributionCard(org: OrganizationMetrics) {
 
 @Composable
 private fun PriorityDistributionCard(priority: PriorityMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -474,8 +471,8 @@ private fun PriorityDistributionCard(priority: PriorityMetrics) {
 
 @Composable
 private fun AttentionConversationsCard(time: TimeMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -487,7 +484,6 @@ private fun AttentionConversationsCard(time: TimeMetrics) {
                 MetricColumn(title = "Waiting on Others", value = time.awaitingOtherPartyConversations.toString())
             }
             Spacer(Modifier.height(MoSpacing.md))
-            HorizontalDivider()
             Spacer(Modifier.height(MoSpacing.md))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -507,8 +503,8 @@ private fun AttentionConversationsCard(time: TimeMetrics) {
 
 @Composable
 private fun TopSourcesCard(sources: SourceMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -546,7 +542,6 @@ private fun TopSourcesCard(sources: SourceMetrics) {
 
             if (sources.topCompanies.isNotEmpty()) {
                 Spacer(Modifier.height(MoSpacing.md))
-                HorizontalDivider()
                 Spacer(Modifier.height(MoSpacing.sm))
                 Text(
                     text = "Most Frequent Companies",
@@ -582,8 +577,8 @@ private fun TopSourcesCard(sources: SourceMetrics) {
 
 @Composable
 private fun NoiseSummaryCard(noise: NoiseMetrics) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {

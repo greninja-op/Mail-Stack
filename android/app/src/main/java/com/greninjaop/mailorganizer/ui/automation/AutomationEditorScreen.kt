@@ -19,7 +19,6 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -51,7 +50,7 @@ import com.greninjaop.mailorganizer.core.automation.AutomationRule
 import com.greninjaop.mailorganizer.core.automation.AutomationScopeType
 import com.greninjaop.mailorganizer.core.automation.AutomationTrigger
 import com.greninjaop.mailorganizer.core.automation.AutomationTriggerType
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -102,12 +101,12 @@ fun AutomationEditorScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text(if (ruleId == null) "New Automation" else "Edit Automation") },
                 navigationIcon = {
@@ -141,8 +140,8 @@ fun AutomationEditorScreen(
             )
 
             // Trigger Selection
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -166,8 +165,8 @@ fun AutomationEditorScreen(
             }
 
             // Condition Selection
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -189,8 +188,8 @@ fun AutomationEditorScreen(
             }
 
             // Action Selection
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -243,8 +242,8 @@ fun AutomationEditorScreen(
             }
 
             if (previewResult != null) {
-                // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-                GlassCard(
+                // 2026-10-14 (Expressive redesign): Card -> MoCard.
+                MoCard(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Column(modifier = Modifier.padding(MoSpacing.md)) {

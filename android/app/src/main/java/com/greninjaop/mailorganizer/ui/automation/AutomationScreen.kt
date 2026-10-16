@@ -24,7 +24,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -56,7 +55,7 @@ import com.greninjaop.mailorganizer.core.automation.AutomationRule
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -122,12 +121,12 @@ fun AutomationScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Advanced Automation") },
                 navigationIcon = {
@@ -215,9 +214,9 @@ private fun RulesListTab(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(rules, key = { it.id }) { rule ->
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
             // Switch + IconButtons inside are untouched.
-            GlassCard(
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onEdit(rule.id) },
             ) {
@@ -248,7 +247,6 @@ private fun RulesListTab(
                     }
 
                     Spacer(modifier = Modifier.height(MoSpacing.xs))
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Spacer(modifier = Modifier.height(MoSpacing.xs))
 
                     Text(
@@ -305,9 +303,9 @@ private fun HistoryListTab(
         verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
         items(history, key = { it.executionId }) { item ->
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
             // StatusPill inside is untouched.
-            GlassCard(
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Column(modifier = Modifier.padding(MoSpacing.sm)) {
