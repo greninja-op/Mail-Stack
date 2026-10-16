@@ -133,4 +133,17 @@
   slideBtns.forEach(function (b) {
     b.addEventListener("click", function () { goSlide(parseInt(b.dataset.index, 10)); });
   });
+
+  /* ---------- Scroll-hide bars demo (see §6): scroll down hides, scroll up shows ---------- */
+  var hideStage = document.getElementById("hideStage");
+  var hideList = document.getElementById("hideList");
+  var hideLast = 0;
+  hideList.addEventListener("scroll", function () {
+    if (hideList.scrollHeight <= hideList.clientHeight) return;
+    var st = hideList.scrollTop;
+    if (st <= 0) { hideStage.classList.remove("bars-hidden"); }
+    else if (st > hideLast) { hideStage.classList.add("bars-hidden"); }
+    else if (st < hideLast) { hideStage.classList.remove("bars-hidden"); }
+    hideLast = st;
+  }, { passive: true });
 })();

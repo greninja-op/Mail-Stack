@@ -17,6 +17,15 @@
   no re-explaining from scratch.
 
   MAINTENANCE RULE (binding):
+  - STANDING RULE — every animation goes in here. Whenever the user
+    talks about ANY animation — complex or simple, already built or
+    just an idea, used in this project or not — the animation study
+    goes into this file as a new section (same structure: live demo +
+    annotated diagram + zoomed frame-by-frame strip + handwritten
+    step-by-step notes). Animations studied here are a reusable
+    library: they can be used for this project or another project.
+    Never skip adding it, and never decide an animation is "not worth"
+    recording. Just do it.
   - When a component changes in the app, update the Design Reference
     section below to match. When a component is REMOVED from the app,
     remove it from the Design Reference section too.
@@ -527,6 +536,7 @@
     <tr><td>Scroll edge fade</td><td class="spec">28 dp, top + bottom, only where more content waits — see §2.</td></tr>
     <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
     <tr><td>Mail list on tab entry</td><td class="spec">Heavy list defers 300 ms behind the skeleton on tab-switch entry, so the bubble never lags. Popping back from a thread shows the list immediately.</td></tr>
+    <tr><td>Scroll-hide bars</td><td class="spec">Scroll down → top bar slides up out + bottom bar slides down out (hide: LinearOutSlowIn, fast → slow). Scroll up → both slide back (show: FastOutSlowIn, slow → fast → land). Pure translate, no fade, no spring. 250 ms. — see §6.</td></tr>
     <tr><td>Tap feedback</td><td class="spec">The pill is the only feedback on bubble controls (indication = null). Other controls keep normal Material ripples.</td></tr>
   </table>
 
@@ -538,6 +548,106 @@
     <li>Preserve tab state, loaded data, scroll position, account isolation, navigation state, and edge-to-edge behaviour.</li>
     <li>Never claim on-device verification from the sandbox — the phone is the only proof.</li>
   </ul>
+</section>
+
+<!-- ================= SCROLL-HIDE BARS ================= -->
+<section id="scrollhide">
+  <h2>6 &nbsp; Scroll-Hide Bars — Top Slides Up, Bottom Slides Down</h2>
+  <p>When you scroll <b>down</b> through the mail list, the top bar (search + everything) and
+  the bottom bar both slide out of view, so the whole screen becomes just your emails. When
+  you scroll <b>up</b>, both slide back into their exact places. The hide is a pure slide —
+  <b>no fade</b>, opacity never changes. <b>Try it:</b> scroll the list below down, then back up.</p>
+
+  <div class="hide-stage" id="hideStage">
+    <div class="hide-topbar">
+      <span class="hide-ham"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span>
+      <div class="tb-pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg><span>Search mail</span></div>
+      <span class="hide-act"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></span>
+      <span class="hide-ava">A</span>
+    </div>
+    <div class="hide-list" id="hideList">
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+    </div>
+    <div class="hide-bottombar">
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>Home</span>
+      <span class="hide-tab sel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Mail</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>Categories</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM9 17H7v-7h2zm4 0h-2V7h2zm4 0h-2v-4h2z"/></svg>Companies</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 6-6 1.4 1.4z"/></svg>Actions</span>
+    </div>
+  </div>
+  <p class="demo-caption">Scroll down — both bars slide out (top up, bottom down), the list expands. Scroll up — both slide back in. No fade anywhere.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 300" role="img" aria-label="Annotated diagram of the scroll-hide bars">
+      <defs><marker id="ah6" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <!-- stage -->
+      <rect x="170" y="20" width="300" height="240" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- top bar -->
+      <rect x="170" y="20" width="300" height="44" rx="8" fill="#EFEAFB"/>
+      <rect x="196" y="32" width="160" height="20" rx="10" fill="#E7E0F6"/>
+      <!-- rows -->
+      <g><circle cx="200" cy="100" r="13" fill="#5238E8"/><rect x="226" y="92" width="110" height="9" rx="4" fill="#CBC5DE"/><rect x="226" y="105" width="170" height="7" rx="3" fill="#E7E0F6"/></g>
+      <g><circle cx="200" cy="150" r="13" fill="#1E7A55"/><rect x="226" y="142" width="90" height="9" rx="4" fill="#CBC5DE"/><rect x="226" y="155" width="150" height="7" rx="3" fill="#E7E0F6"/></g>
+      <!-- bottom bar -->
+      <rect x="170" y="206" width="300" height="54" rx="8" fill="#EFEAFB"/>
+      <rect x="286" y="214" width="68" height="26" rx="13" fill="#5238E8"/>
+      <!-- arrows + labels -->
+      <path d="M320 100 L 320 60" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah6)"/>
+      <text x="330" y="40" font-family="Caveat" font-size="23" fill="#222">scroll DOWN → top bar slides UP out</text>
+      <path d="M320 210 L 320 250" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah6)"/>
+      <text x="330" y="270" font-family="Caveat" font-size="23" fill="#222">bottom bar slides DOWN out</text>
+      <path d="M520 120 L 520 160" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah6)"/>
+      <text x="530" y="140" font-family="Caveat" font-size="23" fill="#222">scroll ↓</text>
+      <text x="20" y="290" font-family="Caveat" font-size="23" fill="#222">scroll UP → both slide back in (exact reverse). No fade — pure slide.</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">Scrolling down, then back up. The bars translate only — they never fade, never shake.</p>
+  <div class="frames">
+    <div class="frame"><div class="stage"><div class="hm-list" style="top:12px;bottom:14px"></div><div class="hm-top" style="top:0"></div><div class="hm-bot" style="bottom:0"></div></div><div class="cap">1 · bars shown — resting</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="hm-list" style="top:6px;bottom:7px"></div><div class="hm-top" style="top:-7px"></div><div class="hm-bot" style="bottom:-8px"></div></div><div class="cap">2 · mid-hide — halfway out</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="hm-list" style="top:0;bottom:0"></div><div class="hm-top" style="top:-14px"></div><div class="hm-bot" style="bottom:-16px"></div></div><div class="cap">3 · bars hidden — full list</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="hm-list" style="top:9px;bottom:11px"></div><div class="hm-top" style="top:-4px"></div><div class="hm-bot" style="bottom:-4px"></div></div><div class="cap">4 · mid-show — sliding back in</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">Scroll DOWN through the list → both bars hide. Scroll UP → both bars show. That is the whole trigger — scroll direction, nothing else.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Hide = pure slide, <u>no fade</u>. Opacity never changes. The top bar translates UP out of view; the bottom bar translates DOWN out of view. <span class="arrow">← slide only, no fade!</span></p></div>
+    <div class="step"><div class="no">3</div><p class="hand">Show = the exact reverse. Top slides back DOWN in; bottom slides back UP in. Both return to the <u>exact static positions</u> they had. <span class="arrow">← reverse = back to place!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">Speed profiles are OPPOSITE per direction. Show: starts <u>really slowly</u>, then comes up fast, then lands gently (FastOutSlowIn). Hide: the opposite — starts fast, ends slow (LinearOutSlowIn). <span class="arrow">← opposite speeds!</span></p></div>
+    <div class="step"><div class="no">5</div><p class="hand">No spring, no overshoot, no wobble, no shake — a pure tween. The bubble gets the jelly; the bars get clean glides.</p></div>
+    <div class="step"><div class="no">6</div><p class="hand">The list expands to fill the space when the bars hide. At the very top of the list (scroll = 0) the bars always show — you are never left without the search bar at the top.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Trigger</td><td class="spec">scroll down → hide both bars; scroll up → show both bars; at scroll position 0 → bars always shown</td></tr>
+    <tr><td>Motion</td><td class="spec">translate only — opacity never changes (no fade). Top bar: 0 → −100% (up, out). Bottom bar: 0 → +100% (down, out). Show = exact reverse.</td></tr>
+    <tr><td>Show easing</td><td class="spec">FastOutSlowIn — starts really slowly, then comes up fast, then lands gently in place. 250 ms.</td></tr>
+    <tr><td>Hide easing</td><td class="spec">LinearOutSlowIn — the opposite speed profile: starts fast, ends slow. 250 ms.</td></tr>
+    <tr><td>Feel</td><td class="spec">pure tween — no spring, no overshoot, no wobble, no shake</td></tr>
+    <tr><td>List</td><td class="spec">expands to fill the freed space when the bars hide; shrinks back when they show</td></tr>
+    <tr><td>Where</td><td class="spec">scrolling primary content — the mail list (and any screen with a scrolling list under these bars)</td></tr>
+  </table>
 </section>
 
 <footer>
