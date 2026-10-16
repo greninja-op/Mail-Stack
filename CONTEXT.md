@@ -492,3 +492,32 @@ Animatable, with the icon tint following the pill.
   LayoutCoordinates — item centres are computed from the measured bar
   width (5 equal-weight items).
 - Version NOT bumped, NO APK built — user said no APK until they say okay.
+
+## 2026-10-16 ~17:15 IST — Appearance jelly bubble + Analytics chip fix (NO APK — user approval pending)
+Two user-reported items, one push.
+1) Appearance redesign (screenshot): the System/Light/Dark segmented
+control gets the SAME bubble as the bottom nav. The bubble physics
+was extracted into a shared component so both places are identical
+by construction: ui/components/JellyBubble.kt (JellyBubbleState +
+JellyBubble composable + pure helpers). MoNavBar now renders through
+it; behaviour unchanged. The Appearance control is a custom capsule
+(48dp, 1dp outline border, no dividers — a sliding thumb + divider
+lines fight each other, every sliding-thumb reference drops them):
+the pill floats 4dp inside, slides with squash-stretch, and the
+checkmark + label tint switch the moment the bubble covers the
+segment (checkmark slot always laid out so the label never jumps).
+The theme itself still flips instantly on tap; the pill animates
+over the new theme's colours. Stock SegmentedButton removed.
+Tests: MoNavBarTest keeps a destinations-order test; the bubble
+tests moved to JellyBubbleTest (8 moved + 2 new segment-geometry
+tests). No MCP delete tool exists, so the old test file stays as a
+real destinations test instead of a dangling reference.
+2) Analytics & Insights chip fix (screenshot): the "All
+synchronized" range chip wrapped into 3 lines ("All / synchroniz /
+ed") because the fixed Row squeezed all four chips into the screen
+width. That label also read as a sync status, not a time range.
+Fix: renamed to "All time" (matches Today / Last 7 / Last 30 days;
+the ViewModel comment already called it that) and the chip row now
+scrolls horizontally, with labels pinned to one line so a chip can
+never stack its text. Meaning: stats for all mail ever synced.
+- Version NOT bumped, NO APK built — user said no APK until they say okay.
