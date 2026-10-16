@@ -533,3 +533,17 @@ spinner); jelly-bubble bottom-nav indicator + Appearance picker
 synchronized" -> "All time" + scrolling chip row. Tests at build
 time: 965 run / 957 pass (same 8 env-broken). No on-device
 verification possible from the sandbox — user confirms on phone.
+
+## 2026-10-16 ~17:40 IST — Bottom bar geometry fix (NO APK — user approval pending)
+User screenshot from 1.0.16: bottom-bar icons looked bigger than
+before and the bar sat on top of the Android system navigation
+buttons, colliding with taps. Root cause: in the MoNavBar rewrite,
+navigationBarsPadding() was placed INSIDE the fixed 80dp height, so
+the system-nav inset squeezed the bar's content and the whole bar
+slid down onto the system buttons (Compose doesn't clip, so the
+squeezed icons spilled and looked oversized). Fix: the padding is
+now OUTSIDE the fixed height, exactly like Material 3
+NavigationBar's windowInsets — total bar height 80dp + nav inset,
+content clear above the system nav. Icon size (24dp), pill
+(64x32dp), label, and elevation (0dp) were already identical to
+the old bar; only the geometry was wrong. Animation untouched.

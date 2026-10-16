@@ -97,11 +97,19 @@ fun MoNavBar(
         tonalElevation = 0.dp,
         modifier = modifier,
     ) {
+        // Modifier order matters here: navigationBarsPadding() is
+        // OUTSIDE the fixed 80dp height, exactly like Material 3
+        // NavigationBar's windowInsets. Total bar height is
+        // 80dp + system-nav inset, with the content sitting clear
+        // above the system navigation buttons. (2026-10-16 bug: the
+        // padding was INSIDE the fixed height, so the inset squeezed
+        // the content and the bar slid down onto the system buttons
+        // — icons looked bigger and taps collided with the system nav.)
         Box(
             Modifier
                 .fillMaxWidth()
-                .height(BarHeight)
-                .navigationBarsPadding(),
+                .navigationBarsPadding()
+                .height(BarHeight),
         ) {
             // The bubble, behind the icons.
             JellyBubble(
