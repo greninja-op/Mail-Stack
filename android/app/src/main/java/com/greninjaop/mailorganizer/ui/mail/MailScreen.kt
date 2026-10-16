@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -13,19 +14,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -37,20 +36,20 @@ import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,32 +57,50 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.greninjaop.mailorganizer.ui.components.MoSearchField
+import com.greninjaop.mailorganizer.ui.components.MailListSkeleton
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
-import com.greninjaop.mailorganizer.ui.components.MoLoadingState
+import com.greninjaop.mailorganizer.ui.components.edgeFade
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
  * Core inbox screen (Phase 6).
  *
- * Gmail-familiar chrome (design.md): top app bar with drawer affordance,
- * search field and account avatar; navigation drawer with the six mailbox
- * destinations (All Inbox / Primary / Promotional / Social / Spam / Starred).
- * Classification-backed destinations show honest empty states until Phase 7 —
- * never fabricated categories (§59).
+ * Gmail-familiar chrome (design.md): the top bar — drawer affordance,
+ * search field and account avatar — is hoisted above the NavHost (see
+ * MoPrimaryTopBar in ui/navigation), so the search pill can reshape
+ * itself across tab switches; this screen owns the navigation drawer
+ * with the six mailbox destinations (All Inbox / Primary / Promotional
+ * / Social / Spam / Starred). Classification-backed destinations show
+ * honest empty states until Phase 7 — never fabricated categories (§59).
  *
  * Read-only: no mark-read/star/archive actions (phase §6, Phase 22 owns
  * Gmail writes). The refresh action delegates to Phase 4's sync engine and
  * reports its honest outcome.
+ *
+ * The list has exactly three states: content, empty, skeleton (loading).
+ * While the first batch loads, a Boneyard-style skeleton mirrors the
+ * real rows' geometry so the layout never jumps when content arrives.
  */
 @Composable
 fun MailScreen(
     viewModel: MailViewModel,
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
-    onOpenAccounts: () -> Unit,
-    onOpenSearch: (String) -> Unit,
+    /**
+     * Drawer-open requests from the hamburger in the hoisted top bar:
+     * the counter increments per tap; the drawer opens on each change.
+     */
+    drawerOpenSignal: StateFlow<Int>,
+    /**
+     * True when Mail was entered via a primary-tab switch (vs popping
+     * back from a pushed route). The heavy lists defer past the
+     * tab-switch transition so the bubble/slide/pill animations run
+     * without competing against the list composition.
+     */
+    deferList: Boolean = false,
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
@@ -96,6 +113,12 @@ fun MailScreen(
         val result = state.syncUi as? SyncUiState.Result ?: return@LaunchedEffect
         snackbar.showSnackbar(result.message)
         viewModel.consumeSyncResult()
+    }
+
+    // Drawer requests from the hoisted top bar's hamburger.
+    val drawerSignal by drawerOpenSignal.collectAsState()
+    LaunchedEffect(drawerSignal) {
+        if (drawerSignal > 0) drawerState.open()
     }
 
     ModalNavigationDrawer(
@@ -113,16 +136,11 @@ fun MailScreen(
     ) {
         Scaffold(
             containerColor = MaterialTheme.colorScheme.background,
-            topBar = {
-                MailTopBar(
-                    state = state,
-                    onMenuClick = { scope.launch { drawerState.open() } },
-                    onFilterChange = viewModel::setFilterText,
-                    onSearchSubmit = { onOpenSearch(state.filterText) },
-                    onRefresh = viewModel::refresh,
-                    onAccountClick = onOpenAccounts,
-                )
-            },
+            // No top bar here — it is hoisted above the NavHost (see
+            // MoPrimaryTopBar). No window insets either: the hoisted
+            // top bar and bottom bar own the status/navigation insets,
+            // so this Scaffold must not add them again.
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
             snackbarHost = { SnackbarHost(snackbar) },
         ) { padding ->
             Column(Modifier.padding(padding).fillMaxSize()) {
@@ -158,6 +176,7 @@ fun MailScreen(
                     onLoadMore = viewModel::loadMore,
                     isLoadingMore = isLoadingMore,
                     onClearFilter = viewModel::clearFilter,
+                    deferList = deferList,
                     modifier = Modifier.weight(1f),
                     header = {
                         // Phase 9: action-required view toggle — global
@@ -199,58 +218,6 @@ private fun syncProgressLabel(sync: SyncUiState.Syncing, stageText: String): Str
     val count = if (sync.processed > total) "${sync.processed} emails"
     else "${sync.processed} of ~$total emails"
     return "${(pct * 100).toInt()}% · $count · $stageText"
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun MailTopBar(
-    state: MailScreenState,
-    onMenuClick: () -> Unit,
-    onFilterChange: (String) -> Unit,
-    onSearchSubmit: () -> Unit,
-    onRefresh: () -> Unit,
-    onAccountClick: () -> Unit,
-) {
-    val syncing = state.syncUi is SyncUiState.Syncing
-    TopAppBar(
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = MaterialTheme.colorScheme.surface,
-        ),
-        navigationIcon = {
-            IconButton(onClick = onMenuClick) {
-                Icon(Icons.Filled.Menu, contentDescription = "Open mailbox menu")
-            }
-        },
-        title = {
-            MoSearchField(
-                value = state.filterText,
-                onValueChange = onFilterChange,
-                onSearchSubmit = onSearchSubmit,
-                placeholder = "Search mail",
-            )
-        },
-        actions = {
-            IconButton(onClick = onRefresh, enabled = !syncing) {
-                Icon(Icons.Filled.Refresh, contentDescription = "Sync now")
-            }
-            if (state.isUnified) {
-                IconButton(onClick = onAccountClick) {
-                    Icon(
-                        imageVector = Icons.Filled.MailOutline,
-                        contentDescription = "All Accounts (Unified Inbox). Tap to switch account.",
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                }
-            } else {
-                val account = state.activeAccount
-                if (account != null) {
-                    IconButton(onClick = onAccountClick) {
-                        AccountAvatar(account = account, size = MoSpacing.xxl)
-                    }
-                }
-            }
-        },
-    )
 }
 
 @Composable
@@ -368,19 +335,39 @@ private fun MailContent(
     onLoadMore: () -> Unit,
     isLoadingMore: Boolean = false,
     onClearFilter: () -> Unit,
+    deferList: Boolean = false,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
         // Gmail parity: pull-to-refresh on the list, wired to the sync engine.
         val isRefreshing = state.syncUi is SyncUiState.Syncing
+        // Defer the heavy lists past the tab-switch transition (2026-10-16):
+        // the skeleton holds the list area for the first 300ms after
+        // entering via a tab switch, so the bubble/slide/pill animations
+        // run without competing against the list composition. Popping
+        // back from a pushed route shows the list immediately.
+        var listReady by remember { mutableStateOf(!deferList) }
+        LaunchedEffect(deferList) {
+            if (deferList) {
+                delay(300)
+                listReady = true
+            }
+        }
         Column(modifier = modifier.fillMaxSize()) {
             header()
             when (val content = state.content) {
-                MailboxContent.Loading -> MoLoadingState(
-                    message = "Loading your mail…",
+                // Skeleton loading (2026-10-16): while the first batch
+                // loads, show skeleton rows mirroring the real rows'
+                // geometry — never a spinner, never a layout jump.
+                MailboxContent.Loading -> MailListSkeleton(
                     modifier = Modifier.weight(1f),
                 )
                 is MailboxContent.Threads -> {
+                    if (!listReady) {
+                        // Deferring the list past the tab-switch
+                        // transition — the skeleton holds this area.
+                        MailListSkeleton(modifier = Modifier.weight(1f))
+                    } else {
                     val listState = rememberLazyListState()
                     // Gmail-style infinite scroll (2026-10-16): prefetch
                     // the next page when the user scrolls past the halfway
@@ -409,7 +396,14 @@ private fun MailContent(
                     ) {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize()
+                                // Subtle top/bottom edge fade (2026-10-16):
+                                // rows dissolve gently as they scroll under
+                                // the bars instead of hard-clipping.
+                                .edgeFade(
+                                    top = listState.canScrollBackward,
+                                    bottom = listState.canScrollForward,
+                                ),
                             contentPadding = PaddingValues(
                                 horizontal = MoSpacing.md,
                                 vertical = MoSpacing.sm,
@@ -432,8 +426,14 @@ private fun MailContent(
                             }
                         }
                     }
+                    }
                 }
                 is MailboxContent.Messages -> {
+                    if (!listReady) {
+                        // Deferring the list past the tab-switch
+                        // transition — the skeleton holds this area.
+                        MailListSkeleton(modifier = Modifier.weight(1f))
+                    } else {
                     val listState = rememberLazyListState()
                     // Same infinite scroll as the thread list (2026-10-16):
                     // starred/promotions/social/spam lists used to stop
@@ -459,7 +459,14 @@ private fun MailContent(
                     ) {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize(),
+                            modifier = Modifier.fillMaxSize()
+                                // Subtle top/bottom edge fade (2026-10-16):
+                                // rows dissolve gently as they scroll under
+                                // the bars instead of hard-clipping.
+                                .edgeFade(
+                                    top = listState.canScrollBackward,
+                                    bottom = listState.canScrollForward,
+                                ),
                             contentPadding = PaddingValues(
                                 horizontal = MoSpacing.md,
                                 vertical = MoSpacing.sm,
@@ -481,6 +488,7 @@ private fun MailContent(
                                 item { LoadingMoreFooter() }
                             }
                         }
+                    }
                     }
                 }
                 is MailboxContent.Empty -> {
