@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
@@ -24,7 +26,6 @@ import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -50,11 +51,13 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.ui.components.MoSearchField
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
@@ -85,6 +88,7 @@ fun MailScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.state.collectAsState()
+    val isLoadingMore by viewModel.isLoadingMore.collectAsState()
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
@@ -162,6 +166,7 @@ fun MailScreen(
                     onOpenThread = onOpenThread,
                     onRetry = viewModel::refresh,
                     onLoadMore = viewModel::loadMore,
+                    isLoadingMore = isLoadingMore,
                     onClearFilter = viewModel::clearFilter,
                     modifier = Modifier.weight(1f),
                     header = {
@@ -371,6 +376,7 @@ private fun MailContent(
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
     onRetry: () -> Unit,
     onLoadMore: () -> Unit,
+    isLoadingMore: Boolean = false,
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
@@ -385,12 +391,34 @@ private fun MailContent(
                     modifier = Modifier.weight(1f),
                 )
                 is MailboxContent.Threads -> {
+                    val listState = rememberLazyListState()
+                    // Gmail-style infinite scroll (2026-10-16): prefetch
+                    // the next page when the user scrolls past the halfway
+                    // mark of the loaded list — by the time they reach the
+                    // end, the next batch is already there. No "Load more"
+                    // button, no waiting at the end. The ViewModel guards
+                    // loadMore() against stacked requests.
+                    LaunchedEffect(listState, content) {
+                        snapshotFlow {
+                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                        }.collect { lastVisible ->
+                            if (shouldPrefetchMore(
+                                    lastVisible,
+                                    content.items.size,
+                                    content.hasMore,
+                                )
+                            ) {
+                                onLoadMore()
+                            }
+                        }
+                    }
                     PullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = onRetry,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                     ) {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
                                 horizontal = MoSpacing.md,
@@ -409,29 +437,38 @@ private fun MailContent(
                                 )
                                 // No dividers between rows — Gmail has none.
                             }
-                            if (content.hasMore) {
-                                item {
-                                    Button(
-                                        onClick = onLoadMore,
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(MoSpacing.md)
-                                            .animateItem(),
-                                    ) {
-                                        Text("Load more")
-                                    }
-                                }
+                            if (isLoadingMore) {
+                                item { LoadingMoreFooter() }
                             }
                         }
                     }
                 }
                 is MailboxContent.Messages -> {
+                    val listState = rememberLazyListState()
+                    // Same infinite scroll as the thread list (2026-10-16):
+                    // starred/promotions/social/spam lists used to stop
+                    // silently at the first page with no way to see more.
+                    LaunchedEffect(listState, content) {
+                        snapshotFlow {
+                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                        }.collect { lastVisible ->
+                            if (shouldPrefetchMore(
+                                    lastVisible,
+                                    content.items.size,
+                                    content.hasMore,
+                                )
+                            ) {
+                                onLoadMore()
+                            }
+                        }
+                    }
                     PullToRefreshBox(
                         isRefreshing = isRefreshing,
                         onRefresh = onRetry,
                         modifier = Modifier.weight(1f).fillMaxSize(),
                     ) {
                         LazyColumn(
+                            state = listState,
                             modifier = Modifier.fillMaxSize(),
                             contentPadding = PaddingValues(
                                 horizontal = MoSpacing.md,
@@ -449,6 +486,9 @@ private fun MailContent(
                                     modifier = Modifier.animateItem(),
                                 )
                                 // No dividers between rows — Gmail has none.
+                            }
+                            if (isLoadingMore) {
+                                item { LoadingMoreFooter() }
                             }
                         }
                     }
@@ -511,4 +551,44 @@ private fun MailContent(
                 )
             }
         }
+}
+
+/**
+ * Infinite-scroll prefetch trigger (2026-10-16, Gmail parity).
+ *
+ * Returns true once the user has scrolled past the halfway mark of the
+ * currently loaded list while more mail exists — the next page starts
+ * loading then, so it is already there by the time the user reaches
+ * the end. Pure function, unit-tested.
+ */
+internal fun shouldPrefetchMore(
+    lastVisibleIndex: Int,
+    itemCount: Int,
+    hasMore: Boolean,
+): Boolean {
+    if (!hasMore || itemCount <= 0 || lastVisibleIndex < 0) return false
+    return lastVisibleIndex >= itemCount / 2
+}
+
+/** Small centered spinner shown at the list end while the next page loads. */
+@Composable
+private fun LoadingMoreFooter() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(MoSpacing.md),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(MoSpacing.lg),
+            strokeWidth = 2.dp,
+        )
+        Spacer(modifier = Modifier.width(MoSpacing.sm))
+        Text(
+            text = "Loading more…",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
