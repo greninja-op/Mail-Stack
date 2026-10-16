@@ -137,3 +137,12 @@
   .hm-list{position:absolute;left:0;right:0;background:var(--container);border-radius:6px}
   .hm-top{position:absolute;left:0;right:0;height:14px;background:var(--violet);border-radius:3px}
   .hm-bot{position:absolute;left:0;right:0;height:16px;background:var(--violet);border-radius:3px}
+
+  /* ---- Instagram-style pull to refresh demo (see §7) ---- */
+  .ptr-stage{position:relative;height:420px;overflow:hidden;background:var(--surface);border:1.5px solid var(--outline);border-radius:16px}
+  .ptr-viewport{position:absolute;left:0;right:0;top:64px;bottom:80px;overflow:hidden;touch-action:none;user-select:none;cursor:grab}
+  .ptr-list{position:absolute;left:0;right:0;top:0;padding:8px 16px;will-change:transform}
+  .ptr-indicator{position:absolute;top:8px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;background:var(--container-high);border-radius:999px;padding:8px 12px;font-size:13px;font-weight:500;box-shadow:0 4px 12px rgba(0,0,0,.18);opacity:0;z-index:2;white-space:nowrap}
+  .ptr-indicator svg{flex:0 0 auto}
+  @keyframes ptrspin{to{transform:rotate(360deg)}}
+  .ptr-spinning{animation:ptrspin .8s linear infinite}
