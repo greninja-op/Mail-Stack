@@ -645,8 +645,23 @@ standing rules. Maintenance rule (binding): when a component
 changes in the app, update the Design Reference section; when a
 component is removed from the app, remove it here too — but NEVER
 remove an animation section, even if its button is gone. Verified:
-JS syntax clean, 12/12 functional assertions pass in a Node harness
+JS syntax clean, 11/11 functional assertions pass in a Node harness (the earlier '12' counted the assert helper itself)
 (pill settles on target, stretches mid-flight, fade masks correct at
 top/middle/bottom), all 18 SVGs parse, CSS braces balanced. Live
 browser render check could not run (browser blocks localhost);
 verification was done via the harness + static checks instead.
+
+
+## 2026-10-16 ~18:40 IST — reference.html moved into android/ + split into design-reference/
+User: keep the page inside the Android folder, with a "design reference"
+folder for its assets. New layout (repo-root reference.html DELETED):
+- `android/reference.html` — the page (links to the assets below)
+- `android/design-reference/reference.css` — all styles
+- `android/design-reference/animations.js` — bubble spring + scroll-fade
+Folder named `design-reference` (kebab-case, no space — cleaner for
+URLs/paths) per the user's "or something like that". The page content
+is unchanged; only the CSS/JS were extracted verbatim into the two
+asset files. Re-verified after the split: 11/11 harness assertions
+pass against the new animations.js; HTML has no inline style/script
+blocks. Maintenance rule unchanged (Design Reference section tracks
+the app; animation sections are never removed).
