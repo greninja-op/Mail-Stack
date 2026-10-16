@@ -731,6 +731,33 @@ class MailViewModel(
         val selection = activeSelection.value
         val isUnified = activeAccountPreferences != null && selection is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified
 
+        // Fast path (2026-10-16): when there is nothing syncable, finish
+        // immediately — no spinner, no engine run. Demo accounts
+        // (fixtures + Add-Local test accounts) have no remote mail, so
+        // they never count as syncable.
+        if (isUnified) {
+            val hasSyncable = allAccounts.value.any { it.isEnabled && !it.isDemoAccount() }
+            if (!hasSyncable) {
+                val anyEnabled = allAccounts.value.any { it.isEnabled }
+                syncUi.value = SyncUiState.Result(
+                    // Same guidance as the old NotConfigured failure
+                    // (friendlySyncError/InvalidConfiguration): the fix
+                    // is connecting a real account — demo data never syncs.
+                    if (anyEnabled) "Gmail isn't connected yet — sync will work once you connect an account."
+                    else "No accounts connected.",
+                )
+                return
+            }
+        } else {
+            val current = activeAccount.value
+            if (current != null && current.isDemoAccount()) {
+                syncUi.value = SyncUiState.Result(
+                    "Gmail isn't connected yet — sync will work once you connect an account.",
+                )
+                return
+            }
+        }
+
         viewModelScope.launch(dispatchers.io) {
             syncUi.value = SyncUiState.Syncing("Starting sync…")
             if (isUnified) {
@@ -765,7 +792,9 @@ class MailViewModel(
     }
 
     private suspend fun syncAllAccountsManually(): Map<String, SyncOutcome> {
-        val enabled = allAccounts.value.filter { it.isEnabled }
+        // Same demo exclusion as the scheduler (2026-10-16): this is the
+        // fallback when the scheduler is absent.
+        val enabled = allAccounts.value.filter { it.isEnabled && !it.isDemoAccount() }
         val results = mutableMapOf<String, SyncOutcome>()
         for (acc in enabled) {
             results[acc.accountId] = syncCoordinator.syncNow(AccountId(acc.accountId), SyncTrigger.MANUAL)

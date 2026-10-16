@@ -54,6 +54,26 @@ class BatteryConsciousSyncScheduler(
     }
 
     override suspend fun syncAccountNow(accountId: AccountId, trigger: SyncTrigger): SyncOutcome {
+        // Demo accounts never sync (no tokens, no remote mail): a fast
+        // no-op Success, never an engine run, never a failure
+        // (2026-10-16 fix — dummies used to be attempted on every
+        // refresh and counted as sync failures).
+        val record = accountRepository.getById(accountId.value)
+        if (record?.isDemoAccount() == true) {
+            MoLogger.i(TAG, "Skipping sync for demo account=${accountId.value}")
+            return SyncOutcome.Success(
+                SyncSummary(
+                    accountId = accountId.value,
+                    trigger = trigger,
+                    messagesProcessed = 0,
+                    inserted = 0,
+                    updated = 0,
+                    deleted = 0,
+                    completedInitialSync = false,
+                    durationMs = 0,
+                ),
+            )
+        }
         return syncCoordinator.syncNow(accountId, trigger)
     }
 
@@ -108,7 +128,11 @@ class BatteryConsciousSyncScheduler(
 
     override suspend fun syncAllEnabled(trigger: SyncTrigger): Map<String, SyncOutcome> =
         withContext(dispatchers.io) {
-            val accounts = accountRepository.observeAll().first().filter { it.isEnabled }
+            // Demo accounts are never syncable (no tokens, no remote
+            // mail) — they are excluded before any engine run, so a
+            // refresh touches only real connected accounts (2026-10-16).
+            val accounts = accountRepository.observeAll().first()
+                .filter { it.isEnabled && !it.isDemoAccount() }
             if (accounts.isEmpty()) return@withContext emptyMap()
 
             MoLogger.i(TAG, "Syncing all enabled accounts (count=${accounts.size}) with trigger=$trigger")
@@ -155,7 +179,13 @@ class BatteryConsciousSyncScheduler(
             return
         }
 
-        val accounts = accountRepository.observeAll().first().filter { it.isEnabled }
+        // Demo accounts are never stale — they have no remote state to
+        // be stale about. Excluding them here (before ensureForAccount)
+        // also stops a sync-state row being created for them, and stops
+        // a sync attempt on every app start / resume / connectivity
+        // recovery (2026-10-16 fix — they were "stale forever").
+        val accounts = accountRepository.observeAll().first()
+            .filter { it.isEnabled && !it.isDemoAccount() }
         val now = clock()
 
         for (account in accounts) {

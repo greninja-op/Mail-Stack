@@ -54,6 +54,27 @@ class AccountSyncWorker(
             return@withContext SyncWorkerResult.Failure("Account is disabled")
         }
 
+        // Demo accounts never sync (no tokens, no remote mail): a fast
+        // no-op Success — never an engine run, and never Failure/Retry
+        // (a Failure would make the worker retry a sync that can never
+        // succeed) (2026-10-16).
+        if (account.isDemoAccount()) {
+            MoLogger.i(TAG, "Account ${accountId.value} is demo data; skipping sync worker")
+            return@withContext SyncWorkerResult.Success(
+                SyncSummary(
+                    accountId = accountId.value,
+                    trigger = trigger,
+                    messagesProcessed = 0,
+                    inserted = 0,
+                    updated = 0,
+                    deleted = 0,
+                    completedInitialSync = false,
+                    durationMs = 0,
+                ),
+                processing = null,
+            )
+        }
+
         // 2. Check network constraint if observer is provided
         if (constraints.requiresNetwork && connectivity != null) {
             val isOnline = connectivity.isOnline.first()

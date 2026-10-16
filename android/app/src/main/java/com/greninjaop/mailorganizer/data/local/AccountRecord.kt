@@ -32,5 +32,21 @@ data class AccountRecord(
 ) {
     companion object {
         const val PROVIDER_GOOGLE = "google"
+        /** Prefix for the seeded demo accounts (SampleMailboxSeeder). */
+        const val FIXTURE_ID_PREFIX = "fixture-"
+        /** Prefix for the Add-Local test accounts (Accounts screen). */
+        const val LOCAL_ID_PREFIX = "local-"
     }
+
+    /**
+     * Demo/test accounts (seeded fixtures + Add-Local test accounts)
+     * never have remote mail: they were never connected to Gmail and
+     * hold no tokens, so the sync engine must never attempt them —
+     * attempting them on every app start / resume / refresh is what
+     * made refresh "run every time" (2026-10-16 fix). Real Google
+     * accounts (even TOKEN_EXPIRED ones) never match — their ids are
+     * Google account ids, and a refresh may fix them.
+     */
+    fun isDemoAccount(): Boolean =
+        accountId.startsWith(FIXTURE_ID_PREFIX) || accountId.startsWith(LOCAL_ID_PREFIX)
 }
