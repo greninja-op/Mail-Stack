@@ -115,6 +115,36 @@ class MailViewModelTest {
         Dispatchers.resetMain()
     }
 
+    private suspend fun MailViewModel.awaitThreadsWithLimit(expectedLimit: Int): MailboxContent.Threads {
+        lateinit var result: MailboxContent.Threads
+        state.test {
+            while (true) {
+                val c = awaitItem().content
+                val t = c as? MailboxContent.Threads
+                if (t != null && t.limit == expectedLimit) {
+                    result = t
+                    break
+                }
+            }
+        }
+        return result
+    }
+
+    private suspend fun MailViewModel.awaitMessagesWithLimit(expectedLimit: Int): MailboxContent.Messages {
+        lateinit var result: MailboxContent.Messages
+        state.test {
+            while (true) {
+                val c = awaitItem().content
+                val m = c as? MailboxContent.Messages
+                if (m != null && m.limit == expectedLimit) {
+                    result = m
+                    break
+                }
+            }
+        }
+        return result
+    }
+
     private suspend fun MailViewModel.awaitContent(): MailboxContent {
         var last: MailboxContent = MailboxContent.Loading
         state.test {
@@ -148,6 +178,7 @@ class MailViewModelTest {
         subject: String,
         body: String,
         labels: List<String> = listOf("INBOX"),
+        starred: Boolean = false,
     ) {
         mail.saveThreadWithMessages(
             com.greninjaop.mailorganizer.data.local.ThreadRecord(
@@ -173,6 +204,7 @@ class MailViewModelTest {
                     bodyText = body,
                     timestampEpochMs = 1_000L,
                     labels = labels,
+                    starred = starred,
                 ),
             ),
         )
@@ -185,8 +217,9 @@ class MailViewModelTest {
         val content = vm.awaitContent()
         assertTrue(content is MailboxContent.Threads)
         val threads = (content as MailboxContent.Threads).items
-        // Alex is the earliest-created fixture account → 6 threads, strictly scoped.
-        assertEquals(6, threads.size)
+        // Alex is the earliest-created fixture account → 6 original + 25
+        // company threads, strictly scoped.
+        assertEquals(31, threads.size)
         assertTrue(threads.all { it.accountId == SampleMailboxSeeder.ACCT_ALEX })
         assertFalse(content.hasMore)
         // Sample banner flag.
@@ -260,8 +293,13 @@ class MailViewModelTest {
         advanceUntilIdle()
         val content = vm.awaitContent()
         assertTrue(content is MailboxContent.Messages)
-        assertEquals(1, (content as MailboxContent.Messages).items.size)
-        assertEquals("Quarterly report", content.items[0].subject)
+        // Quarterly report + GitHub Dependabot alert, newest first.
+        assertEquals(2, (content as MailboxContent.Messages).items.size)
+        assertEquals(
+            "Dependabot: lodash has a high-severity vulnerability",
+            content.items[0].subject,
+        )
+        assertEquals("Quarterly report", content.items[1].subject)
     }
 
     @Test
@@ -419,4 +457,82 @@ class MailViewModelTest {
             )
         }
     }
+
+    // ---------- Infinite scroll (2026-10-16, Gmail parity) ----------
+
+    private suspend fun seedThreads(accountId: String, count: Int, starred: Boolean = false) {
+        seedAccount(accountId)
+        repeat(count) { i ->
+            saveMessage(
+                "m-$i", accountId, "t-$i",
+                from = "sender$i@example.com",
+                subject = "Subject $i",
+                body = "Body $i",
+                starred = starred,
+            )
+        }
+    }
+
+    @Test
+    fun `rapid loadMore calls grow the page by exactly one page`() = runTest(testDispatcher) {
+        seedThreads("real-acct", 120)
+        val vm = viewModel(seed = false)
+        advanceUntilIdle()
+        val first = vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE)
+        assertEquals(MailViewModel.PAGE_SIZE, first.items.size)
+        assertTrue(first.hasMore)
+
+        // Three synchronous triggers (as rapid scroll events would fire):
+        // only the first may bump — the other two must see the in-flight
+        // fetch and no-op.
+        vm.loadMore()
+        vm.loadMore()
+        vm.loadMore()
+        val second = vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE * 2)
+        assertEquals(MailViewModel.PAGE_SIZE * 2, second.items.size)
+        assertTrue(second.hasMore)
+    }
+
+    @Test
+    fun `loadMore stops once the mailbox is exhausted`() = runTest(testDispatcher) {
+        seedThreads("real-acct", 120)
+        val vm = viewModel(seed = false)
+        advanceUntilIdle()
+        vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE)
+
+        vm.loadMore()
+        val second = vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE * 2)
+        assertEquals(100, second.items.size)
+        assertTrue(second.hasMore)
+
+        vm.loadMore()
+        val third = vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE * 3)
+        assertEquals(120, third.items.size)
+        assertFalse(third.hasMore)
+
+        // hasMore false: further calls are no-ops, no page growth.
+        vm.loadMore()
+        advanceUntilIdle()
+        val still = vm.awaitThreadsWithLimit(MailViewModel.PAGE_SIZE * 3)
+        assertEquals(120, still.items.size)
+        assertFalse(still.hasMore)
+    }
+
+    @Test
+    fun `starred list paginates with hasMore instead of stopping at one page`() =
+        runTest(testDispatcher) {
+            seedThreads("real-acct", 60, starred = true)
+            val vm = viewModel(seed = false)
+            advanceUntilIdle()
+            vm.setDestination(MailboxDestination.STARRED)
+            advanceUntilIdle()
+            val first = vm.awaitMessagesWithLimit(MailViewModel.PAGE_SIZE)
+            assertEquals(MailViewModel.PAGE_SIZE, first.items.size)
+            assertTrue(first.hasMore)
+
+            vm.loadMore()
+            val second = vm.awaitMessagesWithLimit(MailViewModel.PAGE_SIZE * 2)
+            assertEquals(60, second.items.size)
+            assertFalse(second.hasMore)
+        }
 }
