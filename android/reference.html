@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mailstack — Animation &amp; Design Reference</title>
+<!--
+  MAILSTACK — ANIMATION & DESIGN REFERENCE (android/reference.html)
+  Assets live next to it in android/design-reference/:
+    reference.css  — all styles for this page
+    animations.js — bubble spring + scroll-fade behaviour
+  =========================================================
+  The stock library of Mailstack's animations + the living UI design
+  reference. When you want an animation, tell the agent:
+      "Use the bubble animation from reference.html"
+  ...and the agent reads this file and reproduces the specs below —
+  no re-explaining from scratch.
+
+  MAINTENANCE RULE (binding):
+  - When a component changes in the app, update the Design Reference
+    section below to match. When a component is REMOVED from the app,
+    remove it from the Design Reference section too.
+  - NEVER remove an animation section (Bubble, Fade, ...), even if the
+    button/component that used it is removed from the app. Animations
+    take a long time to make; they stay as permanent reference.
+  - When a new animation is added to the app, add a new section here
+    with the same structure: live demo + annotated diagram + zoomed
+    frame-by-frame strip + handwritten step-by-step notes.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600;700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="design-reference/reference.css">
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>Mailstack — Animation &amp; Design Reference</h1>
+  <p class="sub">The stock library of Mailstack's animations + the living UI design reference.
+  Tell the agent <b>“Use the bubble animation from reference.html”</b> (or the fade, or any
+  section below) and it reproduces the specs here — no re-explaining from scratch.</p>
+</header>
+
+<div class="rule">
+  <b>Maintenance rule —</b> When a component changes in the app, update the Design Reference
+  section below to match. When a component is <b>removed</b> from the app, remove it from the
+  Design Reference too. But <b>never remove an animation section</b> — even if the button that
+  used it is gone. Animations take a long time to make; they stay as permanent reference.
+  New animation in the app → new section here, same structure: live demo + annotated diagram +
+  zoomed frames + handwritten steps.
+</div>
+
+<!-- ================= BUBBLE ================= -->
+<section id="bubble">
+  <h2>1 &nbsp; Bubble Animation with the Flow</h2>
+  <p>The bottom navigation's sliding pill. One pill, five tabs. Tap any tab — the pill flies
+  there with a jelly squash-and-stretch, then settles with a tiny wobble. <b>Try it:</b> click the tabs below.</p>
+
+  <div class="demo-bar" id="bubbleBar" role="tablist" aria-label="Bottom navigation demo">
+    <div class="pill" id="bubblePill"></div>
+    <button class="navbtn" data-index="0" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>
+      Home</button>
+    <button class="navbtn selected" data-index="1" role="tab" aria-selected="true">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>
+      Mail</button>
+    <button class="navbtn" data-index="2" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+      Categories</button>
+    <button class="navbtn" data-index="3" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2zM9 17H7v-7h2zm4 0h-2V7h2zm4 0h-2v-4h2z"/></svg>
+      Companies</button>
+    <button class="navbtn" data-index="4" role="tab" aria-selected="false">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 6-6 1.4 1.4z"/></svg>
+      Actions</button>
+  </div>
+  <p class="demo-caption">Click a tab. The pill stretches as it travels, then settles with a wobble — exactly like the app.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Annotated diagram of the bubble animation">
+      <!-- bar -->
+      <rect x="20" y="88" width="600" height="64" rx="32" fill="#EFEAFB"/>
+      <!-- pill on Mail -->
+      <rect x="168" y="104" width="64" height="32" rx="16" fill="#5238E8"/>
+      <!-- tab labels -->
+      <text x="80" y="146" text-anchor="middle" font-family="Inter" font-size="12" fill="#48455A">Home</text>
+      <text x="200" y="146" text-anchor="middle" font-family="Inter" font-size="12" fill="#FFFFFF">Mail</text>
+      <text x="320" y="146" text-anchor="middle" font-family="Inter" font-size="12" fill="#48455A">Categories</text>
+      <text x="440" y="146" text-anchor="middle" font-family="Inter" font-size="12" fill="#48455A">Companies</text>
+      <text x="560" y="146" text-anchor="middle" font-family="Inter" font-size="12" fill="#48455A">Actions</text>
+      <!-- simple icons -->
+      <g fill="#48455A"><path d="M80 104 70 113h3v9h7v-6h3v6h7v-9h3z"/></g>
+      <g fill="#FFFFFF"><path d="M192 110h16a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-16a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2zm0 2 8 5 8-5z"/></g>
+      <g fill="#48455A"><path d="M310 110h20v2h-20zm0 5h20v2h-20zm0 5h20v2h-20z"/></g>
+      <g fill="#48455A"><path d="M432 108h16v16h-16z" fill-opacity="0"/></g>
+      <g fill="#48455A"><circle cx="440" cy="114" r="4"/><path d="M432 126c0-4 4-6 8-6s8 2 8 6z"/></g>
+      <g fill="#48455A"><circle cx="560" cy="118" r="9" fill="none" stroke="#48455A" stroke-width="2"/><path d="M554 118l4 4 6-7" fill="none" stroke="#48455A" stroke-width="2"/></g>
+      <!-- arrows + handwritten labels -->
+      <defs><marker id="ah" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <path d="M300 60 Q 260 62 232 96" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="306" y="52" font-family="Caveat" font-size="24" fill="#222">the pill — one pill, it travels, never remounts</text>
+      <path d="M150 190 Q 165 175 185 160" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="60" y="214" font-family="Caveat" font-size="24" fill="#222">trailing edge — softer spring, lags behind</text>
+      <path d="M470 190 Q 300 200 240 165" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="330" y="214" font-family="Caveat" font-size="24" fill="#222">leading edge — stiffer spring, pulls ahead → stretch!</text>
+      <path d="M560 60 Q 560 70 560 96" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah)"/>
+      <text x="420" y="30" font-family="Caveat" font-size="24" fill="#222">tap any tab — pill flies there</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">Home → Mail. Watch the pill: it stretches mid-flight, then the trailing edge catches up and it settles.</p>
+  <div class="frames" id="bubbleFrames">
+    <div class="frame"><div class="stage"><div class="fpill" style="left:8px;width:64px"></div><div class="fbtn" style="left:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg></div><div class="fbtn" style="left:96px;color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></div></div><div class="cap">1 · start — resting on Home</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="fpill" style="left:8px;width:92px"></div><div class="fbtn" style="left:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg></div><div class="fbtn" style="left:96px;color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></div></div><div class="cap">2 · stretch — leading edge shoots ahead</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="fpill" style="left:22px;width:96px"></div><div class="fbtn" style="left:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg></div><div class="fbtn" style="left:96px;color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></div></div><div class="cap">3 · mid-flight — longest + squashed flat</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="fpill" style="left:48px;width:80px"></div><div class="fbtn" style="left:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg></div><div class="fbtn" style="left:96px;color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></div></div><div class="cap">4 · catch-up — trailing edge arrives</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="fpill" style="left:64px;width:64px"></div><div class="fbtn" style="left:40px"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg></div><div class="fbtn" style="left:96px;color:#fff"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg></div></div><div class="cap">5 · settle — tiny wobble, then still</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">One pill, mounted once above the screens. It never unmounts — that is why it can <u>travel</u> instead of snapping. If each screen owned its own pill, it would just blink. <span class="arrow">← keep it hoisted!</span></p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Tap a tab → the pill gets a new target: that tab's centre. The pill is 64 × 32, the two edges are animated <u>separately</u> — that is the whole trick.</p></div>
+    <div class="step"><div class="no">3</div><p class="hand">Leading edge spring = stiff (550). Trailing edge spring = soft (300). Damping 0.70. The stiff edge pulls ahead → the pill <u>stretches</u>. The soft edge lags → the pill looks like jelly. <span class="arrow">← stretch = jelly!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">While stretched, the pill squashes a little vertically (squash &amp; stretch, like a cartoon). When the trailing edge catches up, the pill relaxes back to 64 × 32.</p></div>
+    <div class="step"><div class="no">5</div><p class="hand">Settle = a tiny wobble (the springs overshoot a hair, then rest). Total travel ≈ 350 ms. The page slide + the top-bar pill run on the same 350 ms, so everything lands together. <span class="arrow">← sync matters!</span></p></div>
+    <div class="step"><div class="no">6</div><p class="hand">The selected tab's icon sits ON the pill (white on violet). The other icons stay muted. No square ripple — the pill is the only tap feedback. <span class="arrow">← pill only, no square!</span></p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Pill size</td><td class="spec">64 × 32 dp, fully rounded (16 dp radius), violet #5238E8</td></tr>
+    <tr><td>Bar</td><td class="spec">80 dp content height + system-nav inset outside it; icons 24 dp; tonal elevation 0</td></tr>
+    <tr><td>Leading-edge spring</td><td class="spec">stiffness 550, damping ratio 0.70</td></tr>
+    <tr><td>Trailing-edge spring</td><td class="spec">stiffness 300, damping ratio 0.70</td></tr>
+    <tr><td>Squash</td><td class="spec">vertical squash proportional to stretch, relaxes as edges meet</td></tr>
+    <tr><td>Settle</td><td class="spec">springs overshoot slightly → tiny wobble → rest at 64 × 32</td></tr>
+    <tr><td>Hoisting</td><td class="spec">one bar instance above the NavHost; per-screen bars would snap, never slide</td></tr>
+    <tr><td>Tap feedback</td><td class="spec">pill only — tap indication = null (no square ripple)</td></tr>
+  </table>
+</section>
+
+<!-- ================= FADE ================= -->
+<section id="fade">
+  <h2>2 &nbsp; Scroll Edge Fade — rows dissolve, never hard-cut</h2>
+  <p>When a mail list scrolls, rows used to hard-clip against the background — it read as a black
+  bar cutting the rows off. Now each edge dissolves gently. <b>Try it:</b> scroll the list below.
+  The fade appears only where there is more content to scroll to, and vanishes at the ends.</p>
+
+  <div class="fade-list" id="fadeList" tabindex="0" aria-label="Scrollable mail list demo with edge fade">
+    <div class="frow"><div class="favatar" style="background:#5238E8">A</div><div class="ftext"><div class="s">AWS</div><div class="t">Your AWS bill for September is $12.47.</div></div><div class="fdate">Oct 10</div></div>
+    <div class="frow"><div class="favatar" style="background:#1E7A55">O</div><div class="ftext"><div class="s">OpenRouter</div><div class="t">Your weekly API usage summary</div></div><div class="fdate">Oct 9</div></div>
+    <div class="frow"><div class="favatar" style="background:#6A5ACD">?</div><div class="ftext"><div class="s">No subject</div><div class="t">—</div></div><div class="fdate">Oct 8</div></div>
+    <div class="frow"><div class="favatar" style="background:#333"></div><div class="ftext"><div class="s">Apple</div><div class="t">Your receipt from Apple</div></div><div class="fdate">Oct 8</div></div>
+    <div class="frow"><div class="favatar" style="background:#E8710A">G</div><div class="ftext"><div class="s">Glasp</div><div class="t">Your weekly highlights are ready</div></div><div class="fdate">Oct 7</div></div>
+    <div class="frow"><div class="favatar" style="background:#1DB954">S</div><div class="ftext"><div class="s">Spotify</div><div class="t">Your receipt from Spotify</div></div><div class="fdate">Oct 4</div></div>
+    <div class="frow"><div class="favatar" style="background:#7A5B00">F</div><div class="ftext"><div class="s">Finance</div><div class="t">Quarterly report</div></div><div class="fdate">Sep 6</div></div>
+    <div class="frow"><div class="favatar" style="background:#B3261E">Y</div><div class="ftext"><div class="s">YouTube</div><div class="t">New videos from your subscriptions</div></div><div class="fdate">Sep 2</div></div>
+    <div class="frow"><div class="favatar" style="background:#0066CC">L</div><div class="ftext"><div class="s">LinkedIn</div><div class="t">You have 3 new invitations</div></div><div class="fdate">Aug 30</div></div>
+    <div class="frow"><div class="favatar" style="background:#555">N</div><div class="ftext"><div class="s">Netflix</div><div class="t">Your monthly receipt</div></div><div class="fdate">Aug 28</div></div>
+  </div>
+  <p class="demo-caption">Scroll it. Top edge fades once you scroll down; bottom edge fades until you reach the end.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 300" role="img" aria-label="Annotated diagram of the scroll edge fade">
+      <defs>
+        <linearGradient id="fadeTop" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FDFBFF" stop-opacity="0"/><stop offset="1" stop-color="#FDFBFF" stop-opacity="1"/>
+        </linearGradient>
+        <linearGradient id="fadeBot" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#FDFBFF" stop-opacity="1"/><stop offset="1" stop-color="#FDFBFF" stop-opacity="0"/>
+        </linearGradient>
+        <marker id="ah2" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker>
+      </defs>
+      <!-- list container -->
+      <rect x="170" y="20" width="300" height="240" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- rows -->
+      <g><circle cx="200" cy="66" r="16" fill="#5238E8"/><rect x="226" y="56" width="140" height="10" rx="5" fill="#CBC5DE"/><rect x="226" y="70" width="190" height="8" rx="4" fill="#E7E0F6"/></g>
+      <g><circle cx="200" cy="126" r="16" fill="#1E7A55"/><rect x="226" y="116" width="110" height="10" rx="5" fill="#CBC5DE"/><rect x="226" y="130" width="170" height="8" rx="4" fill="#E7E0F6"/></g>
+      <g><circle cx="200" cy="186" r="16" fill="#6A5ACD"/><rect x="226" y="176" width="90" height="10" rx="5" fill="#CBC5DE"/><rect x="226" y="190" width="150" height="8" rx="4" fill="#E7E0F6"/></g>
+      <!-- fade zones -->
+      <rect x="170" y="20" width="300" height="30" rx="6" fill="url(#fadeTop)"/>
+      <rect x="170" y="230" width="300" height="30" rx="6" fill="url(#fadeBot)"/>
+      <!-- arrows + labels -->
+      <path d="M140 50 Q 160 50 168 50" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah2)"/>
+      <text x="8" y="44" font-family="Caveat" font-size="23" fill="#222">top fade — rows dissolve here</text>
+      <path d="M140 245 Q 160 245 168 245" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah2)"/>
+      <text x="8" y="268" font-family="Caveat" font-size="23" fill="#222">bottom fade — same thing, mirrored</text>
+      <path d="M520 60 L 520 220" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah2)"/>
+      <text x="530" y="140" font-family="Caveat" font-size="23" fill="#222">scroll ↓</text>
+      <text x="170" y="288" font-family="Caveat" font-size="23" fill="#222">only fades where more content waits — at the very top / bottom, NO fade.</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">One row scrolling up out of the top edge. Same fade, no exaggeration — this is exactly how subtle it is.</p>
+  <div class="fade-frames">
+    <div class="fframe"><div class="fstage"><div class="frow" style="padding:12px"><div class="favatar" style="background:#5238E8">A</div><div class="ftext"><div class="s">AWS</div><div class="t">Your AWS bill…</div></div><div class="fdate">Oct 10</div></div></div><div class="fcap">1 · clear — fully visible</div></div>
+    <div class="frame-sep">→</div>
+    <div class="fframe"><div class="fstage"><div class="frow" style="padding:12px;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 35%);mask-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 35%)"><div class="favatar" style="background:#5238E8">A</div><div class="ftext"><div class="s">AWS</div><div class="t">Your AWS bill…</div></div><div class="fdate">Oct 10</div></div></div><div class="fcap">2 · entering the fade</div></div>
+    <div class="frame-sep">→</div>
+    <div class="fframe"><div class="fstage"><div class="frow" style="padding:12px;-webkit-mask-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 65%);mask-image:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,1) 65%)"><div class="favatar" style="background:#5238E8">A</div><div class="ftext"><div class="s">AWS</div><div class="t">Your AWS bill…</div></div><div class="fdate">Oct 10</div></div></div><div class="fcap">3 · half dissolved</div></div>
+    <div class="frame-sep">→</div>
+    <div class="fframe"><div class="fstage"><div class="frow" style="padding:12px;opacity:.08"><div class="favatar" style="background:#5238E8">A</div><div class="ftext"><div class="s">AWS</div><div class="t">Your AWS bill…</div></div><div class="fdate">Oct 10</div></div></div><div class="fcap">4 · gone — never hard-cut</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">The list is a normal scrolling list. On top of it we lay a <u>fade mask</u> — a gradient that goes transparent → opaque over a short band at each edge. The content itself does not change; only its visibility at the edges does.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Fade band = <u>28 dp, and subtle</u>. Not a big dramatic fade — just enough that a row dissolves instead of getting sliced. <span class="arrow">← small = classy!</span></p></div>
+    <div class="step"><div class="no">3</div><p class="hand">Top edge fades ONLY once you have scrolled down (there is content above). Bottom edge fades ONLY while there is content below. At the very top / very bottom → no fade, rows fully visible. <span class="arrow">← no fade for nothing!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">Same fade on top AND bottom — mirrored. It is a scroll effect, not a decoration: it moves with the scroll, it never sits on content that is not moving.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Fade height</td><td class="spec">28 dp at each edge (top + bottom)</td></tr>
+    <tr><td>Fade shape</td><td class="spec">linear gradient, transparent → opaque; applied as a mask (DstIn), content drawn into an offscreen layer</td></tr>
+    <tr><td>When top fades</td><td class="spec">only when the list can scroll backward (content above)</td></tr>
+    <tr><td>When bottom fades</td><td class="spec">only when the list can scroll forward (content below)</td></tr>
+    <tr><td>Where</td><td class="spec">mail list (Threads + Messages branches). Other lists may adopt the same helper.</td></tr>
+  </table>
+</section>
+
+<!-- ================= DESIGN REFERENCE ================= -->
+<section id="design">
+  <h2>3 &nbsp; Design Reference — the whole UI, in one place</h2>
+  <p><b>Keep this section updated.</b> When a component changes in the app, change it here.
+  When a component is removed from the app, remove it here. (Animations above are exempt —
+  they stay forever.)</p>
+
+  <h3>What Mailstack is</h3>
+  <p>Mailstack is a Gmail-first mail organizer (Android, Kotlin + Compose, Material Design 3,
+  strictly). Package <code>com.greninjaop.mailorganizer</code>. Five primary tabs —
+  <b>Home, Mail, Categories, Companies, Actions</b> — plus pushed routes (thread, search,
+  settings, …). Gmail is the source of truth; everything is local-first and account-isolated.</p>
+
+  <h3>Layout — one screen, three layers</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 420" role="img" aria-label="Wireframe of one primary screen">
+      <defs><marker id="ah3" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <rect x="190" y="10" width="260" height="400" rx="24" fill="#FDFBFF" stroke="#1C1A26" stroke-width="2"/>
+      <!-- top bar -->
+      <rect x="204" y="26" width="232" height="40" rx="20" fill="#EFEAFB"/>
+      <text x="216" y="51" font-family="Inter" font-size="11" fill="#48455A">☰   Search mail      ⟳   ✉</text>
+      <!-- content rows -->
+      <g><circle cx="228" cy="110" r="14" fill="#5238E8"/><rect x="250" y="100" width="110" height="9" rx="4" fill="#CBC5DE"/><rect x="250" y="114" width="160" height="7" rx="3" fill="#E7E0F6"/></g>
+      <g><circle cx="228" cy="164" r="14" fill="#1E7A55"/><rect x="250" y="154" width="90" height="9" rx="4" fill="#CBC5DE"/><rect x="250" y="168" width="140" height="7" rx="3" fill="#E7E0F6"/></g>
+      <g><circle cx="228" cy="218" r="14" fill="#6A5ACD"/><rect x="250" y="208" width="70" height="9" rx="4" fill="#CBC5DE"/><rect x="250" y="222" width="120" height="7" rx="3" fill="#E7E0F6"/></g>
+      <!-- bottom nav -->
+      <rect x="204" y="330" width="232" height="56" rx="16" fill="#EFEAFB"/>
+      <rect x="248" y="340" width="44" height="22" rx="11" fill="#5238E8"/>
+      <text x="190" y="352" font-family="Caveat" font-size="19" fill="#222"></text>
+      <!-- arrows -->
+      <path d="M470 46 Q 460 46 450 46" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah3)"/>
+      <text x="478" y="42" font-family="Caveat" font-size="22" fill="#222">top bar — hoisted, one instance</text>
+      <text x="478" y="66" font-family="Caveat" font-size="22" fill="#222">(hamburger + search pill + actions)</text>
+      <path d="M470 160 Q 460 160 450 160" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah3)"/>
+      <text x="478" y="156" font-family="Caveat" font-size="22" fill="#222">content — slides directionally</text>
+      <text x="478" y="180" font-family="Caveat" font-size="22" fill="#222">on tab switch (see §1 + §2)</text>
+      <path d="M470 358 Q 460 358 450 358" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah3)"/>
+      <text x="478" y="354" font-family="Caveat" font-size="22" fill="#222">bottom bar — hoisted, one instance</text>
+      <text x="478" y="378" font-family="Caveat" font-size="22" fill="#222">(the bubble lives here)</text>
+    </svg>
+    <div class="figcap">Chrome (top bar + bottom bar) stays put; only the content slides. That is why the pill animations can be continuous.</div>
+  </div>
+
+  <h3>Colours</h3>
+  <div class="swatches">
+    <div class="sw"><div class="chip" style="background:#5238E8"></div><div class="meta"><b>Brand violet</b><br>#5238E8<br>primary · pill</div></div>
+    <div class="sw"><div class="chip" style="background:#B9A8FF"></div><div class="meta"><b>Brand violet (dark)</b><br>#B9A8FF<br>primary, dark mode</div></div>
+    <div class="sw"><div class="chip" style="background:#F6F3FF"></div><div class="meta"><b>Background (light)</b><br>#F6F3FF</div></div>
+    <div class="sw"><div class="chip" style="background:#131120"></div><div class="meta"><b>Background (dark)</b><br>#131120<br>never pure black</div></div>
+    <div class="sw"><div class="chip" style="background:#FDFBFF"></div><div class="meta"><b>Surface (light)</b><br>#FDFBFF</div></div>
+    <div class="sw"><div class="chip" style="background:#1A1826"></div><div class="meta"><b>Surface (dark)</b><br>#1A1826</div></div>
+    <div class="sw"><div class="chip" style="background:#EFEAFB"></div><div class="meta"><b>Surface container</b><br>#EFEAFB<br>nav bar, chips</div></div>
+    <div class="sw"><div class="chip" style="background:#262340"></div><div class="meta"><b>Surface container (dark)</b><br>#262340</div></div>
+    <div class="sw"><div class="chip" style="background:#E7E0F6"></div><div class="meta"><b>Container high</b><br>#E7E0F6<br>search pill</div></div>
+    <div class="sw"><div class="chip" style="background:#322D4E"></div><div class="meta"><b>Container high (dark)</b><br>#322D4E</div></div>
+  </div>
+  <p>Dynamic colour: on Android 12+ the palette is derived from the wallpaper in both modes;
+  below 12 the violet palettes above are the fallback. System / Light / Dark follow the
+  Appearance picker. Dark mode is a deep violet-tinted charcoal, never pure black.</p>
+
+  <h3>Type &amp; shape</h3>
+  <p>Material 3 Expressive type: expressive display sizes (display up to 64sp), pill shapes
+  everywhere (search pill, filter chips, bubble). Mail rows are flat Gmail-style rows, not cards.</p>
+
+  <h3>Components</h3>
+  <table>
+    <tr><th>Component</th><th>Spec</th></tr>
+    <tr><td>Search pill</td><td class="spec">Rounded, indicator-free text field; surfaceContainerHigh; leading search icon; trailing clear button when text present. On Mail it filters the mailbox in place; on other tabs it opens the Search screen on submit. Hoisted — one instance across tabs, reshapes as the hamburger slides in/out.</td></tr>
+    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. Mail: hamburger + pill + refresh + account. Other tabs: pill + account + overflow menu.</td></tr>
+    <tr><td>Bottom nav</td><td class="spec">80 dp content + system-nav inset outside it; 24 dp icons; 64 × 32 pill; tonal elevation 0; one sliding jelly pill (see §1).</td></tr>
+    <tr><td>Mail row</td><td class="spec">Min height 88 dp; 40 dp avatar (company logo or letter); line 1 sender + time; line 2 subject; line 3 snippet. Flat on background, no card, no divider, no border.</td></tr>
+    <tr><td>Company logo</td><td class="spec">Artwork fitted inside a circle, never cropped. In dark mode a white circular backing (dark logos stay visible). Monochrome bundled logos: tonal circle + tinted glyph.</td></tr>
+    <tr><td>Filter chips</td><td class="spec">Pill chips (e.g. Action required, company filter). “All time” analytics filter; filter rows scroll horizontally, labels one line.</td></tr>
+    <tr><td>Mail list states</td><td class="spec">Three states, always: <b>content</b> (rows) · <b>empty</b> (honest empty state, never fabricated) · <b>skeleton</b> (loading — skeleton rows mirror the real rows' geometry, hand-rolled shimmer, 1400 ms sweep).</td></tr>
+    <tr><td>Pull-to-refresh</td><td class="spec">Gmail-style, wired to the sync engine. Sync progress: determinate bar when the total is known, indeterminate otherwise, with an honest stage label.</td></tr>
+    <tr><td>Navigation drawer</td><td class="spec">Mail destinations (All Inbox / Primary / Promotional / Social / Spam / Starred). Opens from the hoisted top bar's hamburger via a drawer-open signal.</td></tr>
+  </table>
+
+  <h3>Motion — every spec in one table</h3>
+  <table>
+    <tr><th>Motion</th><th>Spec</th></tr>
+    <tr><td>Bubble (bottom nav)</td><td class="spec">Leading spring 550, trailing spring 300, damping 0.70, squash + settle wobble — see §1.</td></tr>
+    <tr><td>Tab content slide</td><td class="spec">Directional (enters from its tab's side), opaque, tween 350 ms FastOutSlowIn. Same 350 ms as the bubble + pill reshape — all three land together. Pushed routes keep fade-through (exit 200 ms, enter 350 ms after 120 ms delay, 0.97 → 1.0 scale).</td></tr>
+    <tr><td>Search-pill reshape + hamburger</td><td class="spec">Hamburger width 0 ↔ 48 dp, icon slides in from the left edge; pill fills the rest. 350 ms FastOutSlowIn, same as the slide + bubble.</td></tr>
+    <tr><td>Scroll edge fade</td><td class="spec">28 dp, top + bottom, only where more content waits — see §2.</td></tr>
+    <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
+    <tr><td>Mail list on tab entry</td><td class="spec">Heavy list defers 300 ms behind the skeleton on tab-switch entry, so the bubble never lags. Popping back from a thread shows the list immediately.</td></tr>
+    <tr><td>Tap feedback</td><td class="spec">The pill is the only feedback on bubble controls (indication = null). Other controls keep normal Material ripples.</td></tr>
+  </table>
+
+  <h3>Rules that never change</h3>
+  <ul>
+    <li><b>Strict Material Design 3</b> on every UI change — no custom-styled lookalikes.</li>
+    <li><b>No app-created emojis</b> in UI copy, fixtures, prompts, or generated text. Only emojis that arrived inside real mail content render.</li>
+    <li><b>No</b> splash animation, Breeze artwork, photo backgrounds, or glass UI.</li>
+    <li>Preserve tab state, loaded data, scroll position, account isolation, navigation state, and edge-to-edge behaviour.</li>
+    <li>Never claim on-device verification from the sandbox — the phone is the only proof.</li>
+  </ul>
+</section>
+
+<footer>
+  Mailstack · Animation &amp; Design Reference · <code>reference.html</code> · Keep the Design Reference
+  section updated as components change. Never remove an animation section.
+</footer>
+
+</div>
+
+<script src="design-reference/animations.js"></script>
+</body>
+</html>

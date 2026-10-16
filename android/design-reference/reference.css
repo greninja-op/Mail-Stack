@@ -1,0 +1,71 @@
+:root{
+    --violet:#5238E8; --violet-dark:#B9A8FF;
+    --page-bg:#FAF8FF; --ink:#1C1A26; --muted:#48455A;
+    --surface:#FDFBFF; --container:#EFEAFB; --container-high:#E7E0F6;
+    --outline:#CBC5DE; --paper:#FFFDF4; --pen-red:#C00000; --pen-blue:#1A4FD6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,-apple-system,sans-serif;background:var(--page-bg);color:var(--ink);line-height:1.55}
+  .wrap{max-width:760px;margin:0 auto;padding:28px 20px 64px}
+  h1{font-size:30px;line-height:1.2;margin:0 0 6px}
+  h2{font-size:22px;margin:44px 0 10px;padding-top:28px;border-top:2px solid var(--outline)}
+  h3{font-size:16px;margin:26px 0 8px}
+  p,li{font-size:15px}
+  .sub{color:var(--muted);font-size:15px;margin:0 0 18px}
+  .rule{background:#FFF4D6;border:2px dashed #C99A00;border-radius:12px;padding:14px 16px;font-size:14px}
+  .rule b{color:#7A5B00}
+  /* Handwritten "scribble" notes — like a design expert's rough notebook. */
+  .hand{font-family:Caveat,'Segoe Script','Comic Sans MS',cursive;font-size:24px;line-height:1.25;color:#222}
+  .hand small{font-size:19px}
+  .notebook{background:var(--paper);border:1.5px dashed #B9A98A;border-radius:10px;padding:16px 18px;position:relative}
+  .notebook .hand{margin:0}
+  .notebook .step{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
+  .notebook .step .no{font-family:Caveat,cursive;font-size:26px;font-weight:700;color:var(--pen-red);line-height:1;min-width:26px;text-align:center}
+  .arrow{color:var(--pen-red);font-weight:700;white-space:nowrap}
+  .pen-blue{color:var(--pen-blue)} .pen-red{color:var(--pen-red)}
+  /* ---- Bubble demo ---- */
+  .demo-bar{position:relative;display:flex;background:var(--container);border-radius:28px;padding:6px 4px;overflow:hidden;box-shadow:0 1px 3px rgba(20,10,80,.12)}
+  .pill{position:absolute;top:50%;height:32px;width:64px;border-radius:16px;background:var(--violet);transform:translateY(-50%);will-change:left,width,transform}
+  .navbtn{position:relative;z-index:1;flex:1;border:0;background:transparent;cursor:pointer;padding:8px 0 6px;display:flex;flex-direction:column;align-items:center;gap:2px;color:var(--muted);font-family:inherit;font-size:11px;font-weight:500;border-radius:20px;-webkit-tap-highlight-color:transparent}
+  .navbtn:focus-visible{outline:2px solid var(--violet);outline-offset:2px}
+  .navbtn svg{width:24px;height:24px}
+  .navbtn.selected{color:#fff}
+  .demo-caption{font-size:13px;color:var(--muted);text-align:center;margin-top:8px}
+  /* Frame-by-frame strips */
+  .frames{display:flex;gap:8px;align-items:flex-start;overflow-x:auto;padding:6px 2px 10px}
+  .frame{flex:0 0 auto;width:128px}
+  .frame .stage{position:relative;height:64px;background:var(--container);border-radius:18px;overflow:hidden}
+  .frame .stage .fpill{position:absolute;top:50%;height:32px;border-radius:16px;background:var(--violet);transform:translateY(-50%)}
+  .frame .stage .fbtn{position:absolute;top:50%;transform:translate(-50%,-50%);width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:var(--muted)}
+  .frame .stage .fbtn svg{width:22px;height:22px}
+  .frame .cap{font-family:Caveat,cursive;font-size:21px;text-align:center;margin-top:4px;color:#222}
+  .frame-sep{flex:0 0 auto;align-self:center;font-size:22px;color:var(--pen-red);font-weight:700}
+  /* ---- Fade demo ---- */
+  .fade-list{height:340px;overflow-y:auto;background:var(--surface);border:1.5px solid var(--outline);border-radius:16px;padding:8px 16px}
+  .frow{display:flex;gap:12px;align-items:center;padding:12px 0;min-height:88px}
+  .frow + .frow{border-top:1px solid #EDE8F8}
+  .favatar{flex:0 0 auto;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  .ftext{flex:1;min-width:0}
+  .ftext .s{font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .ftext .t{font-size:13px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .fdate{font-size:12px;color:var(--muted);flex:0 0 auto}
+  .fade-frames{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 10px}
+  .fframe{flex:0 0 auto;width:150px}
+  .fframe .fstage{position:relative;height:88px;background:var(--surface);border:1.5px solid var(--outline);border-radius:12px;overflow:hidden}
+  .fframe .fcap{font-family:Caveat,cursive;font-size:21px;text-align:center;margin-top:4px;color:#222}
+  /* ---- Design reference ---- */
+  .swatches{display:flex;flex-wrap:wrap;gap:10px}
+  .sw{flex:0 0 auto;width:118px;border:1.5px solid var(--outline);border-radius:10px;overflow:hidden;background:#fff}
+  .sw .chip{height:52px}
+  .sw .meta{padding:6px 8px;font-size:12px;line-height:1.35}
+  .sw .meta b{font-size:12px}
+  table{border-collapse:collapse;width:100%;font-size:14px;background:#fff}
+  th,td{border:1px solid var(--outline);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--container)}
+  .spec{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:13px}
+  .wire{border:1.5px solid var(--outline);border-radius:16px;overflow:hidden;background:#fff}
+  code{background:#EFEAFB;padding:1px 6px;border-radius:6px;font-size:13px}
+  .fig{margin:14px 0}
+  .fig svg{max-width:100%;height:auto;display:block}
+  .figcap{font-size:13px;color:var(--muted);text-align:center;margin-top:6px}
+  footer{margin-top:48px;padding-top:16px;border-top:2px solid var(--outline);font-size:13px;color:var(--muted)}
