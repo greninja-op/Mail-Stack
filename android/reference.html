@@ -524,7 +524,7 @@
     <tr><td>Filter chips</td><td class="spec">Pill chips (e.g. Action required, company filter). “All time” analytics filter; filter rows scroll horizontally, labels one line.</td></tr>
     <tr><td>Mail list states</td><td class="spec">Three states, always: <b>content</b> (rows) · <b>empty</b> (honest empty state, never fabricated) · <b>skeleton</b> (loading — skeleton rows mirror the real rows' geometry, hand-rolled shimmer, 1400 ms sweep).</td></tr>
     <tr><td>Pull-to-refresh</td><td class="spec">Gmail-style, wired to the sync engine. Sync progress: determinate bar when the total is known, indeterminate otherwise, with an honest stage label.</td></tr>
-    <tr><td>Navigation drawer</td><td class="spec">Mail destinations (All Inbox / Primary / Promotional / Social / Spam / Starred). Opens from the hoisted top bar's hamburger via a one-shot drawer-open event (SharedFlow, no replay — only a fresh hamburger tap opens it, never a recomposition or a tab switch).</td></tr>
+    <tr><td>Navigation drawer</td><td class="spec">Gmail-fidelity mailbox drawer (All Inbox / Primary / Promotional / Social / Spam / Starred): 48dp rows, 14sp labels, 24dp icons, 12dp icon gap, full-width selected pill (secondaryContainer), account header + one divider, no trailing counts (no unread-count source — never fabricated). One ModalNavigationDrawer hoisted above the whole Scaffold in AppNavGraph, so the sheet + scrim cover the top bar and bottom bar too — exactly like Gmail. The hamburger opens it directly via DrawerState (no event flow). Edge-swipe is Mail-only, so the mailbox drawer can't be opened from another tab.</td></tr>
   </table>
 
   <h3>Motion — every spec in one table</h3>
