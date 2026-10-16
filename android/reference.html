@@ -231,9 +231,218 @@
   </table>
 </section>
 
+<!-- ================= TOP-BAR RESHAPE ================= -->
+<section id="topbar">
+  <h2>3 &nbsp; Search-Pill Reshape — Hamburger Slides In from the Left</h2>
+  <p>When you switch <b>to</b> the Mail tab, the hamburger (the three lines) slides in from the
+  left edge and the search pill shrinks rightward to make room. When you leave Mail, the
+  hamburger slides back out to the left and the pill expands again. The pill itself never
+  enters from the right — its left edge is <b>pushed</b> by the hamburger. <b>Try it:</b> switch
+  between the tabs below.</p>
+
+  <div class="topbar-demo" id="topbarDemo">
+    <div class="tb-hamburger" id="tbHamburger"><div class="tb-icon">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </div></div>
+    <div class="tb-pill">
+      <svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg>
+      <span>Search mail</span>
+    </div>
+    <div class="tb-actions">
+      <div class="tb-group tb-group-mail" id="tbActionsMail">
+        <span class="tb-act"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 5V1L7 6l5 5V7a5 5 0 1 1-5 5H5a7 7 0 1 0 7-7z"/></svg></span>
+        <span class="tb-act tb-ava">A</span>
+      </div>
+      <div class="tb-group tb-group-other show" id="tbActionsOther">
+        <span class="tb-act tb-ava">A</span>
+        <span class="tb-act"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 8a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4zm0 6a2 2 0 1 1 0-4 2 2 0 0 1 0 4z"/></svg></span>
+      </div>
+    </div>
+  </div>
+  <div class="tb-tabs" id="tbTabs">
+    <button class="tb-tab sel" data-mail="0">Home</button>
+    <button class="tb-tab" data-mail="1">Mail</button>
+    <button class="tb-tab" data-mail="0">Categories</button>
+  </div>
+  <p class="demo-caption">Tap Mail — the hamburger slides in from the left, the pill shrinks. Tap Home or Categories — it slides back out, the pill expands.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 250" role="img" aria-label="Annotated diagram of the search-pill reshape">
+      <defs><marker id="ah4" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <!-- bar -->
+      <rect x="20" y="88" width="600" height="64" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- hamburger -->
+      <g><path d="M48 108h24v3H48zm0 9h24v3H48zm0 9h24v3H48z" fill="#1C1A26"/></g>
+      <!-- pill -->
+      <rect x="96" y="104" width="360" height="32" rx="16" fill="#E7E0F6"/>
+      <circle cx="116" cy="120" r="8" fill="none" stroke="#48455A" stroke-width="2"/><path d="M122 126l5 5" stroke="#48455A" stroke-width="2"/>
+      <text x="132" y="125" font-family="Inter" font-size="13" fill="#48455A">Search mail</text>
+      <!-- actions -->
+      <circle cx="500" cy="120" r="12" fill="none" stroke="#48455A" stroke-width="2"/><path d="M500 108v6l4-2" fill="#48455A"/>
+      <circle cx="560" cy="120" r="14" fill="#5238E8"/><text x="560" y="125" text-anchor="middle" font-family="Inter" font-size="13" fill="#fff">A</text>
+      <!-- margin marks -->
+      <path d="M20 168v10M36 168v10M20 173h16" stroke="#1A4FD6" stroke-width="1.5" fill="none"/>
+      <path d="M604 168v10M620 168v10M604 173h16" stroke="#1A4FD6" stroke-width="1.5" fill="none"/>
+      <text x="28" y="196" text-anchor="middle" font-family="Caveat" font-size="20" fill="#1A4FD6">16dp</text>
+      <text x="612" y="196" text-anchor="middle" font-family="Caveat" font-size="20" fill="#1A4FD6">16dp</text>
+      <!-- arrows + labels -->
+      <path d="M8 120 L 30 120" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah4)"/>
+      <text x="8" y="52" font-family="Caveat" font-size="24" fill="#222">hamburger enters from the LEFT — never from the right</text>
+      <path d="M150 60 Q 120 70 100 96" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah4)"/>
+      <text x="170" y="52" font-family="Caveat" font-size="24" fill="#222">pill's left edge is PUSHED — the pill never enters from the right</text>
+      <path d="M440 60 Q 420 70 400 96" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah4)"/>
+      <text x="300" y="28" font-family="Caveat" font-size="24" fill="#222">pill shrinks rightward as the hamburger grows</text>
+      <path d="M520 190 Q 520 170 520 158" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah4)"/>
+      <text x="330" y="222" font-family="Caveat" font-size="24" fill="#222">actions swap with a fade (Mail: refresh + account · others: account + overflow)</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">Switching Home → Mail. The hamburger grows from the left; the pill is pushed, never entering from the right.</p>
+  <div class="frames">
+    <div class="frame"><div class="stage"><div class="tb-mini"><div class="tb-mini-ham" style="width:0"></div><div class="tb-mini-pill"></div></div></div><div class="cap">1 · pill full — no hamburger</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="tb-mini"><div class="tb-mini-ham" style="width:14px"><span>≡</span></div><div class="tb-mini-pill"></div></div></div><div class="cap">2 · hamburger peeks in</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="tb-mini"><div class="tb-mini-ham" style="width:26px"><span>≡</span></div><div class="tb-mini-pill"></div></div></div><div class="cap">3 · halfway — pill pushed</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="tb-mini"><div class="tb-mini-ham" style="width:38px"><span>≡</span></div><div class="tb-mini-pill"></div></div></div><div class="cap">4 · almost there</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="tb-mini"><div class="tb-mini-ham" style="width:48px"><span>≡</span></div><div class="tb-mini-pill"></div></div></div><div class="cap">5 · settled — hamburger 48dp</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">One bar, hoisted above the screens — same trick as the bubble. It never remounts, so the pill can <u>reshape</u> instead of snapping.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Only Mail has the hamburger. Its width animates 0 ↔ 48dp. The icon inside is offset by (width − 48dp), so it slides in <u>from the left edge</u> as the box grows. <span class="arrow">← from the left!</span></p></div>
+    <div class="step"><div class="no">3</div><p class="hand">The pill is weight 1f — it fills whatever width is left. As the hamburger grows, the pill's left edge is <u>pushed</u> rightward. The pill never enters from the right. <span class="arrow">← pushed, not entering!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">Leaving Mail is the exact reverse: hamburger slides back out to the left, pill expands. Same 350ms FastOutSlowIn — it lands together with the bubble + the page slide. <span class="arrow">← sync matters!</span></p></div>
+    <div class="step"><div class="no">5</div><p class="hand">The pill is the SAME field on every tab. On Mail it filters the mailbox in place; on other tabs it holds a local query and opens the Search screen on submit. The trailing actions swap with a short fade.</p></div>
+    <div class="step"><div class="no">6</div><p class="hand">16dp edge margin, both sides — the pill (and the hamburger) never touch the screen edges. The old bar was a Material3 TopAppBar, which carries this inset itself. <span class="arrow">← never edge-to-edge!</span></p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Hamburger</td><td class="spec">width animates 0 ↔ 48 dp; icon offset = (width − 48 dp), so it slides in from the left edge</td></tr>
+    <tr><td>Search pill</td><td class="spec">weight 1f — fills the remaining width; left edge pushed by the hamburger; never enters from the right</td></tr>
+    <tr><td>Duration / easing</td><td class="spec">350 ms, FastOutSlowIn — same as the bubble + the page slide, all three land together</td></tr>
+    <tr><td>Bar</td><td class="spec">64 dp + status-bar inset, surface; 16 dp horizontal margin, both sides</td></tr>
+    <tr><td>Actions</td><td class="spec">swap with a short fade — Mail: refresh + account; other tabs: account + overflow menu</td></tr>
+    <tr><td>Pill behaviour</td><td class="spec">same field on every tab — on Mail it filters the mailbox; on other tabs it opens Search on submit</td></tr>
+    <tr><td>Hoisting</td><td class="spec">one bar instance above the NavHost; a per-screen bar would remount and snap, never reshape</td></tr>
+  </table>
+</section>
+
+<!-- ================= TAB SLIDE ================= -->
+<section id="tabslide">
+  <h2>4 &nbsp; Directional Tab Slide — Content Enters from Its Tab's Side</h2>
+  <p>When you switch tabs, the new tab's content slides in <b>from the side that tab sits
+  on</b>: a tab to the right slides in from the right, a tab to the left slides in from the
+  left. The old content slides out the opposite way. The slide is opaque — no fade, no
+  scale — so there is never a white flash. <b>Try it:</b> jump between the tabs below, in
+  both directions.</p>
+
+  <div class="slide-tabs" id="slideTabs">
+    <button class="slide-tab sel" data-index="0">Home</button>
+    <button class="slide-tab" data-index="1">Mail</button>
+    <button class="slide-tab" data-index="2">Categories</button>
+    <button class="slide-tab" data-index="3">Companies</button>
+    <button class="slide-tab" data-index="4">Actions</button>
+  </div>
+  <div class="slide-stage" id="slideStage">
+    <div class="slide-pane" data-index="0" style="visibility:visible">
+      <div class="sp-title">Home</div>
+      <div class="sp-card"></div><div class="sp-card short"></div>
+      <div class="sp-chips"><span></span><span></span><span></span></div>
+    </div>
+    <div class="slide-pane" data-index="1" style="visibility:hidden">
+      <div class="sp-title">Mail</div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+    </div>
+    <div class="slide-pane" data-index="2" style="visibility:hidden">
+      <div class="sp-title">Categories</div>
+      <div class="sp-chips"><span></span><span></span><span></span><span></span></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+    </div>
+    <div class="slide-pane" data-index="3" style="visibility:hidden">
+      <div class="sp-title">Companies</div>
+      <div class="sp-row"><i class="sq"></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i class="sq"></i><div><b></b><em></em></div></div>
+      <div class="sp-row"><i class="sq"></i><div><b></b><em></em></div></div>
+    </div>
+    <div class="slide-pane" data-index="4" style="visibility:hidden">
+      <div class="sp-title">Actions</div>
+      <div class="sp-check"><u></u><div><b></b><em></em></div></div>
+      <div class="sp-check"><u></u><div><b></b><em></em></div></div>
+      <div class="sp-check"><u></u><div><b></b><em></em></div></div>
+    </div>
+  </div>
+  <p class="demo-caption">Tap a tab to the right — content enters from the right. Tap one to the left — it enters from the left. Same 350ms as the bubble + the pill.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 270" role="img" aria-label="Annotated diagram of the directional tab slide">
+      <defs><marker id="ah5" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <!-- stage -->
+      <rect x="20" y="60" width="600" height="150" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- outgoing panel (exiting left) -->
+      <rect x="-60" y="76" width="300" height="118" rx="10" fill="#EFEAFB"/>
+      <rect x="-40" y="92" width="120" height="10" rx="5" fill="#CBC5DE"/><rect x="-40" y="110" width="200" height="8" rx="4" fill="#E7E0F6"/>
+      <!-- incoming panel (entering from right) -->
+      <rect x="340" y="76" width="300" height="118" rx="10" fill="#E7E0F6"/>
+      <rect x="360" y="92" width="120" height="10" rx="5" fill="#CBC5DE"/><rect x="360" y="110" width="200" height="8" rx="4" fill="#DCD3F0"/>
+      <!-- arrows + labels -->
+      <path d="M600 40 L 560 40" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah5)"/>
+      <text x="330" y="32" font-family="Caveat" font-size="24" fill="#222">tap a tab to the RIGHT → new content enters from the RIGHT</text>
+      <path d="M120 230 L 80 230" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah5)"/>
+      <text x="140" y="238" font-family="Caveat" font-size="24" fill="#222">old content exits to the LEFT</text>
+      <text x="330" y="238" font-family="Caveat" font-size="24" fill="#222">opaque — no fade, no scale, no white flash</text>
+      <text x="20" y="258" font-family="Caveat" font-size="24" fill="#222">tap a tab to the LEFT → the mirror image (enters from the left).</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">Switching Home → Mail (a tab to the right). The new content slides in from the right; the old slides out left.</p>
+  <div class="frames">
+    <div class="frame"><div class="stage"><div class="slide-mini old" style="left:0;width:100%"></div></div><div class="cap">1 · old content — full</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="slide-mini old" style="left:-50%;width:100%"></div><div class="slide-mini new" style="left:50%;width:100%"></div></div><div class="cap">2 · mid-slide — half in, half out</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="slide-mini old" style="left:-85%;width:100%"></div><div class="slide-mini new" style="left:15%;width:100%"></div></div><div class="cap">3 · almost — new nearly in</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div class="slide-mini new" style="left:0;width:100%"></div></div><div class="cap">4 · new content — full</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">A tab switch is a slide: the incoming screen slides in, the outgoing slides out — same motion, opposite directions.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Direction = where the target tab sits. Target to the RIGHT → new content enters from the right. Target to the LEFT → enters from the left. <span class="arrow">← direction = tab position!</span></p></div>
+    <div class="step"><div class="no">3</div><p class="hand">The slide is <u>opaque</u> — no fade, no scale. The old fade-through left a gap where both screens were see-through, and the window background showed as a white flash. Opaque = no gap, no flash. <span class="arrow">← opaque kills the flash!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">350ms FastOutSlowIn — the same 350ms as the bubble + the pill reshape, so all three land together.</p></div>
+    <div class="step"><div class="no">5</div><p class="hand">Pushed routes (thread, settings, …) do NOT use this slide — they keep the fade-through. The slide is only for primary-tab switches.</p></div>
+    <div class="step"><div class="no">6</div><p class="hand">Tab state is preserved (save/restore) — the slide never reloads a tab. It only moves what is already there.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Slide</td><td class="spec">slideInHorizontally + slideOutHorizontally, 350 ms, FastOutSlowIn</td></tr>
+    <tr><td>Direction</td><td class="spec">target tab right of source → incoming enters from the right (offset +width), outgoing exits left; target left → mirrored</td></tr>
+    <tr><td>Opacity</td><td class="spec">opaque — no fade, no scale. Never a gap, never a white/gray flash</td></tr>
+    <tr><td>Sync</td><td class="spec">same 350 ms as the bubble (§1) + the pill reshape (§3) — all three land together</td></tr>
+    <tr><td>Pushed routes</td><td class="spec">keep fade-through: exit 200 ms, enter 350 ms after a 120 ms delay, scale 0.97 → 1.0</td></tr>
+    <tr><td>State</td><td class="spec">tab switches use saveState/restoreState — loaded data, scroll position, ViewModels survive; nothing reloads</td></tr>
+  </table>
+</section>
+
 <!-- ================= DESIGN REFERENCE ================= -->
 <section id="design">
-  <h2>3 &nbsp; Design Reference — the whole UI, in one place</h2>
+  <h2>5 &nbsp; Design Reference — the whole UI, in one place</h2>
   <p><b>Keep this section updated.</b> When a component changes in the app, change it here.
   When a component is removed from the app, remove it here. (Animations above are exempt —
   they stay forever.)</p>
@@ -266,7 +475,7 @@
       <text x="478" y="66" font-family="Caveat" font-size="22" fill="#222">(hamburger + search pill + actions)</text>
       <path d="M470 160 Q 460 160 450 160" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah3)"/>
       <text x="478" y="156" font-family="Caveat" font-size="22" fill="#222">content — slides directionally</text>
-      <text x="478" y="180" font-family="Caveat" font-size="22" fill="#222">on tab switch (see §1 + §2)</text>
+      <text x="478" y="180" font-family="Caveat" font-size="22" fill="#222">on tab switch (see §4)</text>
       <path d="M470 358 Q 460 358 450 358" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah3)"/>
       <text x="478" y="354" font-family="Caveat" font-size="22" fill="#222">bottom bar — hoisted, one instance</text>
       <text x="478" y="378" font-family="Caveat" font-size="22" fill="#222">(the bubble lives here)</text>
@@ -313,8 +522,8 @@
   <table>
     <tr><th>Motion</th><th>Spec</th></tr>
     <tr><td>Bubble (bottom nav)</td><td class="spec">Leading spring 550, trailing spring 300, damping 0.70, squash + settle wobble — see §1.</td></tr>
-    <tr><td>Tab content slide</td><td class="spec">Directional (enters from its tab's side), opaque, tween 350 ms FastOutSlowIn. Same 350 ms as the bubble + pill reshape — all three land together. Pushed routes keep fade-through (exit 200 ms, enter 350 ms after 120 ms delay, 0.97 → 1.0 scale).</td></tr>
-    <tr><td>Search-pill reshape + hamburger</td><td class="spec">Hamburger width 0 ↔ 48 dp, icon slides in from the left edge; pill fills the rest. 350 ms FastOutSlowIn, same as the slide + bubble.</td></tr>
+    <tr><td>Tab content slide</td><td class="spec">Directional (enters from its tab's side), opaque, tween 350 ms FastOutSlowIn. Same 350 ms as the bubble + pill reshape — all three land together. Pushed routes keep fade-through (exit 200 ms, enter 350 ms after 120 ms delay, 0.97 → 1.0 scale). — see §4.</td></tr>
+    <tr><td>Search-pill reshape + hamburger</td><td class="spec">Hamburger width 0 ↔ 48 dp, icon slides in from the left edge; pill fills the rest. 350 ms FastOutSlowIn, same as the slide + bubble. — see §3.</td></tr>
     <tr><td>Scroll edge fade</td><td class="spec">28 dp, top + bottom, only where more content waits — see §2.</td></tr>
     <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
     <tr><td>Mail list on tab entry</td><td class="spec">Heavy list defers 300 ms behind the skeleton on tab-switch entry, so the bubble never lags. Popping back from a thread shows the list immediately.</td></tr>

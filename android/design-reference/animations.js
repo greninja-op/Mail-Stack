@@ -86,4 +86,51 @@
   list.addEventListener("scroll", updateFade, { passive: true });
   window.addEventListener("load", updateFade);
   updateFade();
+
+  /* ---------- Top-bar reshape demo (see §3): hamburger 0<->48, pill pushed ---------- */
+  var tbHam = document.getElementById("tbHamburger");
+  var tbMailActs = document.getElementById("tbActionsMail");
+  var tbOtherActs = document.getElementById("tbActionsOther");
+  var tbBtns = Array.prototype.slice.call(document.querySelectorAll(".tb-tab"));
+  tbBtns.forEach(function (b) {
+    b.addEventListener("click", function () {
+      tbBtns.forEach(function (x) { x.classList.remove("sel"); });
+      b.classList.add("sel");
+      var isMail = b.dataset.mail === "1";
+      tbHam.classList.toggle("open", isMail);
+      tbMailActs.classList.toggle("show", isMail);
+      tbOtherActs.classList.toggle("show", !isMail);
+    });
+  });
+
+  /* ---------- Directional tab slide demo (see §4): content enters from its tab's side ---------- */
+  var slidePanes = Array.prototype.slice.call(document.querySelectorAll(".slide-pane"));
+  var slideBtns = Array.prototype.slice.call(document.querySelectorAll(".slide-tab"));
+  var slideCurrent = 0, slideBusy = false;
+  function goSlide(i) {
+    if (i === slideCurrent || slideBusy) return;
+    slideBusy = true;
+    var dir = i > slideCurrent ? 1 : -1;
+    var incoming = slidePanes[i], outgoing = slidePanes[slideCurrent];
+    slideBtns.forEach(function (b, j) { b.classList.toggle("sel", j === i); });
+    incoming.style.visibility = "visible";
+    incoming.style.transition = "none";
+    incoming.style.transform = "translateX(" + (dir * 100) + "%)";
+    void incoming.offsetWidth;
+    incoming.style.transition = "";
+    incoming.style.transform = "translateX(0)";
+    outgoing.style.transform = "translateX(" + (-dir * 100) + "%)";
+    setTimeout(function () {
+      outgoing.style.visibility = "hidden";
+      outgoing.style.transition = "none";
+      outgoing.style.transform = "translateX(0)";
+      void outgoing.offsetWidth;
+      outgoing.style.transition = "";
+      slideCurrent = i;
+      slideBusy = false;
+    }, 360);
+  }
+  slideBtns.forEach(function (b) {
+    b.addEventListener("click", function () { goSlide(parseInt(b.dataset.index, 10)); });
+  });
 })();
