@@ -58,6 +58,14 @@ object MoMotion {
     val tabSwitchSlide = tween<IntOffset>(durationMillis = 350, easing = FastOutSlowInEasing)
 
     /**
+     * Settings panel slide (2026-10-16): the full-screen Settings
+     * panel slides in from the right and out to the right, 350ms
+     * FastOutSlowIn — the same spec as [tabSwitchSlide], so it lands
+     * with the same character.
+     */
+    val panelSlide = tween<IntOffset>(durationMillis = 350, easing = FastOutSlowInEasing)
+
+    /**
      * Search-pill reshape + hamburger slide: 350ms FastOutSlowIn, the
      * same spec as [tabSwitchSlide], so the top bar and the page land
      * together on every tab switch.

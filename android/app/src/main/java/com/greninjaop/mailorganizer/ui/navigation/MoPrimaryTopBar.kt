@@ -57,8 +57,9 @@ import com.greninjaop.mailorganizer.ui.theme.MoSpacing
  * tabs it holds a local query and opens the dedicated Search screen on
  * submit. The trailing action is the account avatar on EVERY tab —
  * there is no overflow menu (Gmail parity, 2026-10-16): tapping the
- * avatar opens the account switcher sheet, and Settings, Privacy,
- * Integrations and Accounts all live inside the Settings page. The
+ * avatar opens the full-screen Settings panel (it slides in from
+ * the right; the accounts section is at its top), and Privacy,
+ * Integrations and the rest all live inside that panel. The
  * DP sits at the far right on every tab, so removing the old menu
  * also resized the pill (it fills the freed space).
  *
@@ -73,7 +74,7 @@ fun MoPrimaryTopBar(
     onSearchSubmit: () -> Unit,
     onMenuClick: () -> Unit,
     mailState: MailScreenState?,
-    onOpenAccounts: () -> Unit,
+    onOpenSettings: () -> Unit,
     account: AccountRecord?,
     modifier: Modifier = Modifier,
 ) {
@@ -159,7 +160,7 @@ fun MoPrimaryTopBar(
                             // icon read as "mail", not "accounts", and
                             // gave no way to tell whose mailbox this
                             // is (2026-10-16 fix). Tapping opens
-                            // Accounts, like every avatar.
+                            // Settings, like every avatar.
                             val defaultAccount = mailState?.accountsById
                                 ?.values
                                 ?.minWithOrNull(
@@ -167,7 +168,7 @@ fun MoPrimaryTopBar(
                                         .thenBy { it.accountId },
                                 )
                             if (defaultAccount != null) {
-                                IconButton(onClick = onOpenAccounts) {
+                                IconButton(onClick = onOpenSettings) {
                                     AccountAvatar(
                                         account = defaultAccount,
                                         size = avatarSize,
@@ -175,11 +176,11 @@ fun MoPrimaryTopBar(
                                 }
                             } else {
                                 // No accounts at all: keep the envelope
-                                // as the Accounts entry point.
-                                IconButton(onClick = onOpenAccounts) {
+                                // as the Settings entry point.
+                                IconButton(onClick = onOpenSettings) {
                                     Icon(
                                         imageVector = Icons.Filled.MailOutline,
-                                        contentDescription = "Accounts. Tap to switch account.",
+                                        contentDescription = "Settings. Tap to switch account.",
                                         tint = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.size(avatarSize),
                                     )
@@ -188,7 +189,7 @@ fun MoPrimaryTopBar(
                         } else {
                             val activeAccount = mailState?.activeAccount
                             if (activeAccount != null) {
-                                IconButton(onClick = onOpenAccounts) {
+                                IconButton(onClick = onOpenSettings) {
                                     AccountAvatar(
                                         account = activeAccount,
                                         size = avatarSize,
@@ -202,12 +203,12 @@ fun MoPrimaryTopBar(
                         // sits at the far right, and the pill fills
                         // the space the old menu used to take.
                         if (account != null) {
-                            IconButton(onClick = onOpenAccounts) {
+                            IconButton(onClick = onOpenSettings) {
                                 AccountAvatar(
                                     account = account,
                                     size = avatarSize,
                                     modifier = Modifier.clip(CircleShape).clickable(
-                                        onClick = onOpenAccounts,
+                                        onClick = onOpenSettings,
                                     ),
                                 )
                             }
