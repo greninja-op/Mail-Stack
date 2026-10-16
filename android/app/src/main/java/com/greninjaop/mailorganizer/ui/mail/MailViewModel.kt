@@ -7,7 +7,6 @@ import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.AppDispatchers
 import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.local.AccountRecord
-import com.greninjaop.mailorganizer.data.local.MailCategory
 import com.greninjaop.mailorganizer.data.local.Priority
 import com.greninjaop.mailorganizer.data.repository.AccountRepository
 import com.greninjaop.mailorganizer.data.repository.IntelligenceRepository
@@ -126,14 +125,6 @@ class MailViewModel(
     private val selectedCompany = MutableStateFlow<String?>(null)
 
     /**
-     * Action-required view (Phase 9). When on, the content shows mail
-     * classified ACTION_REQUIRED by the deterministic engine — a global
-     * "what needs my attention" view. Cleared on destination change like
-     * the company filter.
-     */
-    private val actionRequiredOnly = MutableStateFlow(false)
-
-    /**
      * Active account: earliest-created enabled account. Deterministic and
      * documented; real account switching arrives in Phase 18. Until then the
      * UI always shows which account is active (phase §8) and data is strictly
@@ -230,9 +221,6 @@ class MailViewModel(
             // Phase 8: the company filter rides along in the content key so
             // the list queries the exact company+destination slice.
             key.copy(companyId = companyId)
-        }.combine(actionRequiredOnly) { key, actionOnly ->
-            // Phase 9: the action-required view rides along too.
-            key.copy(actionRequiredOnly = actionOnly)
         }.flatMapLatest { key ->
             when {
                 !key.resolved -> flowOf(MailboxContent.Loading)
@@ -268,15 +256,6 @@ class MailViewModel(
                     }
                 }
                 // Account-scoped presentation (key.account != null)
-                key.actionRequiredOnly ->
-                    intelligence.observeByCategory(
-                        key.account!!.accountId,
-                        MailCategory.ACTION_REQUIRED,
-                        key.limit,
-                    ).mapLatest { records ->
-                        buildCategoryContent(records.map { it.messageId }, key)
-                            ?: MailboxContent.Empty(EmptyKind.NO_ACTION_REQUIRED)
-                    }
                 key.dest == MailboxDestination.PROMOTIONAL ->
                     if (key.companyId != null) {
                         mail.observeMessagesByCompanyAndLabel(
@@ -467,8 +446,7 @@ class MailViewModel(
             syncUi,
             connectivity.isOnline,
             companyFilter,
-            actionRequiredOnly,
-        ) { c, sync, online, companies, actionOnly ->
+        ) { c, sync, online, companies ->
             MailScreenState(
                 destination = c.destination,
                 content = c.content,
@@ -481,7 +459,6 @@ class MailViewModel(
                 syncUi = sync,
                 filterText = filterText.value,
                 companyFilter = companies,
-                actionRequiredOnly = actionOnly,
                 lastSyncedText = lastSyncedText.value,
                 unifiedSyncStatus = unifiedSyncStatus.value,
                 accountSyncStatus = accountSyncStatus.value,
@@ -639,17 +616,6 @@ class MailViewModel(
         // Company selection is a filter *within* a category — switching
         // destinations clears it (requirements.md).
         selectedCompany.value = null
-        // The action-required view is likewise destination-scoped.
-        actionRequiredOnly.value = false
-    }
-
-    /**
-     * Toggles the action-required view (Phase 9): when on, the content
-     * shows ACTION_REQUIRED-classified mail regardless of destination.
-     */
-    fun toggleActionRequired() {
-        actionRequiredOnly.value = !actionRequiredOnly.value
-        pageLimit.value = PAGE_SIZE
     }
 
     /**
@@ -813,23 +779,7 @@ class MailViewModel(
         val limit: Int,
         /** Phase 8: selected company filter (null = no filter). */
         val companyId: String?,
-        /** Phase 9: action-required view (global, overrides destination). */
-        val actionRequiredOnly: Boolean = false,
     )
-
-    /**
-     * Builds message-list content for classification/label destinations.
-     * Classification record ids resolve to messages with one bounded query;
-     * stale ids (message deleted) are dropped silently.
-     */
-    private suspend fun buildCategoryContent(
-        messageIds: List<String>,
-        key: ContentKey,
-    ): MailboxContent? {
-        if (messageIds.isEmpty()) return null
-        val messages = mail.getMessagesByIds(messageIds)
-        return buildMessageContent(messages.map { it.toMessageItem() }, key)
-    }
 
     /**
      * Shared message-list builder: applies the text filter and returns null
@@ -986,8 +936,6 @@ data class MailScreenState(
     val filterText: String = "",
     /** Phase 8: company filter row state (visible on grouping destinations). */
     val companyFilter: CompanyFilterUiState = CompanyFilterUiState(),
-    /** Phase 9: action-required view toggle state. */
-    val actionRequiredOnly: Boolean = false,
     /** Phase 19: truthful last synced relative text. */
     val lastSyncedText: String = "",
     /** Phase 19: aggregate unified sync status. */
