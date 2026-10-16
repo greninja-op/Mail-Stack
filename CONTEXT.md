@@ -521,3 +521,15 @@ the ViewModel comment already called it that) and the chip row now
 scrolls horizontally, with labels pinned to one line so a chip can
 never stack its text. Meaning: stats for all mail ever synced.
 - Version NOT bumped, NO APK built — user said no APK until they say okay.
+
+## 2026-10-16 ~17:35 IST — Mailstack 1.0.16 delivered (user said "give me the apk")
+APK: Mailstack-1.0.16.apk, 17,091,132 bytes, package
+com.greninjaop.mailorganizer, versionName 1.0.16, versionCode 17,
+stable cert SHA-1 07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05.
+Contents (all pushed + byte-verified before the build): Gmail-style
+infinite scroll (no Load more button, prefetch at halfway, footer
+spinner); jelly-bubble bottom-nav indicator + Appearance picker
+(shared squash-stretch pill); Analytics range chip "All
+synchronized" -> "All time" + scrolling chip row. Tests at build
+time: 965 run / 957 pass (same 8 env-broken). No on-device
+verification possible from the sandbox — user confirms on phone.

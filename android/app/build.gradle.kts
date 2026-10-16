@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 16
+        versionCode = 17
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -66,7 +66,12 @@ android {
         //        the repo's ~1000 icons with memory+disk cache; letter
         //        avatar fallback. Standing no-emoji rule: app-created emojis
         //        stripped from sample data, never added anywhere.
-        versionName = "1.0.15"
+        // 1.0.16: Gmail-style infinite scroll (no Load more button,
+        //        prefetch at halfway, footer spinner); jelly-bubble
+        //        bottom-nav indicator + Appearance picker (shared
+        //        squash-stretch pill); Analytics range chip renamed
+        //        "All synchronized" -> "All time", chip row scrolls.
+        versionName = "1.0.16"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
