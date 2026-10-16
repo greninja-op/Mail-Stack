@@ -7,8 +7,11 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,6 +26,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.launch
@@ -246,9 +250,32 @@ fun AppNavGraph(
     }
     // 2026-10-16 (Expressive redesign): no background artwork — screens
     // sit on the solid theme background (see Color.kt).
+    // 2026-10-16 (jelly bubble): the bottom bar is hoisted ABOVE the
+    // NavHost so one bar instance stays mounted across tab switches —
+    // a per-screen bar remounts on every switch and its pill could only
+    // snap, never slide. The bar shows only on primary destinations;
+    // pushed routes (thread, settings, ...) get the full screen. The
+    // Scaffold applies no window insets of its own: the bar pads itself
+    // for the system navigation bar, and each screen owns its
+    // remaining insets exactly as before.
+    val backStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = backStackEntry?.destination?.route
+    val showBottomBar = currentRoute in PrimaryDestination.entries.map { it.route }
+    Scaffold(
+        bottomBar = {
+            if (showBottomBar) {
+                MoNavBar(
+                    currentRoute = currentRoute ?: AppDestinations.HOME,
+                    onNavigate = navigatePrimary,
+                )
+            }
+        },
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
     NavHost(
             navController = navController,
             startDestination = AppDestinations.HOME,
+            modifier = Modifier.padding(padding),
         // 2026-10-16: tab switches (primary ↔ primary) are INSTANT —
         // no fade, no scale, no gap. The old fade-through (exit 200ms +
         // enter delayed 120ms) left a gap where both screens were
@@ -328,8 +355,6 @@ fun AppNavGraph(
                 onOpenSearch = { query ->
                     navController.navigate(AppDestinations.searchRoute(query))
                 },
-                // Phase 11: primary-destination bottom bar.
-                onNavigatePrimary = navigatePrimary,
             )
         }
         // Phase 11: category browsing + detail.
@@ -711,6 +736,7 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() },
             )
         }
+    }
     }
 }
 
