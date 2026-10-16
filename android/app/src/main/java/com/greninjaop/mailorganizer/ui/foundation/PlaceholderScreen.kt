@@ -1,6 +1,7 @@
 package com.greninjaop.mailorganizer.ui.foundation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Icon
@@ -29,12 +30,12 @@ fun PlaceholderScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text(AppDestinations.titleFor(route)) },
                 navigationIcon = {

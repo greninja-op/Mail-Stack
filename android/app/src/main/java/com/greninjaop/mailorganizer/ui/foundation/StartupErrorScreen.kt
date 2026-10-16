@@ -46,11 +46,11 @@ fun StartupErrorScreen(
     val clipboard = LocalClipboardManager.current
     val details = errorDetails(error)
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = { TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),title = { Text("Mailstack couldn't start") }) },
     ) { padding ->
         Column(

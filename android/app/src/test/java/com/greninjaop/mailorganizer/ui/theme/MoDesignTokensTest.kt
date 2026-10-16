@@ -31,18 +31,20 @@ class MoDesignTokensTest {
     }
 
     @Test
-    fun `shape radii match the spec tokens`() {
-        assertEquals(8.dp, MoRadii.small)
-        assertEquals(12.dp, MoRadii.medium)
-        assertEquals(16.dp, MoRadii.large)
-        assertEquals(20.dp, MoRadii.extraLarge)
+    fun `shape radii match the expressive tokens`() {
+        // 2026-10-16 (Expressive redesign): chunkier radii — cards 28dp,
+        // buttons/chips pills, FABs 24dp.
+        assertEquals(12.dp, MoRadii.small)
+        assertEquals(16.dp, MoRadii.medium)
+        assertEquals(24.dp, MoRadii.large)
+        assertEquals(28.dp, MoRadii.extraLarge)
     }
 
     @Test
     fun `material shapes are built from the radius tokens`() {
-        assertEquals(RoundedCornerShape(8.dp), MoShapes.small)
-        assertEquals(RoundedCornerShape(12.dp), MoShapes.medium)
-        assertEquals(RoundedCornerShape(16.dp), MoShapes.large)
-        assertEquals(RoundedCornerShape(20.dp), MoShapes.extraLarge)
+        assertEquals(RoundedCornerShape(12.dp), MoShapes.small)
+        assertEquals(RoundedCornerShape(16.dp), MoShapes.medium)
+        assertEquals(RoundedCornerShape(24.dp), MoShapes.large)
+        assertEquals(RoundedCornerShape(28.dp), MoShapes.extraLarge)
     }
 }

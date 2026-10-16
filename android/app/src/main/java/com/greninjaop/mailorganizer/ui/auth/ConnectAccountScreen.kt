@@ -21,7 +21,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -67,16 +67,16 @@ fun ConnectAccountScreen(
         // Surface provides LocalContentColor = onBackground, so child Text
         // defaults stay readable in both light and dark themes (2026-10-12:
         // bare Column + background() left text black-on-dark).
-        // 2026-10-13 (Breeze): transparent so the background artwork shows.
-        color = Color.Transparent,
+        // 2026-10-16 (Expressive redesign): solid theme background.
+        color = MaterialTheme.colorScheme.background,
     ) {
-    // 2026-10-14 (Breeze glass everywhere): centred content block in a
-    // GlassCard; transparent root + centering unchanged. Buttons untouched.
+    // 2026-10-14 (Expressive redesign): centred content block in a
+    // MoCard; solid background root + centering. Buttons untouched.
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-    GlassCard(
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(24.dp),

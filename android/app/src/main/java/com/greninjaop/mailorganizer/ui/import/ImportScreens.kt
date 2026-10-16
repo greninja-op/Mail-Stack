@@ -51,7 +51,7 @@ import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.R
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlin.math.abs
 
@@ -72,18 +72,18 @@ fun ImportIntroScreen(
     onNotNow: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-10-13 (Breeze): transparent so the background artwork shows.
+    // 2026-10-16 (Expressive redesign): solid theme background.
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.background,
     ) {
-        // 2026-10-14 (Breeze glass everywhere): centred content block in a
-        // GlassCard; transparent root + centering unchanged. Buttons untouched.
+        // 2026-10-14 (Expressive redesign): centred content block in a
+        // MoCard; solid background root + centering. Buttons untouched.
         Box(
             modifier = Modifier.fillMaxSize(),
             contentAlignment = Alignment.Center,
         ) {
-        GlassCard(
+        MoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(MoSpacing.xl),
@@ -146,10 +146,10 @@ fun ImportFlowScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
-    // 2026-10-13 (Breeze): transparent so the background artwork shows.
+    // 2026-10-16 (Expressive redesign): solid theme background.
     Surface(
         modifier = modifier.fillMaxSize(),
-        color = Color.Transparent,
+        color = MaterialTheme.colorScheme.background,
     ) {
         when (val s = state) {
             is ImportViewModel.ImportUiState.Loading -> {
@@ -226,13 +226,13 @@ private fun ImportResultContent(
     secondaryLabel: String?,
     onSecondary: (() -> Unit)?,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): centred content block in a
-    // GlassCard; centering unchanged. Buttons untouched.
+    // 2026-10-14 (Expressive redesign): centred content block in a
+    // MoCard; centering unchanged. Buttons untouched.
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center,
     ) {
-    GlassCard(
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(MoSpacing.xl),

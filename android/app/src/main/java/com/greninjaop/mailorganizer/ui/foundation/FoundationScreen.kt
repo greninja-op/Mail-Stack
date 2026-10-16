@@ -50,11 +50,11 @@ fun FoundationScreen(
     val themeMode by viewModel.themeMode.collectAsState()
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),title = { Text("Mail Organizer") })
         },
     ) { padding ->

@@ -5,43 +5,44 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * Guards the spec-mandated color tokens (phase-01 §20). If the execution
- * plan changes a brand value, this test fails loudly on purpose.
+ * Guards the color tokens. 2026-10-16 (Expressive redesign): the spec
+ * values changed deliberately — vivid violet brand, violet-tinted
+ * surfaces, dark mode on deep violet-tinted charcoal (never pure black).
+ * If the palette changes again, this test fails loudly on purpose.
  */
 class MoColorTokensTest {
 
     @Test
-    fun `light scheme uses the spec primary tokens`() {
-        assertEquals(Color(0xFF5B5CE2), MoLightColorScheme.primary)
+    fun `light scheme uses the expressive primary tokens`() {
+        assertEquals(Color(0xFF5238E8), MoLightColorScheme.primary)
         assertEquals(Color(0xFFFFFFFF), MoLightColorScheme.onPrimary)
-        assertEquals(Color(0xFFE8E8FF), MoLightColorScheme.primaryContainer)
+        assertEquals(Color(0xFFE3DCFF), MoLightColorScheme.primaryContainer)
     }
 
     @Test
-    fun `light scheme uses the spec surface tokens`() {
-        assertEquals(Color(0xFFF8F9FC), MoLightColorScheme.background)
-        assertEquals(Color(0xFFFFFFFF), MoLightColorScheme.surface)
+    fun `light scheme uses the expressive surface tokens`() {
+        assertEquals(Color(0xFFF6F3FF), MoLightColorScheme.background)
+        assertEquals(Color(0xFFFDFBFF), MoLightColorScheme.surface)
     }
 
     @Test
-    fun `dark scheme uses the spec surface tokens`() {
-        assertEquals(Color(0xFF101114), MoDarkColorScheme.background)
-        assertEquals(Color(0xFF1A1B20), MoDarkColorScheme.surface)
-        assertEquals(Color(0xFF222329), MoDarkColorScheme.surfaceContainerHigh)
-        assertEquals(Color(0xFF222329), MoDarkElevatedSurface)
+    fun `dark scheme uses the expressive surface tokens`() {
+        assertEquals(Color(0xFF131120), MoDarkColorScheme.background)
+        assertEquals(Color(0xFF1A1826), MoDarkColorScheme.surface)
+        assertEquals(Color(0xFF322D4E), MoDarkColorScheme.surfaceContainerHigh)
     }
 
     @Test
-    fun `dark scheme keeps the spec primary`() {
-        assertEquals(Color(0xFF5B5CE2), MoDarkColorScheme.primary)
+    fun `dark scheme uses the expressive primary`() {
+        assertEquals(Color(0xFFB9A8FF), MoDarkColorScheme.primary)
     }
 
     @Test
-    fun `light status colors match the spec semantic tokens`() {
-        assertEquals(Color(0xFF16A34A), MoLightStatusColors.success)
-        assertEquals(Color(0xFFD97706), MoLightStatusColors.warning)
-        assertEquals(Color(0xFFDC2626), MoLightStatusColors.error)
-        assertEquals(Color(0xFF2563EB), MoLightStatusColors.info)
-        assertEquals(Color(0xFFDC2626), MoLightColorScheme.error)
+    fun `light status colors match the expressive semantic tokens`() {
+        assertEquals(Color(0xFF1E7A55), MoLightStatusColors.success)
+        assertEquals(Color(0xFFB45309), MoLightStatusColors.warning)
+        assertEquals(Color(0xFFB3261E), MoLightStatusColors.error)
+        assertEquals(Color(0xFF1D4ED8), MoLightStatusColors.info)
+        assertEquals(Color(0xFFB3261E), MoLightColorScheme.error)
     }
 }
