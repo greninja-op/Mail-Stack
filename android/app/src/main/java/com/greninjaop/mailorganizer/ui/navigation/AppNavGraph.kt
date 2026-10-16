@@ -348,24 +348,11 @@ fun AppNavGraph(
         }
     }.collectAsState(initial = null)
 
-    // Account switcher sheet (2026-10-16): tapping the top-bar DP
-    // opens Gmail's account sheet on ANY tab — current account +
-    // collapse arrow, the other accounts, "Add another account" +
-    // "Settings". The sheet needs the enabled accounts (earliest
-    // first, so the first is the default) and the live selection.
-    var showAccountSheet by remember { mutableStateOf(false) }
-    val sheetAccounts: List<AccountRecord> by remember {
-        container.accountRepository.observeAll()
-    }.collectAsState(initial = emptyList())
-    val sheetSelection: AccountSelection by remember {
-        container.activeAccountPreferences.activeSelection
-    }.collectAsState(initial = AccountSelection.Unified)
-    val sheetEnabledAccounts = sheetAccounts
-        .filter { it.isEnabled }
-        .sortedWith(
-            compareBy<AccountRecord> { it.createdAtEpochMs }
-                .thenBy { it.accountId },
-        )
+    // Tapping the top-bar DP opens the full-screen Settings panel
+    // (2026-10-16: the bottom-sheet account switcher was replaced —
+    // the panel slides in from the right and fills the screen, with
+    // the accounts section at its top). The sheet state + sheet
+    // block were removed with it (fix = remove).
     // Mail-scoped: the drawer holds mailbox destinations, so the
     // edge-swipe only opens it on Mail (the hamburger is Mail-only
     // too). Opening it from another tab and picking a destination
@@ -414,7 +401,7 @@ fun AppNavGraph(
                         },
                         onMenuClick = { drawerScope.launch { drawerState.open() } },
                         mailState = mailState,
-                        onOpenAccounts = { showAccountSheet = true },
+                        onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
                         account = account,
                     )
                 }
@@ -449,7 +436,11 @@ fun AppNavGraph(
             // saveState/restoreState (see navigatePrimary), so a switch
             // never reloads a tab.
             enterTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                // Drilling in from the Settings panel: the deeper
+                // screen slides in from the right (2026-10-16).
+                if (initialState.destination.route == AppDestinations.SETTINGS) {
+                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { it }
+                } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
                         targetState.destination.route,
@@ -463,7 +454,12 @@ fun AppNavGraph(
                 }
             },
             exitTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                // Opening the Settings panel: the source screen stays
+                // put while the panel slides in over it from the
+                // right (2026-10-16) — a 0-offset slide is a no-op.
+                if (targetState.destination.route == AppDestinations.SETTINGS) {
+                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { 0 }
+                } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
                         targetState.destination.route,
@@ -477,7 +473,12 @@ fun AppNavGraph(
                 }
             },
             popEnterTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                // Dismissing the Settings panel: the tab underneath
+                // is already there — it stays put while the panel
+                // slides out to the right (2026-10-16).
+                if (initialState.destination.route == AppDestinations.SETTINGS) {
+                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { 0 }
+                } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
                         targetState.destination.route,
@@ -491,7 +492,12 @@ fun AppNavGraph(
                 }
             },
             popExitTransition = {
-                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                // Popping back to the Settings panel: the deeper
+                // screen slides out to the right while the panel
+                // slides back in from the left (2026-10-16).
+                if (targetState.destination.route == AppDestinations.SETTINGS) {
+                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { it }
+                } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
                         targetState.destination.route,
@@ -750,13 +756,64 @@ fun AppNavGraph(
                     else -> UnknownIntegrationScreen(onBack = { navController.popBackStack() })
                 }
             }
-            composable(AppDestinations.SETTINGS) {
+            composable(
+                AppDestinations.SETTINGS,
+                // The Settings panel slides in from the right and out
+                // to the right, full-screen (2026-10-16) — NOT the
+                // fade-through the other pushed routes use.
+                enterTransition = {
+                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { it }
+                },
+                exitTransition = {
+                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { -it }
+                },
+                popEnterTransition = {
+                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { -it }
+                },
+                popExitTransition = {
+                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { it }
+                },
+            ) {
                 val vm: AppearanceViewModel =
                     viewModel(factory = AppearanceViewModelFactory(container))
+                val settingsScope = rememberCoroutineScope()
+                // The account section at the top of the panel needs
+                // the enabled accounts (earliest first, so the first
+                // is the default) and the live selection.
+                val panelAccounts: List<AccountRecord> by remember {
+                    container.accountRepository.observeAll()
+                }.collectAsState(initial = emptyList())
+                val panelSelection: AccountSelection by remember {
+                    container.activeAccountPreferences.activeSelection
+                }.collectAsState(initial = AccountSelection.Unified)
                 SettingsScreen(
                     appearanceViewModel = vm,
                     onNavigate = navigatePrimary,
                     onBack = { navController.popBackStack() },
+                    accounts = panelAccounts
+                        .filter { it.isEnabled }
+                        .sortedWith(
+                            compareBy<AccountRecord> { it.createdAtEpochMs }
+                                .thenBy { it.accountId },
+                        ),
+                    selection = panelSelection,
+                    onSelectAccount = { accountId ->
+                        settingsScope.launch {
+                            container.activeAccountPreferences.setActiveSelection(
+                                AccountSelection.Single(accountId),
+                            )
+                        }
+                        navController.popBackStack()
+                    },
+                    onSelectUnified = {
+                        settingsScope.launch {
+                            container.activeAccountPreferences.setActiveSelection(
+                                AccountSelection.Unified,
+                            )
+                        }
+                        navController.popBackStack()
+                    },
+                    onAddAccount = { navController.navigate(AppDestinations.CONNECT) },
                 )
             }
             composable(AppDestinations.PRIVACY) {
@@ -908,35 +965,9 @@ fun AppNavGraph(
             }
         }
         }
-        // Gmail-style account switcher sheet (2026-10-16): hosted
-        // here so the DP opens it from any tab. Tapping an account
-        // switches the selection (same mechanism as the Accounts
-        // screen); Add goes to the Connect flow; Settings opens
-        // the Settings page (Privacy, Integrations, Accounts and
-        // the rest all live there).
-        if (showAccountSheet) {
-            AccountSwitcherSheet(
-                accounts = sheetEnabledAccounts,
-                selection = sheetSelection,
-                onSelectAccount = { accountId ->
-                    drawerScope.launch {
-                        container.activeAccountPreferences.setActiveSelection(
-                            AccountSelection.Single(accountId),
-                        )
-                    }
-                },
-                onSelectUnified = {
-                    drawerScope.launch {
-                        container.activeAccountPreferences.setActiveSelection(
-                            AccountSelection.Unified,
-                        )
-                    }
-                },
-                onAddAccount = { navController.navigate(AppDestinations.CONNECT) },
-                onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
-                onDismiss = { showAccountSheet = false },
-            )
-        }
+        // The bottom-sheet account switcher was removed (2026-10-16):
+        // tapping the DP navigates to the Settings panel instead, and
+        // the account list lives at the top of that panel.
     }
 }
 
