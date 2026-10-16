@@ -626,3 +626,27 @@ MoPrimaryTopBar + edgeFade present in DEX, 6 secondary dex files
 differ from 1.0.17. Naming rule restated: every release increments
 the version — never reuse a version name.
 No on-device verification possible from the sandbox.
+
+## 2026-10-16 ~18:35 IST — reference.html created (animation stock + living design reference)
+New file at repo root: `reference.html`. Purpose: the user no longer
+re-explains animations — they say "Use the bubble animation from
+reference.html" and the agent reads the specs here. Contents:
+(1) Bubble Animation with the Flow — live clickable 5-tab demo
+(two-edge spring jelly: leading 550 / trailing 300 / damping 0.70),
+annotated SVG diagram with hand-drawn red arrows, zoomed
+frame-by-frame strip (start → stretch → mid-flight → catch-up →
+settle), handwritten scribble notes, exact spec table.
+(2) Scroll Edge Fade — live scrollable mail list demo (28dp fade,
+only where more content waits), annotated diagram, zoomed frames,
+scribble notes, spec table. (3) Design Reference — the whole UI:
+layout wireframe, colours (violet #5238E8 / #B9A8FF, dark bg
+#131120, surfaces), type & shape, components, full motion table,
+standing rules. Maintenance rule (binding): when a component
+changes in the app, update the Design Reference section; when a
+component is removed from the app, remove it here too — but NEVER
+remove an animation section, even if its button is gone. Verified:
+JS syntax clean, 12/12 functional assertions pass in a Node harness
+(pill settles on target, stretches mid-flight, fade masks correct at
+top/middle/bottom), all 18 SVGs parse, CSS braces balanced. Live
+browser render check could not run (browser blocks localhost);
+verification was done via the harness + static checks instead.
