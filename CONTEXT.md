@@ -388,3 +388,26 @@ in the Material 3 Expressive (Pixel) language, per user approval:
   this tree; the unapproved 1.0.13 push must NOT be approved after
   this — it would revert redesigned files.
 - Version bumped to 1.0.14 (versionCode 15).
+
+## 2026-10-16 ~16:00 IST — Tab-flicker fix + Material You dynamic color (1.0.15 APK)
+User report (screenshots): white/gray flash + reload feeling on tab
+switches; asked for wallpaper-adaptive theming like Pixel UI.
+- Root cause of the flash: the NavHost fade-through (exit 200ms +
+  enter delayed 120ms) left a gap where both screens were
+  semi-transparent, exposing the platform window background — and the
+  platform theme was Theme.Material.LIGHT (white bg, no night
+  variant). Same cause as the 2026-10-12 Connect-screen incident.
+- Fix: primary tab switches now use NO transition (instant, like
+  Gmail/Pixel) — no gap, no flash, no reload feeling. Tab state was
+  already preserved via saveState/restoreState; only the animation
+  made it feel like a reload. Pushed routes keep the fade-through.
+- Window background is now synced to the active scheme's background
+  (SideEffect in MailOrganizerTheme), so no white backdrop can ever
+  show through. (A DayNight platform theme was tried and reverted —
+  DayNight is AppCompat-only, not a platform style; the Compose sync
+  covers the first frame.)
+- Material You dynamic color ON (reverses the 1.0.14 off decision, per
+  explicit user request): Android 12+ uses dynamicLight/DarkColorScheme
+  from the wallpaper; below 12 the violet palettes are the fallback.
+  ThemeMode.SYSTEM follows the system (system-dark -> dynamic dark).
+- Version bumped to 1.0.15 (versionCode 16).

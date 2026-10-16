@@ -1,5 +1,7 @@
 package com.greninjaop.mailorganizer.ui.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
@@ -247,26 +249,45 @@ fun AppNavGraph(
     NavHost(
             navController = navController,
             startDestination = AppDestinations.HOME,
-        // 2026-10-13 (redone): Material fade-through on every route change.
-        // The outgoing screen fades out FIRST; the incoming one fades in
-        // after a short delay with a subtle scale — the two never blend
-        // into a washed-out double image, which was the old crossfade's
-        // flash. See MoMotion.
+        // 2026-10-16: tab switches (primary ↔ primary) are INSTANT —
+        // no fade, no scale, no gap. The old fade-through (exit 200ms +
+        // enter delayed 120ms) left a gap where both screens were
+        // semi-transparent, so the platform window background showed
+        // through as a white/gray flash — and the animation itself read
+        // as a reload. Pushed routes (thread, settings, ...) keep the
+        // fade-through. Tab state is preserved via saveState/restoreState
+        // (see navigatePrimary), so a switch never reloads a tab.
         enterTransition = {
-            fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
-                scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                EnterTransition.None
+            } else {
+                fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                    scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+            }
         },
         exitTransition = {
-            fadeOut(animationSpec = MoMotion.fadeThroughExit) +
-                scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                ExitTransition.None
+            } else {
+                fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                    scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+            }
         },
         popEnterTransition = {
-            fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
-                scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                EnterTransition.None
+            } else {
+                fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                    scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+            }
         },
         popExitTransition = {
-            fadeOut(animationSpec = MoMotion.fadeThroughExit) +
-                scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                ExitTransition.None
+            } else {
+                fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                    scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+            }
         },
     ) {
         // Phase 11: the real Home dashboard (replaces the Phase 1
@@ -691,4 +712,10 @@ fun AppNavGraph(
             )
         }
     }
+}
+
+/** True when a navigation moves between two primary tab destinations. */
+private fun isTabSwitch(fromRoute: String?, toRoute: String?): Boolean {
+    val primary = PrimaryDestination.entries.map { it.route }
+    return fromRoute in primary && toRoute in primary
 }

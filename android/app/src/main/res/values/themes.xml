@@ -1,7 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Base activity theme. The real visual system lives in Compose
-         (ui.theme.MailOrganizerTheme); this only avoids an action bar flash. -->
+         (ui.theme.MailOrganizerTheme); this only avoids an action bar flash.
+         Note: there is no platform DayNight theme (DayNight is AppCompat),
+         so this stays Light — Compose syncs the window background to the
+         active scheme from the first frame (see Theme.kt), which is what
+         actually prevents any white flash. -->
     <style name="Theme.MailOrganizer" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowLightStatusBar">true</item>
     </style>

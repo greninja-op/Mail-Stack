@@ -13,6 +13,11 @@ import androidx.compose.animation.core.tween
  * the two screens never blend into a washed-out double image. The previous
  * simultaneous crossfade drew both screens at half opacity at once, which
  * read as a flash / refresh with colours appearing from nowhere.
+ *
+ * 2026-10-16: the fade-through now applies ONLY to pushed routes
+ * (thread, settings, ...). Primary tab switches use no transition at
+ * all (see AppNavGraph) — the fade gap used to expose the platform
+ * window background as a white/gray flash and read as a reload.
  */
 object MoMotion {
     /** Outgoing screen: fade out, 200ms. */
