@@ -44,7 +44,7 @@ import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.mail.MailRowLayout
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
-import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
+import androidx.compose.foundation.layout.WindowInsets
 import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -77,23 +77,18 @@ fun CompaniesScreen(
     viewModel: CompaniesViewModel,
     onNavigate: (String) -> Unit,
     onOpenCompany: (companyId: String) -> Unit,
-    onOpenSearch: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val uiState by viewModel.state.collectAsState()
-    val account by viewModel.currentAccount.collectAsState()
 
     Scaffold(
         modifier = modifier,
         containerColor = MaterialTheme.colorScheme.background,
-        topBar = {
-            MoAppTopBar(
-                                account = account,
-                onOpenSearch = onOpenSearch,
-                onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
-                onOpenSecondary = onNavigate,
-            )
-        },
+        // No top bar here — it is hoisted above the NavHost (see
+        // MoPrimaryTopBar). No window insets either: the hoisted top
+        // bar and bottom bar own the status/navigation insets, so this
+        // Scaffold must not add them again.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
     ) { padding ->
         when (val content = uiState.content) {
             is CompaniesContent.Loading -> MoLoadingState(

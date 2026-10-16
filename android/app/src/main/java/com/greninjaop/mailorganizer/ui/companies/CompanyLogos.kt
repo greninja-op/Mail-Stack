@@ -25,8 +25,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -351,6 +353,14 @@ object CompanyLogoLoader {
  * with a crossfade → the existing letter-avatar style while loading or when
  * no logo exists. The logo itself carries no semantics; the row owns the
  * content description.
+ *
+ * Dark-mode logos (2026-10-16): artwork with a dark mark on a
+ * transparent background (e.g. the black Apple logo) is invisible on a
+ * dark background. In dark mode every artwork logo therefore sits on a
+ * white circular backing — the PNG inside a white circle — so no dark
+ * logo can ever vanish. In light mode the circle stays transparent, as
+ * before. The monochrome path keeps its tonal circle (the glyph is
+ * tinted, so it is visible in both modes).
  */
 @Composable
 fun CompanyLogo(
@@ -359,6 +369,10 @@ fun CompanyLogo(
     modifier: Modifier = Modifier,
     size: Dp = MoSpacing.rowAvatar,
 ) {
+    // Dark mode by the actual background luminance, not the system
+    // setting — the app's Appearance picker (System/Light/Dark) can
+    // override the system, and dynamic color changes the background.
+    val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
     val bundled = remember(domain) { CompanyLogoResolver.bundledRes(domain) }
     if (bundled != null) {
         if (CompanyLogoResolver.isMonochrome(bundled)) {
@@ -385,10 +399,13 @@ fun CompanyLogo(
             // Full-color artwork: NEVER crop or enlarge (2026-10-13) — the
             // whole logo is fitted inside the circle with padding, pasted
             // exactly as-is. Cropping cut wide logos (e.g. Adobe) in half.
+            // In dark mode the circle is white, so a dark mark (e.g. a
+            // black logo) stays visible.
             Box(
                 modifier = modifier
                     .size(size)
                     .clip(CircleShape)
+                    .background(if (isDark) Color.White else Color.Transparent)
                     .clearAndSetSemantics {},
                 contentAlignment = Alignment.Center,
             ) {
@@ -429,10 +446,14 @@ private fun RemoteCompanyLogo(
     ) { loaded ->
         if (loaded != null) {
             // Remote artwork: same no-crop rule as bundled logos (2026-10-13).
+            // In dark mode the circle is white, so a dark mark (e.g. the
+            // black Apple logo) stays visible.
+            val isDark = MaterialTheme.colorScheme.background.luminance() < 0.5f
             Box(
                 modifier = Modifier
                     .size(size)
-                    .clip(CircleShape),
+                    .clip(CircleShape)
+                    .background(if (isDark) Color.White else Color.Transparent),
                 contentAlignment = Alignment.Center,
             ) {
                 Image(
