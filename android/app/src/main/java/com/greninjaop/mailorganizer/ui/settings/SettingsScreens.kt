@@ -1,5 +1,10 @@
 package com.greninjaop.mailorganizer.ui.settings
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
@@ -19,20 +24,25 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.MailOutline
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -70,6 +80,7 @@ import androidx.lifecycle.viewModelScope
 import com.greninjaop.mailorganizer.core.AppDispatchers
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.ConnectionState
+import com.greninjaop.mailorganizer.data.prefs.AccountSelection
 import com.greninjaop.mailorganizer.data.prefs.ThemeMode
 import com.greninjaop.mailorganizer.data.prefs.ThemePreferences
 import com.greninjaop.mailorganizer.data.repository.AccountRepository
@@ -100,7 +111,8 @@ import kotlinx.coroutines.launch
 /**
  * Settings destination — Phase 11 (phase §39).
  *
- * Only sections backed by implemented functionality: Accounts, Appearance
+ * Only sections backed by implemented functionality: Accounts (the
+ * expandable account list at the top of the panel), Appearance
  * (theme), Privacy, Integrations, About. Nothing speculative, nothing
  * that pretends to configure unbuilt features.
  */
@@ -110,6 +122,11 @@ fun SettingsScreen(
     appearanceViewModel: AppearanceViewModel,
     onNavigate: (String) -> Unit,
     onBack: () -> Unit,
+    accounts: List<AccountRecord> = emptyList(),
+    selection: AccountSelection = AccountSelection.Unified,
+    onSelectAccount: (accountId: String) -> Unit = {},
+    onSelectUnified: () -> Unit = {},
+    onAddAccount: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
@@ -138,11 +155,23 @@ fun SettingsScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
         ) {
-            SettingsRow(
-                icon = Icons.Filled.AccountCircle,
-                title = "Accounts",
-                subtitle = "Connected Gmail accounts",
-                onClick = { onNavigate(AppDestinations.ACCOUNTS) },
+            // Accounts (2026-10-16): the account section is the top
+            // of this panel — the current account, with a chevron
+            // that expands the signed-in list inline (pushing the
+            // settings below down). No separate "Accounts" row and
+            // no Gmail rows (Manage your Google Account, storage).
+            AccountSection(
+                accounts = accounts,
+                selection = selection,
+                onSelectAccount = onSelectAccount,
+                onSelectUnified = onSelectUnified,
+                onAddAccount = onAddAccount,
+            )
+            HorizontalDivider(
+                modifier = Modifier.padding(
+                    horizontal = MoSpacing.md,
+                    vertical = MoSpacing.sm,
+                ),
             )
             SettingsRow(
                 icon = Icons.Filled.Lock,
@@ -193,6 +222,254 @@ fun SettingsScreen(
             )
             AppearanceSection(viewModel = appearanceViewModel)
             AboutSection()
+        }
+    }
+}
+
+/**
+ * The account section at the top of the Settings panel (2026-10-16).
+ *
+ * Collapsed it is a single layer: the current selection — the single
+ * account, or "All Accounts" (unified) with the default account's DP.
+ * There is no "Accounts" label: the account itself IS the section,
+ * like Gmail's switcher header. Tapping the header (the chevron on
+ * its right is the affordance) expands the signed-in list inline —
+ * the other accounts, "All Accounts" when a single account is
+ * current, and "Add an account" — pushing the settings below down.
+ * Tapping an account switches the whole app to it and closes the
+ * panel; tapping "Add an account" opens the Connect flow.
+ *
+ * No unread counts on the rows: we have no real unread-count source
+ * — counts are never fabricated. No "Manage your Google Account" /
+ * storage rows: those are Google-Account features we do not have.
+ */
+@Composable
+private fun AccountSection(
+    accounts: List<AccountRecord>,
+    selection: AccountSelection,
+    onSelectAccount: (accountId: String) -> Unit,
+    onSelectUnified: () -> Unit,
+    onAddAccount: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    // Collapsed by default: the panel is the Settings page, and the
+    // settings below stay visible until the user asks for the list.
+    var expanded by remember { mutableStateOf(false) }
+
+    // The current single account, if the selection names one that is
+    // still enabled; otherwise the default (earliest) account, so the
+    // header never shows a stale or missing account.
+    val currentAccount: AccountRecord? = when (selection) {
+        is AccountSelection.Single ->
+            accounts.firstOrNull { it.accountId == selection.accountId }
+                ?: accounts.firstOrNull()
+        is AccountSelection.Unified -> accounts.firstOrNull()
+    }
+    val isUnified = selection is AccountSelection.Unified
+    // The list shows the OTHER accounts (never the current one, which
+    // is the header). In unified mode every account is "other".
+    val otherAccounts = if (isUnified) {
+        accounts
+    } else {
+        accounts.filter { it.accountId != currentAccount?.accountId }
+    }
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        // ---- Header: current selection + chevron ----
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { expanded = !expanded }
+                .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm)
+                .semantics {
+                    contentDescription = if (expanded) {
+                        "Collapse account list"
+                    } else {
+                        "Expand account list"
+                    }
+                },
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (currentAccount != null) {
+                AccountAvatar(
+                    account = currentAccount,
+                    size = MoSpacing.xxxl,
+                )
+            } else {
+                // No accounts at all: a generic person mark.
+                Box(
+                    modifier = Modifier
+                        .size(MoSpacing.xxxl)
+                        .clip(CircleShape)
+                        .border(1.dp, MaterialTheme.colorScheme.outline, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Filled.Person,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(MoSpacing.xxl),
+                    )
+                }
+            }
+            Spacer(Modifier.width(MoSpacing.md))
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = if (isUnified) {
+                        "All Accounts"
+                    } else {
+                        currentAccount?.displayName ?: currentAccount?.emailAddress
+                            ?: "No accounts"
+                    },
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = if (isUnified) {
+                        "View combined threads across all enabled accounts"
+                    } else {
+                        currentAccount?.emailAddress ?: "Add an account to get started"
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Icon(
+                imageVector = if (expanded) {
+                    Icons.Filled.KeyboardArrowUp
+                } else {
+                    Icons.Filled.KeyboardArrowDown
+                },
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+
+        // ---- Collapsible body: the signed-in list + Add ----
+        AnimatedVisibility(
+            visible = expanded,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut(),
+        ) {
+            Column {
+                // "All Accounts" row — only when a single account
+                // is current (in unified mode it IS the header).
+                if (!isUnified) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectUnified() }
+                            .padding(
+                                horizontal = MoSpacing.md,
+                                vertical = MoSpacing.sm,
+                            )
+                            .semantics {
+                                contentDescription =
+                                    "Switch to All Accounts (Unified Inbox)"
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.MailOutline,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(MoSpacing.xxl),
+                        )
+                        Spacer(Modifier.width(MoSpacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = "All Accounts (Unified Inbox)",
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = "View combined threads across all enabled accounts",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+
+                otherAccounts.forEach { account ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelectAccount(account.accountId) }
+                            .padding(
+                                horizontal = MoSpacing.md,
+                                vertical = MoSpacing.sm,
+                            )
+                            .semantics {
+                                contentDescription =
+                                    "Switch to ${account.displayName ?: account.emailAddress}"
+                            },
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        AccountAvatar(
+                            account = account,
+                            size = MoSpacing.xxl,
+                        )
+                        Spacer(Modifier.width(MoSpacing.md))
+                        Column(Modifier.weight(1f)) {
+                            Text(
+                                text = account.displayName ?: account.emailAddress,
+                                style = MaterialTheme.typography.bodyLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            Text(
+                                text = account.emailAddress,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { onAddAccount() }
+                        .padding(
+                            horizontal = MoSpacing.md,
+                            vertical = MoSpacing.sm,
+                        )
+                        .semantics { contentDescription = "Add an account" },
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(CircleShape)
+                            .border(
+                                1.dp,
+                                MaterialTheme.colorScheme.outline,
+                                CircleShape,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Add,
+                            contentDescription = null,
+                        )
+                    }
+                    Spacer(Modifier.width(MoSpacing.md))
+                    Text(
+                        text = "Add an account",
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                }
+            }
         }
     }
 }
