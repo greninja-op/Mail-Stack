@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.net.HttpURLConnection
 import java.net.URL
@@ -65,6 +67,13 @@ class GoogleAuthRepository(
     private val _oauthResults =
         MutableSharedFlow<AuthResult>(extraBufferCapacity = 4)
     private val oauthResultsFlow = _oauthResults.asSharedFlow()
+
+    // Delivered redirects, by (state, code): each authorization code is
+    // single-use, so a redelivered redirect must NOT be re-exchanged (see
+    // handleOAuthResult). Bounded by the number of OAuth flows in one
+    // process lifetime — a handful.
+    private val handledRedirects = mutableMapOf<String, AuthResult>()
+    private val redirectMutex = Mutex()
 
     init {
         // Restore auth state after process restart (Phase 3 §18): any
@@ -172,9 +181,30 @@ class GoogleAuthRepository(
     }
 
     override suspend fun handleOAuthResult(data: Intent?): AuthResult {
-        val result = processOAuthRedirect(data)
-        _oauthResults.emit(result)
-        return result
+        return redirectMutex.withLock {
+            val uri = data?.data
+            val key = if (uri != null && uri.scheme == REDIRECT_SCHEME) {
+                dedupKeyFor(
+                    state = uri.getQueryParameter("state"),
+                    code = uri.getQueryParameter("code"),
+                )
+            } else {
+                null
+            }
+            // The same redirect can be delivered twice (onCreate +
+            // onNewIntent, or Activity recreation with the stored intent):
+            // authorization codes are single-use, so a re-exchange would
+            // fail with invalid_grant and flip the UI Success -> Error ->
+            // "Try Again" -> straight back to Chrome. Return the first
+            // handling's result instead of re-exchanging.
+            if (key != null) {
+                handledRedirects[key]?.let { return@withLock it }
+            }
+            val result = processOAuthRedirect(data)
+            if (key != null) handledRedirects[key] = result
+            _oauthResults.emit(result)
+            result
+        }
     }
 
     private suspend fun processOAuthRedirect(data: Intent?): AuthResult {
@@ -477,6 +507,16 @@ class GoogleAuthRepository(
             val hex = digest.digest(normalized.toByteArray(Charsets.UTF_8))
                 .joinToString("") { "%02x".format(it.toInt() and 0xFF) }
             return AccountId("google_$hex")
+        }
+
+        /**
+         * Cache key for a redirect delivery: (state, code). Null when
+         * either is missing — error/denied redirects carry no code and
+         * are not deduped. Pure function, unit-tested.
+         */
+        fun dedupKeyFor(state: String?, code: String?): String? {
+            if (state.isNullOrBlank() || code.isNullOrBlank()) return null
+            return "$state|$code"
         }
 
         /**
