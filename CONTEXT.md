@@ -665,3 +665,22 @@ asset files. Re-verified after the split: 11/11 harness assertions
 pass against the new animations.js; HTML has no inline style/script
 blocks. Maintenance rule unchanged (Design Reference section tracks
 the app; animation sections are never removed).
+
+
+## 2026-10-16 ~19:15 IST — Two 1.0.18 on-phone fixes (user screenshots)
+1) Search pill touched the screen edges when the hamburger retracted:
+the hoisted top-bar Row had NO horizontal padding, so on non-Mail tabs
+the pill started at x=0. Fix: `padding(horizontal = 16.dp)` on the
+Row — the pre-hoist bar was a Material3 TopAppBar, which carries this
+inset itself. Pill + hamburger now always sit 16dp in from both
+edges, matching the older version. Reshape animation unchanged.
+2) Drawer flickered open/closed when switching Mail -> Home: the
+drawer-open signal was a StateFlow<Int> counter, and StateFlow replays
+its last value to every new collector — so every time Mail re-entered
+composition after any hamburger tap, the LaunchedEffect saw
+signal > 0 and opened the drawer by itself. Fix: one-shot
+SharedFlow<Unit>(replay = 0, extraBufferCapacity = 1); hamburger does
+tryEmit(Unit); MailScreen collects in LaunchedEffect and opens only
+on a fresh tap. reference.html updated too (top-bar 16dp margin +
+one-shot drawer event). Tests: 968 run / 960 pass (same 8 known env
+failures). No APK built (user did not ask for one).
