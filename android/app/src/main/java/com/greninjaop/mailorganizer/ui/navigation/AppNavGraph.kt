@@ -279,18 +279,6 @@ fun AppNavGraph(
     val showBars = currentRoute in PrimaryDestination.entries.map { it.route }
     val isMail = currentRoute == AppDestinations.MAIL
 
-    // Whether Mail was entered via a primary-tab switch (vs popping back
-    // from a pushed route). The Mail list defers past the tab-switch
-    // transition in that case, so the bubble/slide/pill animations run
-    // without competing against the heavy list composition (2026-10-16).
-    // previousRoute lags one navigation behind: it is updated after the
-    // composition that consumed it, so it always holds the route we
-    // came from.
-    var previousRoute by remember { mutableStateOf<String?>(null) }
-    val mailEnteredViaTab = isMail &&
-        previousRoute in PrimaryDestination.entries.map { it.route }
-    LaunchedEffect(currentRoute) { previousRoute = currentRoute }
-
     // Mail's ViewModel, shared with the Mail destination: same back-stack
     // entry owner, same factory → the same instance MailScreen uses.
     // Only exists while Mail is current.
@@ -528,9 +516,6 @@ fun AppNavGraph(
                             AppDestinations.threadRoute(threadId, focusMessageId),
                         )
                     },
-                    // Defer the heavy list past the tab-switch transition
-                    // so the bubble animation never lags on Mail.
-                    deferList = mailEnteredViaTab,
                 )
             }
             // Phase 11: category browsing + detail.
