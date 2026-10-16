@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -89,6 +90,13 @@ fun MoPrimaryTopBar(
         label = "hamburger-width",
     )
 
+    // The account DP is ONE size on every tab (2026-10-16 fix): Mail
+    // used 32dp (xxl) while the other tabs fell back to the avatar's
+    // 24dp (xl) default, so the DP visibly enlarged on Mail and
+    // shrank everywhere else. 40dp (xxxl) = the mail row avatar's
+    // size, so the top-bar DP matches the avatars in the emails.
+    val avatarSize = MoSpacing.xxxl
+
     Surface(
         color = MaterialTheme.colorScheme.surface,
         modifier = modifier,
@@ -162,7 +170,7 @@ fun MoPrimaryTopBar(
                                 IconButton(onClick = onOpenAccounts) {
                                     AccountAvatar(
                                         account = defaultAccount,
-                                        size = MoSpacing.xxl,
+                                        size = avatarSize,
                                     )
                                 }
                             } else {
@@ -173,6 +181,7 @@ fun MoPrimaryTopBar(
                                         imageVector = Icons.Filled.MailOutline,
                                         contentDescription = "Accounts. Tap to switch account.",
                                         tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(avatarSize),
                                     )
                                 }
                             }
@@ -182,7 +191,7 @@ fun MoPrimaryTopBar(
                                 IconButton(onClick = onOpenAccounts) {
                                     AccountAvatar(
                                         account = activeAccount,
-                                        size = MoSpacing.xxl,
+                                        size = avatarSize,
                                     )
                                 }
                             }
@@ -196,6 +205,7 @@ fun MoPrimaryTopBar(
                             IconButton(onClick = onOpenAccounts) {
                                 AccountAvatar(
                                     account = account,
+                                    size = avatarSize,
                                     modifier = Modifier.clip(CircleShape).clickable(
                                         onClick = onOpenAccounts,
                                     ),
