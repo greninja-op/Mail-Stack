@@ -460,3 +460,35 @@ Gmail behavior — automatic loading, no button, no waiting at the end.
 - Tests: 7 threshold tests + 3 VM tests (triple loadMore = one bump;
   exhaustion stops paging; starred paginates). Version NOT bumped, NO
   APK built — user said no APK until they say okay.
+
+## 2026-10-16 ~17:05 IST — Jelly-bubble bottom-nav animation (NO APK — user approval pending)
+User asked for an animated bottom-bar bubble: the highlight should
+slide to the newly selected tab with a squeeze + jiggle, like a
+toggle-switch ball being pulled from one side to the other, and the
+page switch should stay in sync with it. Researched the references:
+squash-and-stretch (Disney's 12 principles — stretch along travel,
+squash on momentum change) driven by underdamped spring() +
+Animatable, with the icon tint following the pill.
+- MoNavBar rewritten: ONE pill (Material 3 active-indicator size,
+  64x32dp, secondaryContainer) instead of a per-item indicator. Its
+  left/right edges are two independent Animatables: the leading edge
+  runs a stiff spring (stiffness 550, fast start), the trailing edge a
+  softer one (300) so it lags — that lag stretches the bubble
+  mid-flight. Both dampingRatio 0.70, so the bubble overshoots
+  slightly and shakes into place. Vertical squash is derived from the
+  stretch (wider -> flatter, min 0.80). The icon tints the moment the
+  bubble covers it, so bubble + icon read as one unit.
+- The bar is hoisted ABOVE the NavHost in AppNavGraph (one instance,
+  shown only on the 5 primary destinations; pushed routes keep the
+  full screen). Per-screen bars remount on every tab switch, so their
+  pill could only snap, never slide. The 5 screens lost only their
+  bottomBar block (their onNavigate params stay — used elsewhere);
+  MailScreen's now-unused onNavigatePrimary param was removed.
+- Page switch stays instant (the 1.0.15 no-flicker fix) and fires on
+  the same tap as the bubble — in sync, no lag, no slide.
+- Tests: 8 new MoNavBarTest tests for the pure math (edges, spring
+  stiffness ordering, squash + clamp, icon-cover rule). Compose
+  2026.06.01 (ui 1.12.1) has NO positionInParent/boundsInParent on
+  LayoutCoordinates — item centres are computed from the measured bar
+  width (5 equal-weight items).
+- Version NOT bumped, NO APK built — user said no APK until they say okay.
