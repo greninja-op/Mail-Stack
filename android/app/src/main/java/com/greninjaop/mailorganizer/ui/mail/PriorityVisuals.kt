@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -140,54 +138,4 @@ fun PriorityWithExplanation(
             )
         }
     }
-}
-/**
- * Action-required filter chip (Phase 9). Toggles the "action required"
- * view — mail classified ACTION_REQUIRED by the deterministic engine.
- *
- * 2026-10-16 (Expressive redesign): solid amber warning chip —
- * amber exclamation icon + amber text on an amber container, in both
- * modes. The label still carries the meaning.
- */
-@Composable
-fun ActionRequiredFilterChip(
-    active: Boolean,
-    onToggle: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    val warning = rememberMoWarningColors()
-    androidx.compose.material3.FilterChip(
-        selected = active,
-        onClick = onToggle,
-        label = {
-            Text(
-                text = "Action required",
-                style = MaterialTheme.typography.labelMedium,
-                color = warning.content,
-            )
-        },
-        leadingIcon = {
-            Icon(
-                imageVector = Icons.Filled.Warning,
-                contentDescription = null,
-                tint = warning.content,
-                modifier = Modifier.size(MoSpacing.md),
-            )
-        },
-        colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-            containerColor = warning.container,
-            selectedContainerColor = warning.container,
-            labelColor = warning.content,
-            selectedLabelColor = warning.content,
-            iconColor = warning.content,
-            selectedLeadingIconColor = warning.content,
-        ),
-        modifier = modifier.semantics {
-            contentDescription = if (active) {
-                "Showing action-required mail. Tap to show all mail."
-            } else {
-                "Show only action-required mail."
-            }
-        },
-    )
 }

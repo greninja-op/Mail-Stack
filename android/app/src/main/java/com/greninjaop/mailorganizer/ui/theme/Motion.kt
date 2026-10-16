@@ -66,6 +66,14 @@ object MoMotion {
     val panelSlide = tween<IntOffset>(durationMillis = 350, easing = FastOutSlowInEasing)
 
     /**
+     * Settings-panel bars fade (2026-10-17): the overlaid top +
+     * bottom bars fade with the panel transition — same 350ms
+     * FastOutSlowIn as [panelSlide], but a Float spec (fadeIn /
+     * fadeOut need a Float spec, not the IntOffset slide spec).
+     */
+    val panelFade = tween<Float>(durationMillis = 350, easing = FastOutSlowInEasing)
+
+    /**
      * Search-pill reshape + hamburger slide: 350ms FastOutSlowIn, the
      * same spec as [tabSwitchSlide], so the top bar and the page land
      * together on every tab switch.

@@ -60,8 +60,6 @@ enum class EmptyKind {
     /** Company filter selected but no mail from that company here. */
     NO_COMPANY_RESULTS,
 
-    /** Action-required filter with no action-required mail. */
-    NO_ACTION_REQUIRED,
 }
 
 /** Explicit mailbox content state (phase §35: sealed, no scattered booleans). */

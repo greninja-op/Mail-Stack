@@ -2,30 +2,49 @@ package com.greninjaop.mailorganizer.ui.navigation
 
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.LinearOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.updateTransition
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.statusBars
+import androidx.compose.foundation.layout.navigationBars
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.rememberDrawerState
-import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
@@ -36,6 +55,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.combine
+import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.prefs.AccountSelection
@@ -288,6 +308,49 @@ fun AppNavGraph(
     val showBars = currentRoute in PrimaryDestination.entries.map { it.route }
     val isMail = currentRoute == AppDestinations.MAIL
 
+    // Scroll-hide bars (§6, 2026-10-17): on a primary tab, scrolling
+    // DOWN slides the top bar up out + the bottom bar down out (and
+    // the list expands into the freed space, so the edge fade reaches
+    // the screen edges); scrolling UP slides them back. Pure
+    // translate, NO fade. Hide: LinearOutSlowIn (fast→slow);
+    // show: FastOutSlowIn (slow→fast→land); 250ms. Entering a tab
+    // always shows the bars.
+    var barsVisible by remember { mutableStateOf(true) }
+    val showBarsRef = rememberUpdatedState(showBars)
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // Only on primary tabs — the bars aren't shown elsewhere.
+                if (!showBarsRef.value) return Offset.Zero
+                // available.y < 0 = scrolling down (content moves up).
+                // available.y > 0 = scrolling up (content moves down).
+                if (available.y < 0) barsVisible = false
+                else if (available.y > 0) barsVisible = true
+                return Offset.Zero // observe only — never consume.
+            }
+        }
+    }
+    LaunchedEffect(currentRoute) {
+        if (currentRoute in PrimaryDestination.entries.map { it.route }) barsVisible = true
+    }
+    // 0 = hidden, 1 = visible. Different specs per direction (§6).
+    val barsTransition = updateTransition(barsVisible, label = "bars")
+    val barsOffset by barsTransition.animateFloat(
+        transitionSpec = {
+            if (targetState) tween(durationMillis = 250, easing = FastOutSlowInEasing)
+            else tween(durationMillis = 250, easing = LinearOutSlowInEasing)
+        },
+        label = "bars-offset",
+    ) { if (it) 1f else 0f }
+    // Bar heights in px, for the slide-out offsets.
+    val density = LocalDensity.current
+    val topBarHeightPx = with(density) {
+        WindowInsets.statusBars.getTop(this) + 64.dp.toPx()
+    }
+    val bottomBarHeightPx = with(density) {
+        WindowInsets.navigationBars.getBottom(this) + 80.dp.toPx()
+    }
+
     // Mail's ViewModel, shared with the Mail destination: same back-stack
     // entry owner, same factory → the same instance MailScreen uses.
     // Only exists while Mail is current.
@@ -393,41 +456,30 @@ fun AppNavGraph(
             )
         },
     ) {
-        Scaffold(
-            topBar = {
-                if (showBars) {
-                    MoPrimaryTopBar(
-                        isMail = isMail,
-                        searchValue = searchQuery,
-                        onSearchValueChange = { query ->
-                            if (isMail) mailVm?.setFilterText(query)
-                            else otherQuery = query
-                        },
-                        onSearchSubmit = {
-                            navController.navigate(
-                                AppDestinations.searchRoute(searchQuery),
-                            )
-                        },
-                        onMenuClick = { drawerScope.launch { drawerState.open() } },
-                        onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
-                        account = account,
-                    )
-                }
-            },
-            bottomBar = {
-                if (showBars) {
-                    MoNavBar(
-                        currentRoute = currentRoute ?: AppDestinations.HOME,
-                        onNavigate = navigatePrimary,
-                    )
-                }
-            },
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-        ) { padding ->
+        // 2026-10-17: NO Scaffold here. The Scaffold's content padding
+        // changed with showBars, so navigating to the Settings panel
+        // (bars hide) re-laid-out the whole NavHost and EVERYTHING
+        // jumped UP — the search box vanished and the content shifted.
+        // The NavHost is now full-screen (never padded, never resized)
+        // and the bars are OVERLAID on top of it: they appear/disappear
+        // without touching layout, so opening the panel can never move
+        // the primary screen up. The primary destinations pad
+        // themselves (PrimaryContent) by the bars' exact heights.
+        // The drawer still wraps the whole Box, so the sheet + scrim
+        // cover the bars too, exactly like before.
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                // Scroll-hide bars (§6): the connection observes the
+                // scroll direction of whatever list is inside the
+                // NavHost and hides/shows the bars. It never consumes.
+                .nestedScroll(nestedScrollConnection),
+        ) {
         NavHost(
                 navController = navController,
                 startDestination = AppDestinations.HOME,
-                modifier = Modifier.padding(padding),
+                modifier = Modifier.fillMaxSize(),
             // 2026-10-16: tab switches (primary ↔ primary) slide
             // DIRECTIONALLY — the incoming tab's content enters from the
             // side that tab sits on (a tab to the right slides in from the
@@ -462,11 +514,14 @@ fun AppNavGraph(
                 }
             },
             exitTransition = {
-                // Opening the Settings panel: the source screen stays
-                // put while the panel slides in over it from the
-                // right (2026-10-16) — a 0-offset slide is a no-op.
+                // Opening the Settings panel: the source screen slides
+                // slightly LEFT (WhatsApp, 2026-10-17) — 1/12 of the
+                // width — while the panel slides in from the right.
+                // Same 350ms spec, so they move together. The source
+                // stays fully laid out (the NavHost is never resized),
+                // so nothing jumps up.
                 if (targetState.destination.route == AppDestinations.SETTINGS) {
-                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { 0 }
+                    slideOutHorizontally(animationSpec = MoMotion.panelSlide) { -it / 12 }
                 } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
@@ -482,10 +537,11 @@ fun AppNavGraph(
             },
             popEnterTransition = {
                 // Dismissing the Settings panel: the tab underneath
-                // is already there — it stays put while the panel
-                // slides out to the right (2026-10-16).
+                // slides back from its shifted-left position to its
+                // original spot (WhatsApp, 2026-10-17) while the panel
+                // slides out to the right. Same 350ms spec.
                 if (initialState.destination.route == AppDestinations.SETTINGS) {
-                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { 0 }
+                    slideInHorizontally(animationSpec = MoMotion.panelSlide) { -it / 12 }
                 } else if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
                     val dir = tabSlideDirection(
                         initialState.destination.route,
@@ -523,6 +579,7 @@ fun AppNavGraph(
             // foundation screen).
             composable(AppDestinations.HOME) {
                 val vm: HomeViewModel = viewModel(factory = HomeViewModelFactory(container))
+                PrimaryContent(barsOffset = barsOffset) {
                 HomeScreen(
                     viewModel = vm,
                     onNavigate = navigatePrimary,
@@ -536,11 +593,13 @@ fun AppNavGraph(
                         navController.navigate(AppDestinations.companyRoute(companyId))
                     },
                 )
+                }
             }
             // Phase 6: the real mailbox. Other destinations keep their honest
             // placeholders until their phase builds them.
             composable(AppDestinations.MAIL) {
                 val vm: MailViewModel = viewModel(factory = MailViewModelFactory(container))
+                PrimaryContent(barsOffset = barsOffset) {
                 MailScreen(
                     viewModel = vm,
                     onOpenThread = { threadId, focusMessageId ->
@@ -549,11 +608,13 @@ fun AppNavGraph(
                         )
                     },
                 )
+                }
             }
             // Phase 11: category browsing + detail.
             composable(AppDestinations.CATEGORIES) {
                 val vm: CategoriesViewModel =
                     viewModel(factory = CategoriesViewModelFactory(container))
+                PrimaryContent(barsOffset = barsOffset) {
                 CategoriesScreen(
                     viewModel = vm,
                     onNavigate = navigatePrimary,
@@ -564,6 +625,7 @@ fun AppNavGraph(
                         navController.navigate(AppDestinations.threadRoute(threadId))
                     },
                 )
+                }
             }
             composable(
                 route = AppDestinations.CATEGORY_DETAIL,
@@ -600,6 +662,7 @@ fun AppNavGraph(
             composable(AppDestinations.COMPANIES) {
                 val vm: CompaniesViewModel =
                     viewModel(factory = CompaniesViewModelFactory(container))
+                PrimaryContent(barsOffset = barsOffset) {
                 CompaniesScreen(
                     viewModel = vm,
                     onNavigate = navigatePrimary,
@@ -607,6 +670,7 @@ fun AppNavGraph(
                         navController.navigate(AppDestinations.companyRoute(companyId))
                     },
                 )
+                }
             }
             composable(
                 route = AppDestinations.COMPANY_DETAIL,
@@ -636,6 +700,7 @@ fun AppNavGraph(
             composable(AppDestinations.ACTIONS) {
                 val vm: ActionsViewModel =
                     viewModel(factory = ActionsViewModelFactory(container))
+                PrimaryContent(barsOffset = barsOffset) {
                 ActionsScreen(
                     viewModel = vm,
                     onNavigate = navigatePrimary,
@@ -643,6 +708,7 @@ fun AppNavGraph(
                         navController.navigate(AppDestinations.threadRoute(threadId))
                     },
                 )
+                }
             }
             // Phase 10: the real search experience (replaces the placeholder).
             composable(
@@ -986,11 +1052,91 @@ fun AppNavGraph(
                 )
             }
         }
+        // Overlaid bars (2026-10-17): the top + bottom bars sit ON TOP
+        // of the full-screen NavHost. They appear/disappear without
+        // touching layout (the NavHost is never padded/resized), so
+        // navigating to/from the Settings panel can never shift
+        // content up. They slide left + fade with the panel transition
+        // (same 1/12 shift, same 350ms spec) — the WhatsApp motion:
+        // the whole primary screen, bars included, shifts left as the
+        // panel slides in, and slides back when it closes.
+        AnimatedVisibility(
+            visible = showBars,
+            enter = fadeIn(animationSpec = MoMotion.panelFade) +
+                slideInHorizontally(animationSpec = MoMotion.panelSlide) { -it / 12 },
+            exit = fadeOut(animationSpec = MoMotion.panelFade) +
+                slideOutHorizontally(animationSpec = MoMotion.panelSlide) { -it / 12 },
+            modifier = Modifier.fillMaxSize(),
+        ) {
+            Box(Modifier.fillMaxSize()) {
+                MoPrimaryTopBar(
+                    isMail = isMail,
+                    searchValue = searchQuery,
+                    onSearchValueChange = { query ->
+                        if (isMail) mailVm?.setFilterText(query)
+                        else otherQuery = query
+                    },
+                    onSearchSubmit = {
+                        navController.navigate(
+                            AppDestinations.searchRoute(searchQuery),
+                        )
+                    },
+                    onMenuClick = { drawerScope.launch { drawerState.open() } },
+                    onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
+                    account = account,
+                    // Scroll-hide (§6): slides up out of the screen.
+                    // Pure translate — the panel-transition fade/slide
+                    // lives on the AnimatedVisibility outside this Box.
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .offset {
+                            IntOffset(0, ((1f - barsOffset) * -topBarHeightPx).roundToInt())
+                        },
+                )
+                MoNavBar(
+                    currentRoute = currentRoute ?: AppDestinations.HOME,
+                    onNavigate = navigatePrimary,
+                    // Scroll-hide (§6): slides down out of the screen.
+                    modifier = Modifier
+                        .align(Alignment.BottomCenter)
+                        .offset {
+                            IntOffset(0, ((1f - barsOffset) * bottomBarHeightPx).roundToInt())
+                        },
+                )
+            }
         }
+        }  // Box (NavHost + overlaid bars)
         // The bottom-sheet account switcher was removed (2026-10-16):
         // tapping the DP navigates to the Settings panel instead, and
         // the account list lives at the top of that panel.
     }
+}
+
+/**
+ * A primary destination's content, padded for the overlaid bars
+ * (2026-10-17). The NavHost is full-screen, so each primary tab pads
+ * itself by the bars' exact heights: top = status-bar inset + 64dp
+ * (the top bar), bottom = navigation-bar inset + 80dp (the bottom
+ * bar). The padding ANIMATES with the bars (scroll-hide, §6): as the
+ * bars slide out, the padding shrinks to 0 and the list expands into
+ * the freed space, so the edge fade reaches the screen edges. The
+ * padding is driven by the bars' 0..1 offset — it never depends on
+ * the route — so navigating to/from the Settings panel can never
+ * shift content. Pushed routes (thread, settings, ...) are
+ * full-screen with their own top bars and do NOT use this.
+ */
+@Composable
+private fun PrimaryContent(barsOffset: Float, content: @Composable () -> Unit) {
+    val statusBar = WindowInsets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBar = WindowInsets.navigationBars.asPaddingValues().calculateBottomPadding()
+    Box(
+        Modifier
+            .fillMaxSize()
+            .padding(
+                top = (statusBar + 64.dp) * barsOffset,
+                bottom = (navBar + 80.dp) * barsOffset,
+            ),
+    ) { content() }
 }
 
 /** True when a navigation moves between two primary tab destinations. */
