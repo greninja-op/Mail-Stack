@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -73,7 +72,7 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlin.math.abs
 import kotlinx.coroutines.flow.first
@@ -95,12 +94,12 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Settings") },
                 navigationIcon = {
@@ -181,8 +180,8 @@ fun SettingsScreen(
 
 @Composable
 private fun AboutSection(modifier: Modifier = Modifier) {
-    // 2026-10-14 (Breeze glass everywhere): plain column -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): plain column -> MoCard.
+    MoCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
@@ -211,8 +210,8 @@ private fun SettingsRow(
     subtitle: String,
     onClick: () -> Unit,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): plain row -> MoCard.
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
@@ -469,12 +468,12 @@ fun AccountsScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Accounts") },
                 navigationIcon = {
@@ -512,8 +511,8 @@ fun AccountsScreen(
             ) {
                 // Unified Inbox option
                 val isUnified = activeSelection is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified
-                // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
-                GlassCard(
+                // 2026-10-14 (Expressive redesign): plain row -> MoCard.
+                MoCard(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
@@ -557,15 +556,14 @@ fun AccountsScreen(
                 }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = MoSpacing.xs))
 
                 accounts.forEach { account ->
                     val isAccountActive = when (val sel = activeSelection) {
                         is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Single -> sel.accountId == account.accountId
                         com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified -> false
                     }
-                    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
-                    GlassCard(
+                    // 2026-10-14 (Expressive redesign): plain row -> MoCard.
+                    MoCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
@@ -733,12 +731,12 @@ fun PrivacyScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Privacy") },
                 navigationIcon = {
@@ -794,8 +792,8 @@ fun PrivacyScreen(
 
 @Composable
 private fun PrivacyPoint(title: String, body: String) {
-    // 2026-10-14 (Breeze glass everywhere): plain column -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): plain column -> MoCard.
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = MoSpacing.xs),
@@ -858,9 +856,9 @@ fun AppearanceSection(
 ) {
     val themeMode by viewModel.themeMode.collectAsState()
 
-    // 2026-10-14 (Breeze glass everywhere): plain section -> GlassCard.
+    // 2026-10-14 (Expressive redesign): plain section -> MoCard.
     // The segmented control inside is untouched.
-    GlassCard(
+    MoCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),

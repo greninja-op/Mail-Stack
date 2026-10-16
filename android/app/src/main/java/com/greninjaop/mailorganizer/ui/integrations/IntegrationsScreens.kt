@@ -28,7 +28,6 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -57,7 +56,7 @@ import com.greninjaop.mailorganizer.core.integrations.IntegrationCapability
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.core.integrations.IntegrationStatus
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -100,12 +99,12 @@ fun IntegrationsScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Integrations") },
                 navigationIcon = {
@@ -188,7 +187,6 @@ fun IntegrationsScreen(
                         snapshot = snapshot,
                         onClick = { onOpenDetail(snapshot.id) },
                     )
-                    HorizontalDivider()
                 }
                 item {
                     Text(
@@ -207,8 +205,8 @@ fun IntegrationsScreen(
 /** Offline banner (phase §26): offline is not disconnected. */
 @Composable
 private fun OfflineBanner() {
-    // 2026-10-14 (Breeze glass everywhere): surfaceVariant row -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): surfaceVariant row -> MoCard.
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
@@ -240,9 +238,9 @@ private fun IntegrationRow(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
+    // 2026-10-14 (Expressive redesign): plain row -> MoCard.
     // StatusPill and badge inside are untouched.
-    GlassCard(
+    MoCard(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs)
@@ -415,12 +413,12 @@ fun IntegrationDetailScreen(
     }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text(snapshot.displayName) },
                 navigationIcon = {
@@ -440,7 +438,6 @@ fun IntegrationDetailScreen(
         ) {
             item {
                 DetailHeader(snapshot)
-                HorizontalDivider()
             }
             item {
                 DetailSection(title = "Status") {
@@ -454,7 +451,6 @@ fun IntegrationDetailScreen(
                         )
                     }
                 }
-                HorizontalDivider()
             }
             if (snapshot.accountEmail != null) {
                 item {
@@ -464,7 +460,6 @@ fun IntegrationDetailScreen(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                     }
-                    HorizontalDivider()
                 }
             }
             item {
@@ -492,7 +487,6 @@ fun IntegrationDetailScreen(
                         )
                     }
                 }
-                HorizontalDivider()
             }
             item {
                 DetailSection(title = "Permissions") {
@@ -531,7 +525,6 @@ fun IntegrationDetailScreen(
                         }
                     }
                 }
-                HorizontalDivider()
             }
             item {
                 DetailActions(
@@ -553,12 +546,12 @@ fun UnknownIntegrationScreen(
     modifier: Modifier = Modifier,
 ) {
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Integration") },
                 navigationIcon = {
@@ -676,8 +669,8 @@ private fun DetailActions(
             // UNAVAILABLE: no Connect button — the integration isn't built.
             // The status reason already explains when it arrives (phase §27).
             IntegrationStatus.UNAVAILABLE -> {
-                // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-                GlassCard {
+                // 2026-10-14 (Expressive redesign): Card -> MoCard.
+                MoCard {
                     Text(
                         text = snapshot.statusReason,
                         style = MaterialTheme.typography.bodyMedium,

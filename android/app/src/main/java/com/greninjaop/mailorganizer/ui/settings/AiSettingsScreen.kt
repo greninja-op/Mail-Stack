@@ -23,7 +23,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -49,7 +48,7 @@ import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.core.ai.AiAvailabilityState
 import com.greninjaop.mailorganizer.core.ai.AiCapability
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -74,12 +73,12 @@ fun AiSettingsScreen(
     var showResetDialog by remember { mutableStateOf(false) }
 
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("AI Assistance (Optional)") },
                 navigationIcon = {
@@ -104,9 +103,9 @@ fun AiSettingsScreen(
             // Status and Policy Notice Card
             StatusCard(state = state)
 
-            // Master Enable Toggle (2026-10-14: Breeze glass everywhere;
+            // Master Enable Toggle (2026-10-14: Expressive redesign;
             // the Switch inside is untouched).
-            GlassCard(
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { viewModel.toggleAiEnabled(!state.isAiEnabled) },
             ) {
@@ -140,7 +139,6 @@ fun AiSettingsScreen(
             }
             }
 
-            HorizontalDivider()
 
             if (state.isAiEnabled) {
                 // Provider Selection Section
@@ -154,9 +152,9 @@ fun AiSettingsScreen(
                 Column(verticalArrangement = Arrangement.spacedBy(MoSpacing.sm)) {
                     for (provider in state.availableProviders) {
                         val isSelected = provider.id.value == state.selectedProviderId
-                        // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
+                        // 2026-10-14 (Expressive redesign): Card -> MoCard.
                         // Selection stays conveyed by the Check icon + bold text.
-                        GlassCard(
+                        MoCard(
                             modifier = Modifier.fillMaxWidth(),
                             onClick = { viewModel.selectProvider(provider.id.value) },
                         ) {
@@ -212,8 +210,8 @@ fun AiSettingsScreen(
 
                 // Remote-specific configuration (BYOK & Consent)
                 if (currentSelected?.isRemote == true) {
-                    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-                    GlassCard(
+                    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+                    MoCard(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
                         Column(
@@ -259,7 +257,6 @@ fun AiSettingsScreen(
                     }
                 }
 
-                HorizontalDivider()
 
                 // Allowed Capabilities Section
                 Text(
@@ -290,7 +287,6 @@ fun AiSettingsScreen(
                     onToggle = { viewModel.toggleCapability(AiCapability.SUMMARIZE_THREAD, it) },
                 )
 
-                HorizontalDivider()
 
                 // Reset / Disconnect Action
                 TextButton(
@@ -305,8 +301,8 @@ fun AiSettingsScreen(
             }
 
             // Privacy Center disclosure shortcut
-            // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-            GlassCard(
+            // 2026-10-14 (Expressive redesign): Card -> MoCard.
+            MoCard(
                 modifier = Modifier.fillMaxWidth(),
                 onClick = { onNavigate(AppDestinations.PRIVACY) },
             ) {
@@ -376,7 +372,7 @@ fun AiSettingsScreen(
 
 @Composable
 private fun StatusCard(state: AiSettingsUiState) {
-    // 2026-10-14: container color dropped with the Card -> GlassCard swap;
+    // 2026-10-14: container color dropped with the Card -> MoCard swap;
     // status stays visible via message text + icon tint.
     val (_, textColor, message) = when {
         !state.isAiEnabled -> Triple(
@@ -406,9 +402,9 @@ private fun StatusCard(state: AiSettingsUiState) {
         )
     }
 
-    // 2026-10-14 (Breeze glass everywhere): status Card -> GlassCard.
+    // 2026-10-14 (Expressive redesign): status Card -> MoCard.
     // The status message text + icon tint keep the state visible.
-    GlassCard(
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(
@@ -438,8 +434,8 @@ private fun CapabilityRow(
     enabled: Boolean,
     onToggle: (Boolean) -> Unit,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): plain row -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): plain row -> MoCard.
+    MoCard(
         modifier = Modifier.fillMaxWidth(),
         onClick = { onToggle(!enabled) },
     ) {
