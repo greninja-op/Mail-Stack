@@ -47,7 +47,7 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /** Factory for the Phase 11 Companies destination. */
@@ -87,7 +87,7 @@ fun CompaniesScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -119,7 +119,7 @@ fun CompaniesScreen(
                 items(content.companies, key = { it.record.companyId }) { entry ->
                     val name = entry.record.userOverrideName
                         ?: entry.record.canonicalName
-                    GlassCard(
+                    MoCard(
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(min = MoSpacing.companyRowMinHeight)
@@ -200,11 +200,11 @@ fun CompanyDetailScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = {
                     Text(

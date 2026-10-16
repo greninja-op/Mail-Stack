@@ -31,7 +31,7 @@ import com.greninjaop.mailorganizer.core.actions.ExternalEffect
 import com.greninjaop.mailorganizer.data.local.ActionItemRecord
 import com.greninjaop.mailorganizer.data.local.ActionType
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -133,8 +133,8 @@ fun ActionCard(
 ) {
     var showWhy by remember(card.id) { mutableStateOf(false) }
 
-    // 2026-10-13 (Breeze redesign): translucent glass card.
-    GlassCard(
+    // 2026-10-16 (Expressive redesign): solid tonal card.
+    MoCard(
         modifier = modifier
             .fillMaxWidth()
             .semantics {

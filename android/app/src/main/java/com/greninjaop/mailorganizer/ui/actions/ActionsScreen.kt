@@ -103,7 +103,7 @@ fun ActionsScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             MoAppTopBar(
                                 account = account,

@@ -46,9 +46,8 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
-import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 
 /**
  * Home dashboard — Phase 11 (phase §8–§19).
@@ -74,7 +73,7 @@ fun HomeScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -152,7 +151,7 @@ private fun HomeLoaded(
 
         AccountHeader(account = content.account, unreadCount = content.unreadCount)
         Spacer(Modifier.height(MoSpacing.xs))
-        GlassCard(
+        MoCard(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = MoSpacing.xxs),
@@ -248,7 +247,7 @@ private fun HomeLoaded(
                 onViewAll = { onNavigate(AppDestinations.COMPANIES) },
             ) {
                 content.companies.forEach { company ->
-                    GlassCard(
+                    MoCard(
                         modifier = Modifier.fillMaxWidth(),
                         onClick = { onOpenCompany(company.record.companyId) },
                     ) {
@@ -367,7 +366,7 @@ private fun HomeMessageRow(
     message: HomeMessage,
     onClick: () -> Unit,
 ) {
-    GlassCard(
+    MoCard(
         modifier = Modifier
             .fillMaxWidth()
             .semantics {
@@ -442,7 +441,7 @@ private fun CategoryOverviewGrid(
             ) {
                 row.forEach { category ->
                     val visuals = category.visuals()
-                    GlassCard(
+                    MoCard(
                         modifier = Modifier
                             .weight(1f)
                             .semantics {
@@ -477,9 +476,8 @@ private fun CategoryOverviewGrid(
 
 @Composable
 private fun OfflineNote() {
-    val glass = rememberGlassPalette()
     Surface(
-        color = glass.bar,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Text(

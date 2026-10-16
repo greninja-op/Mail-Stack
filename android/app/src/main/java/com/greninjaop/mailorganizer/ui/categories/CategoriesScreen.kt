@@ -57,7 +57,7 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
 import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
 import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /** Factory for the Phase 11 Categories destination. */
@@ -105,7 +105,7 @@ fun CategoriesScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             MoAppTopBar(
                                 account = account,
@@ -182,7 +182,7 @@ private fun CategoryGroupList(
             val members = remember(group, counts) {
                 group.members.filter { (counts[it] ?: 0) > 0 }
             }
-            GlassCard(
+            MoCard(
                 modifier = Modifier
                     .animateItem()
                     .semantics {
@@ -240,7 +240,7 @@ private fun CategoryGroupList(
                     members.forEach { member ->
                         val label = remember(member) { member.visuals().label }
                         val count = counts[member] ?: 0
-                        GlassCard(
+                        MoCard(
                             modifier = Modifier
                                 .padding(start = MoSpacing.xl)
                                 .semantics {
@@ -287,11 +287,11 @@ fun CategoryDetailScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text(visuals.label) },
                 navigationIcon = {

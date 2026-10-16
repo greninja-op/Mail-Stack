@@ -59,7 +59,7 @@ import com.greninjaop.mailorganizer.domain.rules.UserRule
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.rules.RuleEditorModels.ActionDraft
 import com.greninjaop.mailorganizer.ui.rules.RuleEditorModels.ConditionDraft
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
+import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -81,12 +81,12 @@ fun RulesScreen(
 ) {
     val state by viewModel.state.collectAsState()
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text("Rules") },
                 navigationIcon = {
@@ -203,9 +203,9 @@ private fun SectionHeader(text: String) {
 
 @Composable
 private fun ConflictBanner(conflicts: List<String>, modifier: Modifier = Modifier) {
-    // 2026-10-14 (Breeze glass everywhere): error Card -> GlassCard.
+    // 2026-10-14 (Expressive redesign): error Card -> MoCard.
     // Warning icon + "Conflicting rules" text keep the warning signal.
-    GlassCard(
+    MoCard(
         modifier = modifier.fillMaxWidth(),
     ) {
         Column(modifier = Modifier.padding(MoSpacing.md)) {
@@ -244,8 +244,8 @@ private fun RuleCard(
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(
         modifier = modifier.fillMaxWidth(),
         onClick = onEdit,
     ) {
@@ -331,12 +331,12 @@ fun RuleEditorScreen(
 ) {
     val state by viewModel.state.collectAsState()
     Scaffold(
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         modifier = modifier,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 title = { Text(if (state.isLoading) "Rule" else "Edit rule") },
                 navigationIcon = {
@@ -463,8 +463,8 @@ private fun ConditionRow(
     onRemove: () -> Unit,
     showRemove: Boolean,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(MoSpacing.md),
             verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
@@ -507,8 +507,8 @@ private fun ActionRow(
     onRemove: () -> Unit,
     showRemove: Boolean,
 ) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(MoSpacing.md),
             verticalArrangement = Arrangement.spacedBy(MoSpacing.sm),
@@ -555,8 +555,8 @@ private fun defaultActionValue(type: RuleActionType): String = when (type) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PreviewCard(preview: RulePreview) {
-    // 2026-10-14 (Breeze glass everywhere): Card -> GlassCard.
-    GlassCard(modifier = Modifier.fillMaxWidth()) {
+    // 2026-10-14 (Expressive redesign): Card -> MoCard.
+    MoCard(modifier = Modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier.padding(MoSpacing.md),
             verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
