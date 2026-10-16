@@ -146,3 +146,32 @@
   .ptr-indicator svg{flex:0 0 auto}
   @keyframes ptrspin{to{transform:rotate(360deg)}}
   .ptr-spinning{animation:ptrspin .8s linear infinite}
+
+  /* ---- Account switcher sheet demo (see §8) ---- */
+  .as-stage{position:relative;height:420px;overflow:hidden;background:var(--surface);border:1.5px solid var(--outline);border-radius:16px}
+  .as-dpbtn{cursor:pointer}
+  .as-scrim{position:absolute;inset:0;background:rgba(0,0,0,.4);opacity:0;pointer-events:none;transition:opacity 250ms ease;z-index:2}
+  .as-sheet{position:absolute;left:0;right:0;bottom:0;background:var(--surface);border-radius:16px 16px 0 0;transform:translateY(102%);transition:transform 300ms cubic-bezier(0.4,0,0.2,1);z-index:3;max-height:82%;overflow:hidden;box-shadow:0 -4px 24px rgba(0,0,0,.2)}
+  .as-stage.sheet-open .as-sheet{transform:translateY(0)}
+  .as-stage.sheet-open .as-scrim{opacity:1;pointer-events:auto}
+  .as-handle{width:40px;height:5px;border-radius:2.5px;background:var(--outline);margin:8px auto 4px}
+  .as-header{display:flex;align-items:center;gap:12px;padding:8px 16px 10px}
+  .as-bigava{width:56px;height:56px;flex:0 0 auto;border-radius:50%;background:var(--violet);color:#fff;font-weight:700;font-size:24px;display:flex;align-items:center;justify-content:center}
+  .as-headtext{flex:1;min-width:0}
+  .as-headtext b{display:block;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .as-headtext em{display:block;font-size:13px;color:var(--muted);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .as-arrow{width:40px;height:40px;flex:0 0 auto;border-radius:50%;border:1px solid var(--outline);background:var(--surface);font-size:18px;cursor:pointer;color:var(--ink)}
+  .as-body{overflow:hidden;max-height:320px;opacity:1;transition:max-height 250ms ease,opacity 200ms ease;padding-bottom:12px}
+  .as-sheet.collapsed .as-body{max-height:0;opacity:0;padding-bottom:0}
+  .as-row{display:flex;align-items:center;gap:12px;padding:8px 16px;cursor:pointer}
+  .as-row:hover{background:var(--container)}
+  .as-rowava{width:40px;height:40px;flex:0 0 auto;border-radius:50%;background:var(--violet);color:#fff;font-weight:700;font-size:16px;display:flex;align-items:center;justify-content:center}
+  .as-rowmail{background:var(--container-high);color:var(--violet);font-size:18px}
+  .as-row div{flex:1;min-width:0}
+  .as-row b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500}
+  .as-row em{display:block;font-size:13px;color:var(--muted);font-style:normal;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .as-div{border:none;border-top:1px solid var(--outline);margin:8px 0}
+  .as-action{display:flex;align-items:center;gap:12px;padding:8px 16px;cursor:pointer}
+  .as-action:hover{background:var(--container)}
+  .as-acticon{width:48px;height:48px;flex:0 0 auto;border-radius:50%;border:1px solid var(--outline);display:flex;align-items:center;justify-content:center;font-size:20px}
+  .as-action b{font-size:15px;font-weight:500}
