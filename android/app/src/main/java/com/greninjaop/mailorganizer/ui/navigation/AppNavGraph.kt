@@ -65,6 +65,7 @@ import com.greninjaop.mailorganizer.ui.integrations.IntegrationsViewModelFactory
 import com.greninjaop.mailorganizer.ui.integrations.UnknownIntegrationScreen
 import com.greninjaop.mailorganizer.ui.mail.MailDrawer
 import com.greninjaop.mailorganizer.ui.mail.MailScreen
+import com.greninjaop.mailorganizer.ui.mail.MailScreenState
 import com.greninjaop.mailorganizer.ui.mail.MailViewModel
 import com.greninjaop.mailorganizer.ui.mail.MailViewModelFactory
 import com.greninjaop.mailorganizer.ui.mail.ThreadScreen
@@ -324,6 +325,13 @@ fun AppNavGraph(
     // fix); DrawerState has no replay at all.
     val drawerState = rememberDrawerState(DrawerValue.Closed)
     val drawerScope = rememberCoroutineScope()
+    // Defensive: the drawer is Mail-only, so make sure it is closed
+    // when leaving Mail (it is already closed in practice — the scrim
+    // blocks tab switches while it is open — but never leave it open
+    // over another tab).
+    LaunchedEffect(isMail) {
+        if (!isMail) drawerState.close()
+    }
 
     // Active account for the top bar's avatar on non-Mail tabs (Mail's
     // actions read it from MailViewModel). Same Single/Unified derivation
@@ -356,15 +364,27 @@ fun AppNavGraph(
         drawerState = drawerState,
         gesturesEnabled = isMail,
         drawerContent = {
-            if (mailState != null) {
-                MailDrawer(
-                    state = mailState,
-                    onSelect = { dest ->
-                        mailVm?.setDestination(dest)
-                        drawerScope.launch { drawerState.close() }
-                    },
-                )
-            }
+            // ALWAYS composed — never conditional (2026-10-16 fix for
+            // the drawer auto-opening on Mail entry + the freeze on
+            // leaving Mail). ModalNavigationDrawer's anchors are
+            // derived from the sheet's measured width: when the content
+            // was `if (mailState != null)`, entering Mail made the width
+            // jump 0 → ~320dp, so the closed offset (0, when empty)
+            // suddenly mapped to the OPEN anchor and the drawer opened
+            // by itself; leaving Mail collapsed the anchors, the offset
+            // went out of bounds, and the scrim stuck over the screen
+            // blocking all touches. With the content always present
+            // (a default state when not on Mail — the drawer is never
+            // openable there anyway), the width and anchors never
+            // change, so the drawer only ever opens on a hamburger tap
+            // or an edge swipe.
+            MailDrawer(
+                state = mailState ?: MailScreenState(),
+                onSelect = { dest ->
+                    mailVm?.setDestination(dest)
+                    drawerScope.launch { drawerState.close() }
+                },
+            )
         },
     ) {
         Scaffold(
