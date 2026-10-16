@@ -4,6 +4,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -935,6 +936,10 @@ private fun AppearanceSegmentedControl(
     val segmentWidthPx = if (modes.isEmpty()) 0f else containerWidthPx / modes.size
     val pillHalfWidthPx = segmentPillHalfWidth(segmentWidthPx, insetPx)
     val bubble = rememberJellyBubbleState()
+    // No ripple on the segments: the sliding pill IS the tap feedback.
+    // The default clickable ripple is a rectangle, and it drew a
+    // square box behind the pill on every tap (2026-10-16).
+    val interactionSource = remember { MutableInteractionSource() }
     val targetCenter = centers.getOrNull(selectedIndex) ?: 0f
 
     Box(
@@ -973,7 +978,11 @@ private fun AppearanceSegmentedControl(
                     Modifier
                         .weight(1f)
                         .fillMaxHeight()
-                        .clickable(role = Role.RadioButton) {
+                        .clickable(
+                            role = Role.RadioButton,
+                            indication = null,
+                            interactionSource = interactionSource,
+                        ) {
                             if (index != selectedIndex) onSelect(mode)
                         }
                         .semantics {
