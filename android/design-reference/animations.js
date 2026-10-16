@@ -260,4 +260,45 @@
       if (el) el.addEventListener("click", asClose);
     });
   }
+
+  /* ---------- Settings panel demo (see §9) ---------- */
+  var spStage = document.getElementById("spStage");
+  var spTopAvatar = document.getElementById("spTopAvatar");
+  var spPanel = document.getElementById("spPanel");
+  var spBack = document.getElementById("spBack");
+  var spAccHead = document.getElementById("spAccHead");
+  var spArrow = document.getElementById("spArrow");
+  var spHeadAvatar = document.getElementById("spHeadAvatar");
+  var spHeadName = document.getElementById("spHeadName");
+  var spHeadEmail = document.getElementById("spHeadEmail");
+  if (spStage && spTopAvatar && spPanel && spBack && spAccHead && spArrow) {
+    function spClose() {
+      spStage.classList.remove("panel-open");
+      spPanel.classList.add("acc-collapsed");
+      spArrow.textContent = "\u2228";
+    }
+    spTopAvatar.addEventListener("click", function () {
+      spStage.classList.add("panel-open");
+    });
+    spBack.addEventListener("click", spClose);
+    spAccHead.addEventListener("click", function () {
+      var collapsed = spPanel.classList.toggle("acc-collapsed");
+      spArrow.textContent = collapsed ? "\u2228" : "\u2227";
+    });
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#spAccBody .as-row"),
+      function (row) {
+        row.addEventListener("click", function () {
+          // Switch: the header + the top-bar DP follow the picked account.
+          spHeadAvatar.textContent = row.dataset.letter || "A";
+          spHeadName.textContent = row.dataset.name || "";
+          spHeadEmail.textContent = row.dataset.email || "";
+          spTopAvatar.textContent = row.dataset.letter || "A";
+          spClose();
+        });
+      }
+    );
+    var spAdd = document.getElementById("spAdd");
+    if (spAdd) spAdd.addEventListener("click", function () { /* Connect flow: the panel stays */ });
+  }
 })();
