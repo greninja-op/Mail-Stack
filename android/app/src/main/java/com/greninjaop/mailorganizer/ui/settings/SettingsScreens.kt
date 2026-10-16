@@ -1,9 +1,15 @@
 package com.greninjaop.mailorganizer.ui.settings
 
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -12,11 +18,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Build
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Lock
@@ -29,9 +37,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
@@ -39,17 +44,25 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onPlaced
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -68,7 +81,12 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import com.greninjaop.mailorganizer.ui.components.JellyBubble
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
+import com.greninjaop.mailorganizer.ui.components.pillCoversIcon
+import com.greninjaop.mailorganizer.ui.components.rememberJellyBubbleState
+import com.greninjaop.mailorganizer.ui.components.segmentCenters
+import com.greninjaop.mailorganizer.ui.components.segmentPillHalfWidth
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
@@ -869,22 +887,145 @@ fun AppearanceSection(
             style = MaterialTheme.typography.titleSmall,
             modifier = Modifier.padding(vertical = MoSpacing.sm),
         )
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
-            ThemeMode.entries.forEachIndexed { index, mode ->
-                SegmentedButton(
-                    selected = themeMode == mode,
-                    onClick = { viewModel.setThemeMode(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(
-                        index = index,
-                        count = ThemeMode.entries.size,
-                    ),
-                    label = {
-                        Text(mode.name.lowercase().replaceFirstChar { it.titlecase() })
-                    },
-                )
-            }
-        }
+        // 2026-10-16: jelly-bubble picker (same bubble as the bottom
+        // nav) replaces the stock SegmentedButton row.
+        AppearanceSegmentedControl(
+            selectedMode = themeMode,
+            onSelect = viewModel::setThemeMode,
+            modifier = Modifier.fillMaxWidth(),
+        )
         Spacer(Modifier.height(MoSpacing.md))
     }
     }
 }
+
+/**
+ * Appearance theme picker — System / Light / Dark — with the same
+ * jelly bubble as the bottom nav ([JellyBubble]): one pill slides
+ * between the three options with squash-and-stretch physics instead
+ * of each option flashing its own selected fill. The checkmark and
+ * label tint follow the pill — they switch the moment the bubble
+ * covers the segment — so bubble + content read as one unit. The
+ * checkmark's slot is always laid out (it fades/scales in), so the
+ * label never jumps when the check appears.
+ *
+ * Deliberate deviations from stock M3 SegmentedButton: no dividers
+ * between segments (a sliding thumb + divider lines fight each other
+ * — every sliding-thumb reference drops them). Shape, colours, and
+ * label style stay M3: capsule outline border, secondaryContainer
+ * pill, onSecondaryContainer selected content, labelLarge.
+ *
+ * The theme itself flips instantly on tap (like the page switch under
+ * the nav bubble); the pill just animates over the new theme's colours.
+ */
+@Composable
+private fun AppearanceSegmentedControl(
+    selectedMode: ThemeMode,
+    onSelect: (ThemeMode) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val modes = ThemeMode.entries
+    val selectedIndex = modes.indexOf(selectedMode).coerceAtLeast(0)
+    val density = LocalDensity.current
+    val insetPx = with(density) { PillInset.toPx() }
+    var containerWidthPx by remember { mutableFloatStateOf(0f) }
+    val centers = remember(modes.size, containerWidthPx) {
+        segmentCenters(containerWidthPx, modes.size)
+    }
+    val segmentWidthPx = if (modes.isEmpty()) 0f else containerWidthPx / modes.size
+    val pillHalfWidthPx = segmentPillHalfWidth(segmentWidthPx, insetPx)
+    val bubble = rememberJellyBubbleState()
+    val targetCenter = centers.getOrNull(selectedIndex) ?: 0f
+
+    Box(
+        modifier
+            .fillMaxWidth()
+            .height(ControlHeight)
+            .border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.outline,
+                shape = RoundedCornerShape(percent = 50),
+            )
+            .clip(RoundedCornerShape(percent = 50))
+            .onPlaced { coords -> containerWidthPx = coords.size.width.toFloat() },
+    ) {
+        JellyBubble(
+            state = bubble,
+            targetCenterPx = targetCenter,
+            targetHalfWidthPx = pillHalfWidthPx,
+            height = ControlHeight - PillInset * 2,
+            topOffset = PillInset,
+        )
+        Row(Modifier.fillMaxSize()) {
+            modes.forEachIndexed { index, mode ->
+                val covered = pillCoversIcon(bubble.centerPx, centers[index], pillHalfWidthPx)
+                val checkAlpha by animateFloatAsState(
+                    targetValue = if (covered) 1f else 0f,
+                    animationSpec = tween(150),
+                    label = "checkAlpha",
+                )
+                val checkScale by animateFloatAsState(
+                    targetValue = if (covered) 1f else 0.6f,
+                    animationSpec = tween(150),
+                    label = "checkScale",
+                )
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(role = Role.RadioButton) {
+                            if (index != selectedIndex) onSelect(mode)
+                        }
+                        .semantics {
+                            contentDescription = "${mode.name.lowercase()} theme"
+                            selected = index == selectedIndex
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(
+                            Modifier.size(CheckSize),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Check,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(CheckSize)
+                                    .graphicsLayer {
+                                        alpha = checkAlpha
+                                        scaleX = checkScale
+                                        scaleY = checkScale
+                                    },
+                                tint = MaterialTheme.colorScheme.onSecondaryContainer,
+                            )
+                        }
+                        Spacer(Modifier.width(CheckGap))
+                        Text(
+                            text = mode.name.lowercase()
+                                .replaceFirstChar { it.titlecase() },
+                            style = MaterialTheme.typography.labelLarge,
+                            color = if (covered) {
+                                MaterialTheme.colorScheme.onSecondaryContainer
+                            } else {
+                                MaterialTheme.colorScheme.onSurfaceVariant
+                            },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** Material 3 SegmentedButton height. */
+private val ControlHeight = 48.dp
+
+/** The bubble floats 4dp inside the capsule on every side. */
+private val PillInset = 4.dp
+
+/** Material 3 SegmentedButton selected-check size. */
+private val CheckSize = 18.dp
+
+/** Gap between the check and the label. */
+private val CheckGap = 6.dp
