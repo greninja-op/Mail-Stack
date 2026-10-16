@@ -436,3 +436,27 @@ sign-in in Chrome instead of staying in the app.
   the Connecting state now has an explicit Cancel button (reset()).
 - Version NOT bumped and NO APK built — user said no APK until they
   say okay. When they approve, bump (1.0.16) + build + deliver.
+
+## 2026-10-16 ~16:50 IST — Gmail-style infinite scroll (NO APK — user approval pending)
+User report: the mail list ends with a "Load more" button; they want
+Gmail behavior — automatic loading, no button, no waiting at the end.
+- New behavior: when the user scrolls past the halfway mark of the
+  loaded list, the next page starts loading, so it is already there by
+  the time they reach the end. A small "Loading more…" spinner shows
+  at the list end while a page is in flight. Page size stays 50
+  (bounded paging preserved); the 50% mark is the trigger, not a
+  doubling page size.
+- Threads list: "Load more" button removed; LazyColumn gains
+  listState + snapshotFlow prefetch trigger (shouldPrefetchMore, pure
+  + unit-tested). Messages lists (Starred/Promotions/Social/Spam/
+  company) gain the same trigger + a hasMore the VM never exposed —
+  they used to stop silently at the first 50 rows with no way to see
+  more.
+- MailboxContent.Threads/Messages now carry the limit they were built
+  for. loadMore() is guarded: no-op when hasMore is false or when a
+  bigger page is already being fetched (visible limit != requested
+  limit), so rapid scroll events can't stack requests. isLoadingMore
+  is derived from content limit vs requested limit — no extra flag.
+- Tests: 7 threshold tests + 3 VM tests (triple loadMore = one bump;
+  exhaustion stops paging; starred paginates). Version NOT bumped, NO
+  APK built — user said no APK until they say okay.

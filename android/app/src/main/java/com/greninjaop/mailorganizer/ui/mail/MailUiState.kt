@@ -71,10 +71,22 @@ sealed interface MailboxContent {
         val items: List<ThreadItem>,
         /** True when exactly [limit] rows loaded — more may exist. */
         val hasMore: Boolean,
+        /**
+         * The page limit this content was built for (2026-10-16 infinite
+         * scroll). The list compares it against the requested limit to
+         * know whether a bigger page is already being fetched.
+         */
+        val limit: Int,
     ) : MailboxContent
 
     /** Starred destination is message-centric (star is per-message). */
-    data class Messages(val items: List<MessageItem>) : MailboxContent
+    data class Messages(
+        val items: List<MessageItem>,
+        /** True when exactly [limit] rows loaded — more may exist. */
+        val hasMore: Boolean,
+        /** The page limit this content was built for (see [Threads.limit]). */
+        val limit: Int,
+    ) : MailboxContent
     data class Empty(val kind: EmptyKind) : MailboxContent
 
     /** User-facing message only — never stack traces/SQL/class names (§14). */
