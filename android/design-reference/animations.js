@@ -216,4 +216,48 @@
     ptrViewport.addEventListener("pointerup", ptrEnd);
     ptrViewport.addEventListener("pointercancel", ptrEnd);
   }
+
+  /* ---------- Account switcher sheet demo (see §8) ---------- */
+  var asStage = document.getElementById("asStage");
+  var asTopAvatar = document.getElementById("asTopAvatar");
+  var asSheet = document.getElementById("asSheet");
+  var asScrim = document.getElementById("asScrim");
+  var asArrow = document.getElementById("asArrow");
+  var asHeadAvatar = document.getElementById("asHeadAvatar");
+  var asHeadName = document.getElementById("asHeadName");
+  var asHeadEmail = document.getElementById("asHeadEmail");
+  if (asStage && asTopAvatar && asSheet && asScrim && asArrow) {
+    function asClose() {
+      asStage.classList.remove("sheet-open");
+      asSheet.classList.remove("collapsed");
+      asArrow.textContent = "\u2227";
+    }
+    asTopAvatar.addEventListener("click", function () {
+      asStage.classList.add("sheet-open");
+      asSheet.classList.remove("collapsed");
+      asArrow.textContent = "\u2227";
+    });
+    asScrim.addEventListener("click", asClose);
+    asArrow.addEventListener("click", function () {
+      var collapsed = asSheet.classList.toggle("collapsed");
+      asArrow.textContent = collapsed ? "\u2228" : "\u2227";
+    });
+    Array.prototype.forEach.call(
+      document.querySelectorAll("#asBody .as-row"),
+      function (row) {
+        row.addEventListener("click", function () {
+          // Switch: the header + the top-bar DP follow the picked account.
+          asHeadAvatar.textContent = row.dataset.letter || "A";
+          asHeadName.textContent = row.dataset.name || "";
+          asHeadEmail.textContent = row.dataset.email || "";
+          asTopAvatar.textContent = row.dataset.letter || "A";
+          asClose();
+        });
+      }
+    );
+    ["asAdd", "asSettings"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener("click", asClose);
+    });
+  }
 })();
