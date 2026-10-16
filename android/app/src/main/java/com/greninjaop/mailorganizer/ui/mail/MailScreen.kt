@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.CircularProgressIndicator
@@ -29,6 +30,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
+import androidx.compose.material3.pulltorefresh.PullToRefreshState
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -37,6 +40,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
@@ -209,8 +213,15 @@ private fun MailContent(
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
-        // Gmail parity: pull-to-refresh on the list, wired to the sync engine.
+        // Instagram-style pull-to-refresh (2026-10-16): one hoisted
+        // PullToRefreshBox over the whole mailbox — every state
+        // (list, empty, error, skeleton) can pull, so the top-bar
+        // reload button is gone (see MoPrimaryTopBar). The indicator
+        // is custom: a pill with a filling arc + "Pull to refresh" /
+        // "Release to refresh" / "Refreshing…" — the threshold is
+        // the signal, not a bare spinner.
         val isRefreshing = state.syncUi is SyncUiState.Syncing
+        val pullState = rememberPullToRefreshState()
         // Skeleton only on the true first load (2026-10-16 fix): the
         // skeleton shows when content is Loading (nothing cached yet).
         // Once the mailbox is loaded, the ViewModel caches it, so tab
@@ -218,45 +229,53 @@ private fun MailContent(
         // flash on every Mail entry. (The old 300ms defer protected the
         // bubble animation, but the skeleton flash on every tab switch
         // was worse; the cached list composes fast enough.)
-        Column(modifier = modifier.fillMaxSize()) {
-            header()
-            when (val content = state.content) {
-                // Skeleton loading (2026-10-16): while the first batch
-                // loads, show skeleton rows mirroring the real rows'
-                // geometry — never a spinner, never a layout jump.
-                MailboxContent.Loading -> MailListSkeleton(
-                    modifier = Modifier.weight(1f),
+        PullToRefreshBox(
+            isRefreshing = isRefreshing,
+            onRefresh = onRetry,
+            state = pullState,
+            modifier = modifier.fillMaxSize(),
+            indicator = {
+                InstagramPullIndicator(
+                    state = pullState,
+                    isRefreshing = isRefreshing,
+                    modifier = Modifier.align(Alignment.TopCenter),
                 )
-                is MailboxContent.Threads -> {
-                    val listState = rememberLazyListState()
-                    // Gmail-style infinite scroll (2026-10-16): prefetch
-                    // the next page when the user scrolls past the halfway
-                    // mark of the loaded list — by the time they reach the
-                    // end, the next batch is already there. No "Load more"
-                    // button, no waiting at the end. The ViewModel guards
-                    // loadMore() against stacked requests.
-                    LaunchedEffect(listState, content) {
-                        snapshotFlow {
-                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                        }.collect { lastVisible ->
-                            if (shouldPrefetchMore(
-                                    lastVisible,
-                                    content.items.size,
-                                    content.hasMore,
-                                )
-                            ) {
-                                onLoadMore()
+            },
+        ) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                header()
+                when (val content = state.content) {
+                    // Skeleton loading (2026-10-16): while the first batch
+                    // loads, show skeleton rows mirroring the real rows'
+                    // geometry — never a spinner, never a layout jump.
+                    MailboxContent.Loading -> MailListSkeleton(
+                        modifier = Modifier.weight(1f),
+                    )
+                    is MailboxContent.Threads -> {
+                        val listState = rememberLazyListState()
+                        // Gmail-style infinite scroll (2026-10-16): prefetch
+                        // the next page when the user scrolls past the halfway
+                        // mark of the loaded list — by the time they reach the
+                        // end, the next batch is already there. No "Load more"
+                        // button, no waiting at the end. The ViewModel guards
+                        // loadMore() against stacked requests.
+                        LaunchedEffect(listState, content) {
+                            snapshotFlow {
+                                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                            }.collect { lastVisible ->
+                                if (shouldPrefetchMore(
+                                        lastVisible,
+                                        content.items.size,
+                                        content.hasMore,
+                                    )
+                                ) {
+                                    onLoadMore()
+                                }
                             }
                         }
-                    }
-                    PullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = onRetry,
-                        modifier = Modifier.weight(1f).fillMaxSize(),
-                    ) {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.weight(1f).fillMaxSize()
                                 // Subtle top/bottom edge fade (2026-10-16):
                                 // rows dissolve gently as they scroll under
                                 // the bars instead of hard-clipping.
@@ -286,34 +305,28 @@ private fun MailContent(
                             }
                         }
                     }
-                }
-                is MailboxContent.Messages -> {
-                    val listState = rememberLazyListState()
-                    // Same infinite scroll as the thread list (2026-10-16):
-                    // starred/promotions/social/spam lists used to stop
-                    // silently at the first page with no way to see more.
-                    LaunchedEffect(listState, content) {
-                        snapshotFlow {
-                            listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
-                        }.collect { lastVisible ->
-                            if (shouldPrefetchMore(
-                                    lastVisible,
-                                    content.items.size,
-                                    content.hasMore,
-                                )
-                            ) {
-                                onLoadMore()
+                    is MailboxContent.Messages -> {
+                        val listState = rememberLazyListState()
+                        // Same infinite scroll as the thread list (2026-10-16):
+                        // starred/promotions/social/spam lists used to stop
+                        // silently at the first page with no way to see more.
+                        LaunchedEffect(listState, content) {
+                            snapshotFlow {
+                                listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: -1
+                            }.collect { lastVisible ->
+                                if (shouldPrefetchMore(
+                                        lastVisible,
+                                        content.items.size,
+                                        content.hasMore,
+                                    )
+                                ) {
+                                    onLoadMore()
+                                }
                             }
                         }
-                    }
-                    PullToRefreshBox(
-                        isRefreshing = isRefreshing,
-                        onRefresh = onRetry,
-                        modifier = Modifier.weight(1f).fillMaxSize(),
-                    ) {
                         LazyColumn(
                             state = listState,
-                            modifier = Modifier.fillMaxSize()
+                            modifier = Modifier.weight(1f).fillMaxSize()
                                 // Subtle top/bottom edge fade (2026-10-16):
                                 // rows dissolve gently as they scroll under
                                 // the bars instead of hard-clipping.
@@ -343,65 +356,124 @@ private fun MailContent(
                             }
                         }
                     }
-                }
-                is MailboxContent.Empty -> {
-                    when (content.kind) {
-                        EmptyKind.NO_MAIL -> MoEmptyState(
-                            title = "No synchronized email yet",
-                            message = "Connect a Gmail account to see your mail here. " +
-                                "Tap Sync now to fetch your messages.",
-                            actionLabel = "Sync now",
-                            onAction = onRetry,
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_FILTER_RESULTS -> MoEmptyState(
-                            title = "No matches",
-                            message = "Nothing in this mailbox matches your search.",
-                            actionLabel = "Clear search",
-                            onAction = onClearFilter,
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_STARRED -> MoEmptyState(
-                            title = "No starred mail",
-                            message = "Messages you star will appear here.",
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_PROMOTIONS -> MoEmptyState(
-                            title = "No promotions",
-                            message = "Promotional mail will appear here once classified.",
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_SOCIAL -> MoEmptyState(
-                            title = "No social updates",
-                            message = "Social-network mail will appear here.",
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_SPAM -> MoEmptyState(
-                            title = "No spam",
-                            message = "Nothing filed as spam. Legitimate mail misfiled " +
-                                "as spam can be recovered from Gmail for now.",
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_COMPANY_RESULTS -> MoEmptyState(
-                            title = "No mail from this company here",
-                            message = "Nothing from the selected company in this mailbox.",
-                            modifier = Modifier.weight(1f),
-                        )
-                        EmptyKind.NO_ACTION_REQUIRED -> MoEmptyState(
-                            title = "Nothing needs action",
-                            message = "No mail classified as action-required. " +
-                                "You're all caught up.",
-                            modifier = Modifier.weight(1f),
-                        )
+                    is MailboxContent.Empty -> {
+                        when (content.kind) {
+                            EmptyKind.NO_MAIL -> MoEmptyState(
+                                title = "No synchronized email yet",
+                                message = "Connect a Gmail account to see your mail here. " +
+                                    "Tap Sync now to fetch your messages.",
+                                actionLabel = "Sync now",
+                                onAction = onRetry,
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_FILTER_RESULTS -> MoEmptyState(
+                                title = "No matches",
+                                message = "Nothing in this mailbox matches your search.",
+                                actionLabel = "Clear search",
+                                onAction = onClearFilter,
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_STARRED -> MoEmptyState(
+                                title = "No starred mail",
+                                message = "Messages you star will appear here.",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_PROMOTIONS -> MoEmptyState(
+                                title = "No promotions",
+                                message = "Promotional mail will appear here once classified.",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_SOCIAL -> MoEmptyState(
+                                title = "No social updates",
+                                message = "Social-network mail will appear here.",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_SPAM -> MoEmptyState(
+                                title = "No spam",
+                                message = "Nothing filed as spam. Legitimate mail misfiled " +
+                                    "as spam can be recovered from Gmail for now.",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_COMPANY_RESULTS -> MoEmptyState(
+                                title = "No mail from this company here",
+                                message = "Nothing from the selected company in this mailbox.",
+                                modifier = Modifier.weight(1f),
+                            )
+                            EmptyKind.NO_ACTION_REQUIRED -> MoEmptyState(
+                                title = "Nothing needs action",
+                                message = "No mail classified as action-required. " +
+                                    "You're all caught up.",
+                                modifier = Modifier.weight(1f),
+                            )
+                        }
                     }
+                    is MailboxContent.Error -> MoErrorState(
+                        message = content.message,
+                        onRetry = onRetry,
+                        modifier = Modifier.weight(1f),
+                    )
                 }
-                is MailboxContent.Error -> MoErrorState(
-                    message = content.message,
-                    onRetry = onRetry,
-                    modifier = Modifier.weight(1f),
-                )
             }
         }
+}
+
+/**
+ * Instagram-style pull-to-refresh indicator (2026-10-16): a pill
+ * with a filling arc + a threshold label, instead of Material's
+ * bare spinner. "Pull to refresh" while the drag is below the
+ * threshold; "Release to refresh" once past it (distanceFraction
+ * >= 1 — the release is the trigger); a spinner + "Refreshing…"
+ * while the sync runs. Fades in with the pull (alpha follows the
+ * fraction) so it is invisible at rest. Placed by the
+ * PullToRefreshBox's indicator slot, centered at the top.
+ */
+@Composable
+private fun InstagramPullIndicator(
+    state: PullToRefreshState,
+    isRefreshing: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val fraction = state.distanceFraction
+    val alpha = if (isRefreshing) 1f else fraction.coerceIn(0f, 1f)
+    Surface(
+        modifier = modifier
+            .alpha(alpha)
+            .padding(top = MoSpacing.sm),
+        shape = RoundedCornerShape(percent = 50),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = 4.dp,
+    ) {
+        Row(
+            modifier = Modifier.padding(
+                horizontal = MoSpacing.md,
+                vertical = MoSpacing.sm,
+            ),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            if (isRefreshing) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                )
+            } else {
+                CircularProgressIndicator(
+                    progress = { fraction.coerceIn(0f, 1f) },
+                    modifier = Modifier.size(20.dp),
+                    strokeWidth = 2.dp,
+                )
+            }
+            Spacer(Modifier.width(MoSpacing.sm))
+            Text(
+                text = when {
+                    isRefreshing -> "Refreshing…"
+                    fraction >= 1f -> "Release to refresh"
+                    else -> "Pull to refresh"
+                },
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+    }
 }
 
 /**
