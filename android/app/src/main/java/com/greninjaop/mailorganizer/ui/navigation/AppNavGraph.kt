@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -32,7 +35,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.data.local.AccountRecord
@@ -61,6 +63,7 @@ import com.greninjaop.mailorganizer.ui.home.HomeViewModelFactory
 import com.greninjaop.mailorganizer.ui.integrations.IntegrationsViewModel
 import com.greninjaop.mailorganizer.ui.integrations.IntegrationsViewModelFactory
 import com.greninjaop.mailorganizer.ui.integrations.UnknownIntegrationScreen
+import com.greninjaop.mailorganizer.ui.mail.MailDrawer
 import com.greninjaop.mailorganizer.ui.mail.MailScreen
 import com.greninjaop.mailorganizer.ui.mail.MailViewModel
 import com.greninjaop.mailorganizer.ui.mail.MailViewModelFactory
@@ -311,16 +314,16 @@ fun AppNavGraph(
     var otherQuery by remember { mutableStateOf("") }
     val searchQuery = if (isMail) mailState?.filterText ?: "" else otherQuery
 
-    // Drawer-open requests for the Mail tab: the hamburger lives in the
-    // hoisted top bar, the drawer lives in MailScreen. This is a
-    // ONE-SHOT event, so it is a SharedFlow with no replay — a StateFlow
-    // counter replays its last value to every new collector, so every
-    // time Mail re-entered composition after any hamburger tap, the
-    // drawer opened by itself around tab switches (2026-10-16 fix).
-    // With replay = 0, only a fresh hamburger tap opens the drawer.
-    val drawerOpenSignal = remember {
-        MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
-    }
+    // Mailbox drawer: hoisted above the whole Scaffold (2026-10-16), so
+    // the sheet + scrim cover the top bar and bottom bar too — exactly
+    // like Gmail's drawer. The per-screen drawer (inside MailScreen)
+    // only covered the content below the top bar.
+    // The hamburger opens it directly via DrawerState — no event flow:
+    // the earlier SharedFlow counter replayed its last value and
+    // reopened the drawer by itself around tab switches (2026-10-16
+    // fix); DrawerState has no replay at all.
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val drawerScope = rememberCoroutineScope()
 
     // Active account for the top bar's avatar on non-Mail tabs (Mail's
     // actions read it from MailViewModel). Same Single/Unified derivation
@@ -343,526 +346,545 @@ fun AppNavGraph(
         }
     }.collectAsState(initial = null)
 
-    Scaffold(
-        topBar = {
-            if (showBars) {
-                MoPrimaryTopBar(
-                    isMail = isMail,
-                    searchValue = searchQuery,
-                    onSearchValueChange = { query ->
-                        if (isMail) mailVm?.setFilterText(query)
-                        else otherQuery = query
+    // One ModalNavigationDrawer above the whole Scaffold: the sheet +
+    // scrim cover the top bar, the page, and the bottom bar (Gmail).
+    // Mail-scoped: the drawer holds mailbox destinations, so the
+    // edge-swipe only opens it on Mail (the hamburger is Mail-only
+    // too). Opening it from another tab and picking a destination
+    // would set Mail's destination invisibly.
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        gesturesEnabled = isMail,
+        drawerContent = {
+            if (mailState != null) {
+                MailDrawer(
+                    state = mailState,
+                    onSelect = { dest ->
+                        mailVm?.setDestination(dest)
+                        drawerScope.launch { drawerState.close() }
                     },
-                    onSearchSubmit = {
-                        navController.navigate(
-                            AppDestinations.searchRoute(searchQuery),
-                        )
-                    },
-                    onMenuClick = { drawerOpenSignal.tryEmit(Unit) },
-                    mailState = mailState,
-                    onRefresh = { mailVm?.refresh() },
-                    onOpenAccounts = {
-                        navController.navigate(AppDestinations.ACCOUNTS)
-                    },
-                    account = account,
-                    onOpenSecondary = navigatePrimary,
                 )
-            }
-        },
-        bottomBar = {
-            if (showBars) {
-                MoNavBar(
-                    currentRoute = currentRoute ?: AppDestinations.HOME,
-                    onNavigate = navigatePrimary,
-                )
-            }
-        },
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
-    ) { padding ->
-    NavHost(
-            navController = navController,
-            startDestination = AppDestinations.HOME,
-            modifier = Modifier.padding(padding),
-        // 2026-10-16: tab switches (primary ↔ primary) slide
-        // DIRECTIONALLY — the incoming tab's content enters from the
-        // side that tab sits on (a tab to the right slides in from the
-        // right, and vice versa), so the motion matches the jelly
-        // bubble's travel. The slide is opaque (no fade, no scale) and
-        // runs on the same 350ms spec as the bubble and the search-pill
-        // reshape, so all three land together and the new tab is fully
-        // rendered when the bubble stops. The old fade-through (exit
-        // 200ms + enter delayed 120ms) left a gap where both screens
-        // were semi-transparent, so the platform window background
-        // showed through as a white/gray flash — and the animation
-        // itself read as a reload. Pushed routes (thread, settings,
-        // ...) keep the fade-through. Tab state is preserved via
-        // saveState/restoreState (see navigatePrimary), so a switch
-        // never reloads a tab.
-        enterTransition = {
-            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                val dir = tabSlideDirection(
-                    initialState.destination.route,
-                    targetState.destination.route,
-                )
-                slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
-                    if (dir > 0) width else -width
-                }
-            } else {
-                fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
-                    scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
-            }
-        },
-        exitTransition = {
-            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                val dir = tabSlideDirection(
-                    initialState.destination.route,
-                    targetState.destination.route,
-                )
-                slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
-                    if (dir > 0) -width else width
-                }
-            } else {
-                fadeOut(animationSpec = MoMotion.fadeThroughExit) +
-                    scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
-            }
-        },
-        popEnterTransition = {
-            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                val dir = tabSlideDirection(
-                    initialState.destination.route,
-                    targetState.destination.route,
-                )
-                slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
-                    if (dir > 0) width else -width
-                }
-            } else {
-                fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
-                    scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
-            }
-        },
-        popExitTransition = {
-            if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                val dir = tabSlideDirection(
-                    initialState.destination.route,
-                    targetState.destination.route,
-                )
-                slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
-                    if (dir > 0) -width else width
-                }
-            } else {
-                fadeOut(animationSpec = MoMotion.fadeThroughExit) +
-                    scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
             }
         },
     ) {
-        // Phase 11: the real Home dashboard (replaces the Phase 1
-        // foundation screen).
-        composable(AppDestinations.HOME) {
-            val vm: HomeViewModel = viewModel(factory = HomeViewModelFactory(container))
-            HomeScreen(
-                viewModel = vm,
-                onNavigate = navigatePrimary,
-                onOpenThread = { threadId ->
-                    navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-                onOpenCategory = { category ->
-                    navController.navigate(AppDestinations.categoryRoute(category))
-                },
-                onOpenCompany = { companyId ->
-                    navController.navigate(AppDestinations.companyRoute(companyId))
-                },
-            )
-        }
-        // Phase 6: the real mailbox. Other destinations keep their honest
-        // placeholders until their phase builds them.
-        composable(AppDestinations.MAIL) {
-            val vm: MailViewModel = viewModel(factory = MailViewModelFactory(container))
-            MailScreen(
-                viewModel = vm,
-                onOpenThread = { threadId, focusMessageId ->
-                    navController.navigate(
-                        AppDestinations.threadRoute(threadId, focusMessageId),
+        Scaffold(
+            topBar = {
+                if (showBars) {
+                    MoPrimaryTopBar(
+                        isMail = isMail,
+                        searchValue = searchQuery,
+                        onSearchValueChange = { query ->
+                            if (isMail) mailVm?.setFilterText(query)
+                            else otherQuery = query
+                        },
+                        onSearchSubmit = {
+                            navController.navigate(
+                                AppDestinations.searchRoute(searchQuery),
+                            )
+                        },
+                        onMenuClick = { drawerScope.launch { drawerState.open() } },
+                        mailState = mailState,
+                        onRefresh = { mailVm?.refresh() },
+                        onOpenAccounts = {
+                            navController.navigate(AppDestinations.ACCOUNTS)
+                        },
+                        account = account,
+                        onOpenSecondary = navigatePrimary,
                     )
-                },
-                // The mailbox drawer is opened by the hamburger in the
-                // hoisted top bar (see drawerOpenSignal above).
-                drawerOpenSignal = drawerOpenSignal,
-                // Defer the heavy list past the tab-switch transition
-                // so the bubble animation never lags on Mail.
-                deferList = mailEnteredViaTab,
-            )
-        }
-        // Phase 11: category browsing + detail.
-        composable(AppDestinations.CATEGORIES) {
-            val vm: CategoriesViewModel =
-                viewModel(factory = CategoriesViewModelFactory(container))
-            CategoriesScreen(
-                viewModel = vm,
-                onNavigate = navigatePrimary,
-                onOpenCategory = { category ->
-                    navController.navigate(AppDestinations.categoryRoute(category))
-                },
-                onOpenThread = { threadId ->
-                    navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-            )
-        }
-        composable(
-            route = AppDestinations.CATEGORY_DETAIL,
-            arguments = listOf(
-                navArgument("categoryName") { type = NavType.StringType },
-            ),
-        ) { entry ->
-            val categoryName = entry.arguments?.getString("categoryName")
-            val category = runCatching {
-                com.greninjaop.mailorganizer.data.local.MailCategory.valueOf(
-                    categoryName ?: "",
+                }
+            },
+            bottomBar = {
+                if (showBars) {
+                    MoNavBar(
+                        currentRoute = currentRoute ?: AppDestinations.HOME,
+                        onNavigate = navigatePrimary,
+                    )
+                }
+            },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        ) { padding ->
+        NavHost(
+                navController = navController,
+                startDestination = AppDestinations.HOME,
+                modifier = Modifier.padding(padding),
+            // 2026-10-16: tab switches (primary ↔ primary) slide
+            // DIRECTIONALLY — the incoming tab's content enters from the
+            // side that tab sits on (a tab to the right slides in from the
+            // right, and vice versa), so the motion matches the jelly
+            // bubble's travel. The slide is opaque (no fade, no scale) and
+            // runs on the same 350ms spec as the bubble and the search-pill
+            // reshape, so all three land together and the new tab is fully
+            // rendered when the bubble stops. The old fade-through (exit
+            // 200ms + enter delayed 120ms) left a gap where both screens
+            // were semi-transparent, so the platform window background
+            // showed through as a white/gray flash — and the animation
+            // itself read as a reload. Pushed routes (thread, settings,
+            // ...) keep the fade-through. Tab state is preserved via
+            // saveState/restoreState (see navigatePrimary), so a switch
+            // never reloads a tab.
+            enterTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                    val dir = tabSlideDirection(
+                        initialState.destination.route,
+                        targetState.destination.route,
+                    )
+                    slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                        if (dir > 0) width else -width
+                    }
+                } else {
+                    fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                        scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+                }
+            },
+            exitTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                    val dir = tabSlideDirection(
+                        initialState.destination.route,
+                        targetState.destination.route,
+                    )
+                    slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                        if (dir > 0) -width else width
+                    }
+                } else {
+                    fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                        scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+                }
+            },
+            popEnterTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                    val dir = tabSlideDirection(
+                        initialState.destination.route,
+                        targetState.destination.route,
+                    )
+                    slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                        if (dir > 0) width else -width
+                    }
+                } else {
+                    fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
+                        scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
+                }
+            },
+            popExitTransition = {
+                if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
+                    val dir = tabSlideDirection(
+                        initialState.destination.route,
+                        targetState.destination.route,
+                    )
+                    slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                        if (dir > 0) -width else width
+                    }
+                } else {
+                    fadeOut(animationSpec = MoMotion.fadeThroughExit) +
+                        scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
+                }
+            },
+        ) {
+            // Phase 11: the real Home dashboard (replaces the Phase 1
+            // foundation screen).
+            composable(AppDestinations.HOME) {
+                val vm: HomeViewModel = viewModel(factory = HomeViewModelFactory(container))
+                HomeScreen(
+                    viewModel = vm,
+                    onNavigate = navigatePrimary,
+                    onOpenThread = { threadId ->
+                        navController.navigate(AppDestinations.threadRoute(threadId))
+                    },
+                    onOpenCategory = { category ->
+                        navController.navigate(AppDestinations.categoryRoute(category))
+                    },
+                    onOpenCompany = { companyId ->
+                        navController.navigate(AppDestinations.companyRoute(companyId))
+                    },
                 )
-            }.getOrNull()
-            if (category == null) {
-                // Unknown category — never crash on a bad deep link.
-                navController.popBackStack()
-            } else {
+            }
+            // Phase 6: the real mailbox. Other destinations keep their honest
+            // placeholders until their phase builds them.
+            composable(AppDestinations.MAIL) {
+                val vm: MailViewModel = viewModel(factory = MailViewModelFactory(container))
+                MailScreen(
+                    viewModel = vm,
+                    onOpenThread = { threadId, focusMessageId ->
+                        navController.navigate(
+                            AppDestinations.threadRoute(threadId, focusMessageId),
+                        )
+                    },
+                    // Defer the heavy list past the tab-switch transition
+                    // so the bubble animation never lags on Mail.
+                    deferList = mailEnteredViaTab,
+                )
+            }
+            // Phase 11: category browsing + detail.
+            composable(AppDestinations.CATEGORIES) {
                 val vm: CategoriesViewModel =
                     viewModel(factory = CategoriesViewModelFactory(container))
-                androidx.compose.runtime.LaunchedEffect(category) {
-                    vm.selectCategory(category)
-                }
-                CategoryDetailScreen(
+                CategoriesScreen(
                     viewModel = vm,
-                    category = category,
+                    onNavigate = navigatePrimary,
+                    onOpenCategory = { category ->
+                        navController.navigate(AppDestinations.categoryRoute(category))
+                    },
                     onOpenThread = { threadId ->
                         navController.navigate(AppDestinations.threadRoute(threadId))
                     },
-                    onBack = { navController.popBackStack() },
                 )
             }
-        }
-        // Phase 11: company browsing + detail.
-        composable(AppDestinations.COMPANIES) {
-            val vm: CompaniesViewModel =
-                viewModel(factory = CompaniesViewModelFactory(container))
-            CompaniesScreen(
-                viewModel = vm,
-                onNavigate = navigatePrimary,
-                onOpenCompany = { companyId ->
-                    navController.navigate(AppDestinations.companyRoute(companyId))
-                },
-            )
-        }
-        composable(
-            route = AppDestinations.COMPANY_DETAIL,
-            arguments = listOf(
-                navArgument("companyId") { type = NavType.StringType },
-            ),
-        ) { entry ->
-            val companyId = entry.arguments?.getString("companyId")
-            if (companyId.isNullOrEmpty()) {
-                navController.popBackStack()
-            } else {
+            composable(
+                route = AppDestinations.CATEGORY_DETAIL,
+                arguments = listOf(
+                    navArgument("categoryName") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                val categoryName = entry.arguments?.getString("categoryName")
+                val category = runCatching {
+                    com.greninjaop.mailorganizer.data.local.MailCategory.valueOf(
+                        categoryName ?: "",
+                    )
+                }.getOrNull()
+                if (category == null) {
+                    // Unknown category — never crash on a bad deep link.
+                    navController.popBackStack()
+                } else {
+                    val vm: CategoriesViewModel =
+                        viewModel(factory = CategoriesViewModelFactory(container))
+                    androidx.compose.runtime.LaunchedEffect(category) {
+                        vm.selectCategory(category)
+                    }
+                    CategoryDetailScreen(
+                        viewModel = vm,
+                        category = category,
+                        onOpenThread = { threadId ->
+                            navController.navigate(AppDestinations.threadRoute(threadId))
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+            // Phase 11: company browsing + detail.
+            composable(AppDestinations.COMPANIES) {
                 val vm: CompaniesViewModel =
                     viewModel(factory = CompaniesViewModelFactory(container))
-                androidx.compose.runtime.LaunchedEffect(companyId) {
-                    vm.selectCompany(companyId)
-                }
-                CompanyDetailScreen(
+                CompaniesScreen(
                     viewModel = vm,
+                    onNavigate = navigatePrimary,
+                    onOpenCompany = { companyId ->
+                        navController.navigate(AppDestinations.companyRoute(companyId))
+                    },
+                )
+            }
+            composable(
+                route = AppDestinations.COMPANY_DETAIL,
+                arguments = listOf(
+                    navArgument("companyId") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                val companyId = entry.arguments?.getString("companyId")
+                if (companyId.isNullOrEmpty()) {
+                    navController.popBackStack()
+                } else {
+                    val vm: CompaniesViewModel =
+                        viewModel(factory = CompaniesViewModelFactory(container))
+                    androidx.compose.runtime.LaunchedEffect(companyId) {
+                        vm.selectCompany(companyId)
+                    }
+                    CompanyDetailScreen(
+                        viewModel = vm,
+                        onOpenThread = { threadId ->
+                            navController.navigate(AppDestinations.threadRoute(threadId))
+                        },
+                        onBack = { navController.popBackStack() },
+                    )
+                }
+            }
+            // Phase 11: actions destination (view-only).
+            composable(AppDestinations.ACTIONS) {
+                val vm: ActionsViewModel =
+                    viewModel(factory = ActionsViewModelFactory(container))
+                ActionsScreen(
+                    viewModel = vm,
+                    onNavigate = navigatePrimary,
                     onOpenThread = { threadId ->
                         navController.navigate(AppDestinations.threadRoute(threadId))
+                    },
+                )
+            }
+            // Phase 10: the real search experience (replaces the placeholder).
+            composable(
+                route = AppDestinations.SEARCH_ROUTE,
+                arguments = listOf(
+                    navArgument("query") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = ""
+                    },
+                ),
+            ) { entry ->
+                val initialQuery = entry.arguments?.getString("query").orEmpty()
+                val vm: SearchViewModel = viewModel(
+                    factory = SearchViewModelFactory(container, initialQuery),
+                )
+                SearchScreen(
+                    viewModel = vm,
+                    onOpenThread = { threadId, focusMessageId ->
+                        navController.navigate(
+                            AppDestinations.threadRoute(threadId, focusMessageId),
+                        )
                     },
                     onBack = { navController.popBackStack() },
                 )
             }
-        }
-        // Phase 11: actions destination (view-only).
-        composable(AppDestinations.ACTIONS) {
-            val vm: ActionsViewModel =
-                viewModel(factory = ActionsViewModelFactory(container))
-            ActionsScreen(
-                viewModel = vm,
-                onNavigate = navigatePrimary,
-                onOpenThread = { threadId ->
-                    navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-            )
-        }
-        // Phase 10: the real search experience (replaces the placeholder).
-        composable(
-            route = AppDestinations.SEARCH_ROUTE,
-            arguments = listOf(
-                navArgument("query") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = ""
-                },
-            ),
-        ) { entry ->
-            val initialQuery = entry.arguments?.getString("query").orEmpty()
-            val vm: SearchViewModel = viewModel(
-                factory = SearchViewModelFactory(container, initialQuery),
-            )
-            SearchScreen(
-                viewModel = vm,
-                onOpenThread = { threadId, focusMessageId ->
-                    navController.navigate(
-                        AppDestinations.threadRoute(threadId, focusMessageId),
-                    )
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route = AppDestinations.THREAD,
-            arguments = listOf(
-                navArgument("threadId") { type = NavType.StringType },
-                navArgument("focusMessageId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-            ),
-        ) { entry ->
-            val threadId = entry.arguments?.getString("threadId") ?: return@composable
-            val focusMessageId = entry.arguments?.getString("focusMessageId")
-            val vm: ThreadViewModel =
-                viewModel(factory = ThreadViewModelFactory(container, threadId))
-            val correctionVm: CorrectionViewModel =
-                viewModel(factory = CorrectionViewModelFactory(container))
-            ThreadScreen(
-                viewModel = vm,
-                correctionViewModel = correctionVm,
-                focusMessageId = focusMessageId,
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Phase 12: rules list + editor.
-        composable(AppDestinations.RULES) {
-            val vm: RulesViewModel =
-                viewModel(factory = RulesViewModelFactory(container))
-            RulesScreen(
-                viewModel = vm,
-                onAddRule = { navController.navigate(AppDestinations.ruleEditorRoute()) },
-                onEditRule = { ruleId ->
-                    navController.navigate(AppDestinations.ruleEditorRoute(ruleId))
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route = AppDestinations.RULE_EDITOR,
-            arguments = listOf(
-                navArgument("ruleId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-            ),
-        ) { entry ->
-            // §34: non-numeric ruleId degrades to "create new", never a crash.
-            val ruleId = entry.arguments?.getString("ruleId")?.toLongOrNull()
-            val vm: RuleEditorViewModel =
-                viewModel(factory = RuleEditorViewModelFactory(container, ruleId))
-            RuleEditorScreen(
-                viewModel = vm,
-                onDone = { navController.popBackStack() },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Phase 17: Integration Manager screens — real statuses, honest states.
-        composable(AppDestinations.INTEGRATIONS) {
-            val vm: IntegrationsViewModel =
-                viewModel(factory = IntegrationsViewModelFactory(container))
-            com.greninjaop.mailorganizer.ui.integrations.IntegrationsScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-                onOpenDetail = { id ->
-                    navController.navigate(AppDestinations.integrationDetailRoute(id.value))
-                },
-            )
-        }
-        composable(AppDestinations.INTEGRATION_DETAIL) { backStackEntry ->
-            val vm: IntegrationsViewModel =
-                viewModel(factory = IntegrationsViewModelFactory(container))
-            val rawId = backStackEntry.arguments?.getString("integrationId")
-            var snapshot by remember { mutableStateOf<IntegrationSnapshot?>(null) }
-            var loaded by remember { mutableStateOf(false) }
-            LaunchedEffect(rawId) {
-                snapshot = rawId?.let { vm.snapshotFor(IntegrationId(it)) }
-                loaded = true
+            composable(
+                route = AppDestinations.THREAD,
+                arguments = listOf(
+                    navArgument("threadId") { type = NavType.StringType },
+                    navArgument("focusMessageId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                val threadId = entry.arguments?.getString("threadId") ?: return@composable
+                val focusMessageId = entry.arguments?.getString("focusMessageId")
+                val vm: ThreadViewModel =
+                    viewModel(factory = ThreadViewModelFactory(container, threadId))
+                val correctionVm: CorrectionViewModel =
+                    viewModel(factory = CorrectionViewModelFactory(container))
+                ThreadScreen(
+                    viewModel = vm,
+                    correctionViewModel = correctionVm,
+                    focusMessageId = focusMessageId,
+                    onBack = { navController.popBackStack() },
+                )
             }
-            when {
-                !loaded -> Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) { CircularProgressIndicator() }
+            // Phase 12: rules list + editor.
+            composable(AppDestinations.RULES) {
+                val vm: RulesViewModel =
+                    viewModel(factory = RulesViewModelFactory(container))
+                RulesScreen(
+                    viewModel = vm,
+                    onAddRule = { navController.navigate(AppDestinations.ruleEditorRoute()) },
+                    onEditRule = { ruleId ->
+                        navController.navigate(AppDestinations.ruleEditorRoute(ruleId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = AppDestinations.RULE_EDITOR,
+                arguments = listOf(
+                    navArgument("ruleId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { entry ->
+                // §34: non-numeric ruleId degrades to "create new", never a crash.
+                val ruleId = entry.arguments?.getString("ruleId")?.toLongOrNull()
+                val vm: RuleEditorViewModel =
+                    viewModel(factory = RuleEditorViewModelFactory(container, ruleId))
+                RuleEditorScreen(
+                    viewModel = vm,
+                    onDone = { navController.popBackStack() },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Phase 17: Integration Manager screens — real statuses, honest states.
+            composable(AppDestinations.INTEGRATIONS) {
+                val vm: IntegrationsViewModel =
+                    viewModel(factory = IntegrationsViewModelFactory(container))
+                com.greninjaop.mailorganizer.ui.integrations.IntegrationsScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenDetail = { id ->
+                        navController.navigate(AppDestinations.integrationDetailRoute(id.value))
+                    },
+                )
+            }
+            composable(AppDestinations.INTEGRATION_DETAIL) { backStackEntry ->
+                val vm: IntegrationsViewModel =
+                    viewModel(factory = IntegrationsViewModelFactory(container))
+                val rawId = backStackEntry.arguments?.getString("integrationId")
+                var snapshot by remember { mutableStateOf<IntegrationSnapshot?>(null) }
+                var loaded by remember { mutableStateOf(false) }
+                LaunchedEffect(rawId) {
+                    snapshot = rawId?.let { vm.snapshotFor(IntegrationId(it)) }
+                    loaded = true
+                }
+                when {
+                    !loaded -> Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center,
+                    ) { CircularProgressIndicator() }
 
-                snapshot != null -> com.greninjaop.mailorganizer.ui.integrations.IntegrationDetailScreen(
-                    snapshot = snapshot!!,
+                    snapshot != null -> com.greninjaop.mailorganizer.ui.integrations.IntegrationDetailScreen(
+                        snapshot = snapshot!!,
+                        viewModel = vm,
+                        onBack = { navController.popBackStack() },
+                    )
+
+                    // Unknown integration id: honest not-found, never a crash.
+                    else -> UnknownIntegrationScreen(onBack = { navController.popBackStack() })
+                }
+            }
+            composable(AppDestinations.SETTINGS) {
+                val vm: AppearanceViewModel =
+                    viewModel(factory = AppearanceViewModelFactory(container))
+                SettingsScreen(
+                    appearanceViewModel = vm,
+                    onNavigate = navigatePrimary,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(AppDestinations.PRIVACY) {
+                val vm: com.greninjaop.mailorganizer.ui.privacy.PrivacyViewModel =
+                    viewModel(factory = com.greninjaop.mailorganizer.ui.privacy.PrivacyViewModelFactory(container))
+                com.greninjaop.mailorganizer.ui.privacy.PrivacyCenterScreen(
                     viewModel = vm,
                     onBack = { navController.popBackStack() },
                 )
-
-                // Unknown integration id: honest not-found, never a crash.
-                else -> UnknownIntegrationScreen(onBack = { navController.popBackStack() })
+            }
+            composable(AppDestinations.ACCOUNTS) {
+                val vm: AccountsViewModel =
+                    viewModel(factory = AccountsViewModelFactory(container))
+                AccountsScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onConnectAccount = { navController.navigate(AppDestinations.CONNECT) },
+                )
+            }
+            // Phase 3: Google OAuth connect-account flow. The screen opens
+            // the system browser; the redirect returns via MainActivity.
+            composable(AppDestinations.CONNECT) {
+                val vm: ConnectAccountViewModel =
+                    viewModel(factory = ConnectAccountViewModelFactory(container.authRepository))
+                val scope = rememberCoroutineScope()
+                ConnectAccountScreen(
+                    viewModel = vm,
+                    // New accounts (never successfully synced) go to the import
+                    // flow; reconnects return to where they came from.
+                    onConnected = { accountId ->
+                        scope.launch {
+                            val record = container.syncStateRepository.ensureForAccount(accountId)
+                            if (record.lastSuccessfulSyncEpochMs == null) {
+                                navController.navigate(AppDestinations.importRoute(accountId)) {
+                                    popUpTo(AppDestinations.CONNECT) { inclusive = true }
+                                }
+                            } else {
+                                navController.popBackStack()
+                            }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Import flow (2026-10-12): explicit "Import now" + animated
+            // flying-mail progress for a newly connected account.
+            composable(
+                route = AppDestinations.IMPORT,
+                arguments = listOf(navArgument("accountId") { type = NavType.StringType }),
+            ) { backStackEntry ->
+                val accountId = backStackEntry.arguments?.getString("accountId").orEmpty()
+                val vm: com.greninjaop.mailorganizer.ui.import.ImportViewModel =
+                    viewModel(
+                        factory = com.greninjaop.mailorganizer.ui.import.ImportViewModelFactory(
+                            accountId = accountId,
+                            accountRepository = container.accountRepository,
+                            syncCoordinator = container.syncCoordinator,
+                            dispatchers = container.dispatchers,
+                        ),
+                    )
+                com.greninjaop.mailorganizer.ui.import.ImportFlowScreen(
+                    viewModel = vm,
+                    onDone = {
+                        navController.navigate(AppDestinations.MAIL) {
+                            popUpTo(AppDestinations.IMPORT) { inclusive = true }
+                        }
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Phase 20: Noise, Newsletter & Cleanup destination
+            composable(AppDestinations.CLEANUP) {
+                val vm: com.greninjaop.mailorganizer.ui.cleanup.CleanupViewModel =
+                    viewModel(factory = com.greninjaop.mailorganizer.ui.cleanup.CleanupViewModelFactory(container))
+                com.greninjaop.mailorganizer.ui.cleanup.CleanupScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                    onOpenThread = { threadId ->
+                        navController.navigate(AppDestinations.threadRoute(threadId))
+                    },
+                )
+            }
+            // Phase 25: Analytics & Insights destination
+            composable(AppDestinations.ANALYTICS) {
+                val vm: com.greninjaop.mailorganizer.ui.analytics.AnalyticsViewModel =
+                    viewModel(
+                        factory = com.greninjaop.mailorganizer.ui.analytics.AnalyticsViewModelFactory(
+                            analyticsUseCase = container.analyticsUseCase,
+                            accountRepository = container.accountRepository,
+                            activeAccountPreferences = container.activeAccountPreferences,
+                        ),
+                    )
+                com.greninjaop.mailorganizer.ui.analytics.AnalyticsScreen(
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Phase 26: Optional AI Fallback Settings destination
+            composable(AppDestinations.AI_SETTINGS) {
+                val vm: com.greninjaop.mailorganizer.ui.settings.AiSettingsViewModel =
+                    viewModel(
+                        factory = com.greninjaop.mailorganizer.ui.settings.AiSettingsViewModelFactory(
+                            preferences = container.aiPreferences,
+                            registry = container.aiProviderRegistry,
+                            aiFallbackUseCase = container.aiFallbackUseCase,
+                            dispatchers = container.dispatchers,
+                        ),
+                    )
+                com.greninjaop.mailorganizer.ui.settings.AiSettingsScreen(
+                    viewModel = vm,
+                    onNavigate = navigatePrimary,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Phase 27: Advanced Automation destinations
+            composable(AppDestinations.AUTOMATION) {
+                val vm: com.greninjaop.mailorganizer.ui.automation.AutomationViewModel =
+                    viewModel(
+                        factory = com.greninjaop.mailorganizer.ui.automation.AutomationViewModelFactory(container),
+                    )
+                com.greninjaop.mailorganizer.ui.automation.AutomationScreen(
+                    viewModel = vm,
+                    onNavigateToEditor = { ruleId ->
+                        navController.navigate(AppDestinations.automationEditorRoute(ruleId))
+                    },
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(
+                route = AppDestinations.AUTOMATION_EDITOR,
+                arguments = listOf(
+                    navArgument("ruleId") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    },
+                ),
+            ) { backStackEntry ->
+                val ruleId = backStackEntry.arguments?.getString("ruleId")
+                val vm: com.greninjaop.mailorganizer.ui.automation.AutomationViewModel =
+                    viewModel(
+                        factory = com.greninjaop.mailorganizer.ui.automation.AutomationViewModelFactory(container),
+                    )
+                com.greninjaop.mailorganizer.ui.automation.AutomationEditorScreen(
+                    ruleId = ruleId,
+                    viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                )
             }
         }
-        composable(AppDestinations.SETTINGS) {
-            val vm: AppearanceViewModel =
-                viewModel(factory = AppearanceViewModelFactory(container))
-            SettingsScreen(
-                appearanceViewModel = vm,
-                onNavigate = navigatePrimary,
-                onBack = { navController.popBackStack() },
-            )
         }
-        composable(AppDestinations.PRIVACY) {
-            val vm: com.greninjaop.mailorganizer.ui.privacy.PrivacyViewModel =
-                viewModel(factory = com.greninjaop.mailorganizer.ui.privacy.PrivacyViewModelFactory(container))
-            com.greninjaop.mailorganizer.ui.privacy.PrivacyCenterScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(AppDestinations.ACCOUNTS) {
-            val vm: AccountsViewModel =
-                viewModel(factory = AccountsViewModelFactory(container))
-            AccountsScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-                onConnectAccount = { navController.navigate(AppDestinations.CONNECT) },
-            )
-        }
-        // Phase 3: Google OAuth connect-account flow. The screen opens
-        // the system browser; the redirect returns via MainActivity.
-        composable(AppDestinations.CONNECT) {
-            val vm: ConnectAccountViewModel =
-                viewModel(factory = ConnectAccountViewModelFactory(container.authRepository))
-            val scope = rememberCoroutineScope()
-            ConnectAccountScreen(
-                viewModel = vm,
-                // New accounts (never successfully synced) go to the import
-                // flow; reconnects return to where they came from.
-                onConnected = { accountId ->
-                    scope.launch {
-                        val record = container.syncStateRepository.ensureForAccount(accountId)
-                        if (record.lastSuccessfulSyncEpochMs == null) {
-                            navController.navigate(AppDestinations.importRoute(accountId)) {
-                                popUpTo(AppDestinations.CONNECT) { inclusive = true }
-                            }
-                        } else {
-                            navController.popBackStack()
-                        }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Import flow (2026-10-12): explicit "Import now" + animated
-        // flying-mail progress for a newly connected account.
-        composable(
-            route = AppDestinations.IMPORT,
-            arguments = listOf(navArgument("accountId") { type = NavType.StringType }),
-        ) { backStackEntry ->
-            val accountId = backStackEntry.arguments?.getString("accountId").orEmpty()
-            val vm: com.greninjaop.mailorganizer.ui.import.ImportViewModel =
-                viewModel(
-                    factory = com.greninjaop.mailorganizer.ui.import.ImportViewModelFactory(
-                        accountId = accountId,
-                        accountRepository = container.accountRepository,
-                        syncCoordinator = container.syncCoordinator,
-                        dispatchers = container.dispatchers,
-                    ),
-                )
-            com.greninjaop.mailorganizer.ui.import.ImportFlowScreen(
-                viewModel = vm,
-                onDone = {
-                    navController.navigate(AppDestinations.MAIL) {
-                        popUpTo(AppDestinations.IMPORT) { inclusive = true }
-                    }
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Phase 20: Noise, Newsletter & Cleanup destination
-        composable(AppDestinations.CLEANUP) {
-            val vm: com.greninjaop.mailorganizer.ui.cleanup.CleanupViewModel =
-                viewModel(factory = com.greninjaop.mailorganizer.ui.cleanup.CleanupViewModelFactory(container))
-            com.greninjaop.mailorganizer.ui.cleanup.CleanupScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-                onOpenThread = { threadId ->
-                    navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-            )
-        }
-        // Phase 25: Analytics & Insights destination
-        composable(AppDestinations.ANALYTICS) {
-            val vm: com.greninjaop.mailorganizer.ui.analytics.AnalyticsViewModel =
-                viewModel(
-                    factory = com.greninjaop.mailorganizer.ui.analytics.AnalyticsViewModelFactory(
-                        analyticsUseCase = container.analyticsUseCase,
-                        accountRepository = container.accountRepository,
-                        activeAccountPreferences = container.activeAccountPreferences,
-                    ),
-                )
-            com.greninjaop.mailorganizer.ui.analytics.AnalyticsScreen(
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Phase 26: Optional AI Fallback Settings destination
-        composable(AppDestinations.AI_SETTINGS) {
-            val vm: com.greninjaop.mailorganizer.ui.settings.AiSettingsViewModel =
-                viewModel(
-                    factory = com.greninjaop.mailorganizer.ui.settings.AiSettingsViewModelFactory(
-                        preferences = container.aiPreferences,
-                        registry = container.aiProviderRegistry,
-                        aiFallbackUseCase = container.aiFallbackUseCase,
-                        dispatchers = container.dispatchers,
-                    ),
-                )
-            com.greninjaop.mailorganizer.ui.settings.AiSettingsScreen(
-                viewModel = vm,
-                onNavigate = navigatePrimary,
-                onBack = { navController.popBackStack() },
-            )
-        }
-        // Phase 27: Advanced Automation destinations
-        composable(AppDestinations.AUTOMATION) {
-            val vm: com.greninjaop.mailorganizer.ui.automation.AutomationViewModel =
-                viewModel(
-                    factory = com.greninjaop.mailorganizer.ui.automation.AutomationViewModelFactory(container),
-                )
-            com.greninjaop.mailorganizer.ui.automation.AutomationScreen(
-                viewModel = vm,
-                onNavigateToEditor = { ruleId ->
-                    navController.navigate(AppDestinations.automationEditorRoute(ruleId))
-                },
-                onBack = { navController.popBackStack() },
-            )
-        }
-        composable(
-            route = AppDestinations.AUTOMATION_EDITOR,
-            arguments = listOf(
-                navArgument("ruleId") {
-                    type = NavType.StringType
-                    nullable = true
-                    defaultValue = null
-                },
-            ),
-        ) { backStackEntry ->
-            val ruleId = backStackEntry.arguments?.getString("ruleId")
-            val vm: com.greninjaop.mailorganizer.ui.automation.AutomationViewModel =
-                viewModel(
-                    factory = com.greninjaop.mailorganizer.ui.automation.AutomationViewModelFactory(container),
-                )
-            com.greninjaop.mailorganizer.ui.automation.AutomationEditorScreen(
-                ruleId = ruleId,
-                viewModel = vm,
-                onBack = { navController.popBackStack() },
-            )
-        }
-    }
     }
 }
 
