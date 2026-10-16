@@ -36,8 +36,6 @@ import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
-import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
-import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /** Factory for the Phase 14 Actions destination. */
@@ -110,12 +108,6 @@ fun ActionsScreen(
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,
-            )
-        },
-        bottomBar = {
-            MoNavBar(
-                currentRoute = PrimaryDestination.ACTIONS.route,
-                onNavigate = onNavigate,
             )
         },
         snackbarHost = { SnackbarHost(snackbar) },

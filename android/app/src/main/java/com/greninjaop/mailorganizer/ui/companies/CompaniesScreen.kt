@@ -45,8 +45,6 @@ import com.greninjaop.mailorganizer.ui.mail.MailRowLayout
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
-import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
-import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
 import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -94,12 +92,6 @@ fun CompaniesScreen(
                 onOpenSearch = onOpenSearch,
                 onOpenAccounts = { onNavigate(AppDestinations.ACCOUNTS) },
                 onOpenSecondary = onNavigate,
-            )
-        },
-        bottomBar = {
-            MoNavBar(
-                currentRoute = PrimaryDestination.COMPANIES.route,
-                onNavigate = onNavigate,
             )
         },
     ) { padding ->

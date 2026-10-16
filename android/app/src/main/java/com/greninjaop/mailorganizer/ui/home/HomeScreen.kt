@@ -44,8 +44,6 @@ import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.mail.visuals
 import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import com.greninjaop.mailorganizer.ui.navigation.MoAppTopBar
-import com.greninjaop.mailorganizer.ui.navigation.MoNavBar
-import com.greninjaop.mailorganizer.ui.navigation.PrimaryDestination
 import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -82,12 +80,7 @@ fun HomeScreen(
                 onOpenSecondary = onNavigate,
             )
         },
-        bottomBar = {
-            MoNavBar(
-                currentRoute = PrimaryDestination.HOME.route,
-                onNavigate = onNavigate,
-            )
-        },
+
     ) { padding ->
         when (val content = uiState.content) {
             is HomeContent.Loading -> MoLoadingState(
