@@ -239,6 +239,45 @@ class OAuthPhase3Test {
         )
     }
 
+    // ---------- Redirect dedup key (2026-10-16: Continue-loop fix) ----------
+
+    @Test
+    fun `dedupKeyFor returns key for state and code`() {
+        assertEquals(
+            "state123|code456",
+            GoogleAuthRepository.dedupKeyFor("state123", "code456"),
+        )
+    }
+
+    @Test
+    fun `dedupKeyFor differs per code`() {
+        assertNotEquals(
+            GoogleAuthRepository.dedupKeyFor("state", "code1"),
+            GoogleAuthRepository.dedupKeyFor("state", "code2"),
+        )
+    }
+
+    @Test
+    fun `dedupKeyFor differs per state`() {
+        assertNotEquals(
+            GoogleAuthRepository.dedupKeyFor("state1", "code"),
+            GoogleAuthRepository.dedupKeyFor("state2", "code"),
+        )
+    }
+
+    @Test
+    fun `dedupKeyFor returns null when code missing`() {
+        assertNull(GoogleAuthRepository.dedupKeyFor("state", null))
+        assertNull(GoogleAuthRepository.dedupKeyFor("state", ""))
+        assertNull(GoogleAuthRepository.dedupKeyFor("state", "   "))
+    }
+
+    @Test
+    fun `dedupKeyFor returns null when state missing`() {
+        assertNull(GoogleAuthRepository.dedupKeyFor(null, "code"))
+        assertNull(GoogleAuthRepository.dedupKeyFor("", "code"))
+    }
+
     // ---------- Live HTTP flow against a fake token endpoint ----------
 
     private fun fakeTransport(
