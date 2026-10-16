@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 25
+        versionCode = 26
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -109,7 +109,21 @@ android {
         //        tabs (Gmail parity — the DP is the only trailing
         //        action, Settings/Privacy/Integrations/Accounts all
         //        live inside the Settings page).
-        versionName = "1.0.24"
+        // 1.0.24: top-bar DP uniform 40dp on every tab; demo accounts
+        //        never sync (refresh finishes immediately when nothing
+        //        syncable); Settings panel REPLACES the bottom-sheet
+        //        switcher (DP tap opens full-screen Settings sliding
+        //        in from the right, expandable account section at top).
+        // 1.0.25: Settings-panel jump fixed (Scaffold gone — full-screen
+        //        NavHost + overlaid bars, never resized); WhatsApp
+        //        shift (underlying page slides 1/12 left as the panel
+        //        slides in, slides back on close); scroll-hide bars
+        //        BUILT (scroll down hides top+bottom bars, scroll up
+        //        shows them, list expands, fade reaches the edges);
+        //        "Action required" chip removed from the Mail list
+        //        (Actions tab covers it; list + fade lifted to the
+        //        search box).
+        versionName = "1.0.25"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
