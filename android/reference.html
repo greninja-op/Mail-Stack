@@ -517,7 +517,8 @@
   <table>
     <tr><th>Component</th><th>Spec</th></tr>
     <tr><td>Search pill</td><td class="spec">Rounded, indicator-free text field; surfaceContainerHigh; leading search icon; trailing clear button when text present. On Mail it filters the mailbox in place; on other tabs it opens the Search screen on submit. Hoisted — one instance across tabs, reshapes as the hamburger slides in/out.</td></tr>
-    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. 16 dp edge margin on both sides — the pill (and the hamburger on Mail) never touches the screen edges. Mail: hamburger + pill + account avatar — NO reload button (refresh is the pull-to-refresh gesture, §7). Other tabs: pill + account avatar + overflow menu. The avatar is always the account's DP: in the unified inbox it is the default account's DP (earliest created), never a generic icon — tap it for Accounts.</td></tr>
+    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. 16 dp edge margin on both sides — the pill (and the hamburger on Mail) never touches the screen edges. Mail: hamburger + pill + account avatar — NO reload button (refresh is the pull-to-refresh gesture, §7). Other tabs: pill + account avatar — NO overflow menu (Gmail parity). The avatar is always the account's DP: in the unified inbox it is the default account's DP (earliest created), never a generic icon — tap it for the account switcher sheet (§8).</td></tr>
+    <tr><td>Account switcher sheet</td><td class="spec">Bottom sheet on DP tap (any tab): current selection + collapse arrow, the other accounts, “Add another account” + “Settings”. No unread counts (no source — never fabricated). — see §8.</td></tr>
     <tr><td>Bottom nav</td><td class="spec">80 dp content + system-nav inset outside it; 24 dp icons; 64 × 32 pill; tonal elevation 0; one sliding jelly pill (see §1).</td></tr>
     <tr><td>Mail row</td><td class="spec">Min height 88 dp; 40 dp avatar (company logo or letter); line 1 sender + time; line 2 subject; line 3 snippet. Flat on background, no card, no divider, no border.</td></tr>
     <tr><td>Company logo</td><td class="spec">Artwork fitted inside a circle, never cropped. In dark mode a white circular backing (dark logos stay visible). Monochrome bundled logos: tonal circle + tinted glyph.</td></tr>
@@ -537,6 +538,7 @@
     <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
     <tr><td>Mail list on tab entry</td><td class="spec">Skeleton shows only on the true first load (content Loading — nothing cached yet). Once the mailbox is loaded, the ViewModel caches it, so tab switches show the cached list immediately — no skeleton flash on every Mail entry. Popping back from a thread shows the list immediately too.</td></tr>
     <tr><td>Pull to refresh</td><td class="spec">Damped drag (list travels a fraction of the finger), pill fades in (alpha follows the pull), arc fills 0 → 100%; at the threshold the label flips to “Release to refresh”; release past it reloads the whole mailbox; release before it springs back with no reload. — see §7.</td></tr>
+    <tr><td>Account switcher sheet</td><td class="spec">Bottom sheet slides up (M3 ModalBottomSheet); the list collapses/expands with expand/shrink + fade; tapping an account switches the app's selection. — see §8.</td></tr>
     <tr><td>Scroll-hide bars</td><td class="spec">Scroll down → top bar slides up out + bottom bar slides down out (hide: LinearOutSlowIn, fast → slow). Scroll up → both slide back (show: FastOutSlowIn, slow → fast → land). Pure translate, no fade, no spring. 250 ms. — see §6.</td></tr>
     <tr><td>Tap feedback</td><td class="spec">The pill is the only feedback on bubble controls (indication = null). Other controls keep normal Material ripples.</td></tr>
   </table>
@@ -765,6 +767,131 @@
     <tr><td>Reload</td><td class="spec">release past the threshold calls the same refresh the old reload button called (full mailbox sync via the ViewModel). While syncing, the pill shows the spinner; when the sync finishes, the list settles back.</td></tr>
     <tr><td>Top bar</td><td class="spec">no reload button on Mail — the gesture is the reload. The account avatar is the DP (default account's DP in the unified inbox) and opens Accounts.</td></tr>
     <tr><td>Where</td><td class="spec">the mailbox list (Mail tab), all states. Implemented in MailContent (MailScreen.kt) + InstagramPullIndicator.</td></tr>
+  </table>
+</section>
+
+<section id="accswitch">
+  <h2>8 &nbsp; Account Switcher Sheet — Tap the DP, Pick an Account</h2>
+  <p>Tap the account DP in the top bar — on <b>any</b> tab — and a bottom sheet slides up.
+  The header shows the current selection (the account, or “All Accounts” for the unified
+  inbox) plus a collapse arrow. Expanding shows the other accounts: tap one and the whole
+  app switches to it. The bottom holds <b>“Add another account”</b> (the Google sign-in
+  flow) and <b>“Settings”</b> (Privacy, Integrations, Accounts and the rest all live inside
+  Settings — that is why there is no overflow menu). No unread counts on the rows: Gmail
+  shows them, but we have no real unread-count source, and counts are never fabricated.
+  <b>Try it:</b> tap the DP below, collapse the list with the arrow, pick another account.</p>
+
+  <div class="as-stage" id="asStage">
+    <div class="hide-topbar">
+      <span class="hide-ham"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span>
+      <div class="tb-pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg><span>Search mail</span></div>
+      <span class="hide-ava as-dpbtn" id="asTopAvatar" title="Open the account switcher">A</span>
+    </div>
+    <div class="ptr-viewport" style="cursor:default">
+      <div class="ptr-list">
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      </div>
+    </div>
+    <div class="hide-bottombar">
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>Home</span>
+      <span class="hide-tab sel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Mail</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>Categories</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0 2-2zM9 17H7v-7h2zm4 0h-2V7h2zm4 0h-2v-4h2z"/></svg>Companies</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 6-6 1.4 1.4z"/></svg>Actions</span>
+    </div>
+    <div class="as-scrim" id="asScrim"></div>
+    <div class="as-sheet" id="asSheet">
+      <div class="as-handle"></div>
+      <div class="as-header">
+        <span class="as-bigava" id="asHeadAvatar">A</span>
+        <div class="as-headtext"><b id="asHeadName">Arjun Sabu</b><em id="asHeadEmail">arjunsabu360@gmail.com</em></div>
+        <button class="as-arrow" id="asArrow" title="Collapse / expand the account list">∧</button>
+      </div>
+      <div class="as-body" id="asBody">
+        <div class="as-row" data-name="All Accounts" data-email="All enabled accounts" data-letter="A" data-all="1"><span class="as-rowava as-rowmail">✉</span><div><b>All Accounts (Unified Inbox)</b><em>Combined threads, all enabled accounts</em></div></div>
+        <div class="as-row" data-name="GRENINJA GAMING" data-email="greninjagamingyt9@gmail.com" data-letter="G"><span class="as-rowava" style="background:#1E7A55">G</span><div><b>GRENINJA GAMING</b><em>greninjagamingyt9@gmail.com</em></div></div>
+        <div class="as-row" data-name="Cody Manu" data-email="codymanuappdev@gmail.com" data-letter="C"><span class="as-rowava" style="background:#0066CC">C</span><div><b>Cody Manu</b><em>codymanuappdev@gmail.com</em></div></div>
+        <hr class="as-div">
+        <div class="as-action" id="asAdd"><span class="as-acticon">+</span><b>Add another account</b></div>
+        <div class="as-action" id="asSettings"><span class="as-acticon">⚙</span><b>Settings</b></div>
+      </div>
+    </div>
+  </div>
+  <p class="demo-caption">Tap the DP — the sheet slides up. Tap the arrow — the list collapses to just the current account. Tap another account — the header and the top-bar DP switch to it, and the sheet closes.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 330" role="img" aria-label="Annotated diagram of the account switcher sheet">
+      <defs><marker id="ah8" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <!-- phone -->
+      <rect x="20" y="20" width="300" height="270" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- top bar -->
+      <rect x="20" y="20" width="300" height="44" rx="8" fill="#EFEAFB"/>
+      <rect x="40" y="32" width="160" height="20" rx="10" fill="#E7E0F6"/>
+      <circle cx="286" cy="42" r="13" fill="#5238E8"/><text x="286" y="47" font-size="13" fill="#fff" text-anchor="middle" font-weight="700">A</text>
+      <path d="M286 60 L 286 80" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah8)"/>
+      <text x="332" y="30" font-family="Caveat" font-size="23" fill="#222">tap the DP (any tab) →</text>
+      <text x="332" y="54" font-family="Caveat" font-size="23" fill="#222">sheet slides up</text>
+      <!-- sheet -->
+      <rect x="20" y="110" width="300" height="180" rx="14" fill="#FFFFFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <rect x="150" y="118" width="40" height="5" rx="2.5" fill="#CBC5DE"/>
+      <!-- header -->
+      <circle cx="60" cy="152" r="20" fill="#5238E8"/><text x="60" y="159" font-size="20" fill="#fff" text-anchor="middle" font-weight="700">A</text>
+      <rect x="92" y="142" width="110" height="10" rx="5" fill="#222" opacity="0.75"/>
+      <rect x="92" y="158" width="150" height="8" rx="4" fill="#CBC5DE"/>
+      <text x="268" y="160" font-size="18" fill="#222">∧</text>
+      <text x="332" y="130" font-family="Caveat" font-size="23" fill="#222">header = current selection</text>
+      <text x="332" y="154" font-family="Caveat" font-size="23" fill="#222">arrow collapses the list</text>
+      <!-- rows -->
+      <g><circle cx="60" cy="198" r="14" fill="#1E7A55"/><text x="60" y="203" font-size="14" fill="#fff" text-anchor="middle" font-weight="700">G</text><rect x="92" y="190" width="100" height="9" rx="4" fill="#CBC5DE"/><rect x="92" y="202" width="140" height="7" rx="3" fill="#E7E0F6"/></g>
+      <g><circle cx="60" cy="236" r="14" fill="#0066CC"/><text x="60" y="241" font-size="14" fill="#fff" text-anchor="middle" font-weight="700">C</text><rect x="92" y="228" width="80" height="9" rx="4" fill="#CBC5DE"/><rect x="92" y="240" width="130" height="7" rx="3" fill="#E7E0F6"/></g>
+      <line x1="20" y1="258" x2="320" y2="258" stroke="#CBC5DE" stroke-width="1"/>
+      <text x="40" y="278" font-size="12" fill="#222">+ Add another account &nbsp;&nbsp;&nbsp; ⚙ Settings</text>
+      <text x="332" y="205" font-family="Caveat" font-size="23" fill="#222">tap a row → app switches,</text>
+      <text x="332" y="229" font-family="Caveat" font-size="23" fill="#222">sheet closes</text>
+      <text x="332" y="278" font-family="Caveat" font-size="23" fill="#222">bottom: Add + Settings only —</text>
+      <text x="332" y="302" font-family="Caveat" font-size="23" fill="#222">no Google-account rows, no counts</text>
+      <text x="20" y="318" font-family="Caveat" font-size="23" fill="#222">Collapsed = header only. The current account is never repeated in the list.</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">One tap, one switch. The sheet is the whole account control — no overflow menu, no separate screen.</p>
+  <div class="frames">
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:16px;height:20px;background:var(--container-high);border-radius:10px"></div><div style="position:absolute;top:14px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--violet);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700">A</div></div><div class="cap">1 · top bar — tap the DP</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:2px;bottom:2px;background:var(--surface);border-radius:8px"></div><div style="position:absolute;top:4px;left:8px;width:22px;height:22px;border-radius:50%;background:var(--violet)"></div><div style="position:absolute;top:6px;left:36px;width:52px;height:8px;background:#222;opacity:.7;border-radius:4px"></div><div style="position:absolute;top:16px;left:36px;width:70px;height:6px;background:var(--outline);border-radius:3px"></div><div style="position:absolute;top:30px;left:8px;right:8px;height:1px;background:var(--outline)"></div><div style="position:absolute;top:34px;left:8px;width:18px;height:18px;border-radius:50%;background:#1E7A55"></div><div style="position:absolute;top:36px;left:30px;width:60px;height:6px;background:var(--outline);border-radius:3px"></div></div><div class="cap">2 · sheet open — pick an account</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:2px;bottom:2px;background:var(--surface);border-radius:8px"></div><div style="position:absolute;top:10px;left:8px;width:22px;height:22px;border-radius:50%;background:var(--violet)"></div><div style="position:absolute;top:12px;left:36px;width:52px;height:8px;background:#222;opacity:.7;border-radius:4px"></div><div style="position:absolute;top:22px;left:36px;width:70px;height:6px;background:var(--outline);border-radius:3px"></div><div style="position:absolute;top:44px;right:10px;font-size:10px">∨</div></div><div class="cap">3 · arrow — collapsed to one account</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:16px;height:20px;background:var(--container-high);border-radius:10px"></div><div style="position:absolute;top:14px;right:8px;width:24px;height:24px;border-radius:50%;background:#1E7A55;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700">G</div></div><div class="cap">4 · switched — whole app follows</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">The DP is the only trailing action on every tab. Tap it → the sheet slides up (Material3 ModalBottomSheet, with scrim + drag handle). Works on any tab, not just Mail.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">Header = the current selection. Single account → its DP + name + email. Unified inbox → the default account's DP + “All Accounts”. The header is <u>never repeated</u> in the list below. <span class="arrow">← header ≠ list!</span></p></div>
+    <div class="step"><div class="no">3</div><p class="hand">The arrow collapses the list to just the current account — animated (expand/shrink + fade), never a snap. Tap the arrow again and the list comes back. <span class="arrow">← dropdown!</span></p></div>
+    <div class="step"><div class="no">4</div><p class="hand">Tap an account → the whole app switches to it (the same selection the Accounts screen writes) and the sheet closes. Tap “All Accounts” → back to the unified inbox.</p></div>
+    <div class="step"><div class="no">5</div><p class="hand">Bottom: “Add another account” (the Connect / Google sign-in flow) + “Settings” (Privacy, Integrations, Accounts and the rest all live inside Settings). No “Manage accounts on this device” / “Manage your Google Account” — those are Google-Account features we do not have.</p></div>
+    <div class="step"><div class="no">6</div><p class="hand">No unread counts on the rows. Gmail shows them, but we have no real unread-count source — and counts are <u>never fabricated</u>.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Entry</td><td class="spec">tap the top-bar DP on any tab. The DP is the only trailing action — no overflow menu anywhere.</td></tr>
+    <tr><td>Sheet</td><td class="spec">Material3 ModalBottomSheet, drag handle, scrim, swipe-to-dismiss / tap-outside-to-dismiss. Opens expanded (like Gmail).</td></tr>
+    <tr><td>Header</td><td class="spec">current selection. Single → DP 64 dp + name (titleMedium, bold) + email (bodySmall). Unified → default account's DP + “All Accounts” + “View combined threads across all enabled accounts”. No accounts → generic person mark + “No accounts”.</td></tr>
+    <tr><td>List</td><td class="spec">the OTHER accounts (current is the header, never repeated). “All Accounts (Unified Inbox)” row when a single account is current. Row: DP 40 dp + name + email. Tap → switch the selection + close the sheet.</td></tr>
+    <tr><td>Collapse</td><td class="spec">arrow toggles the list. AnimatedVisibility expandVertically + fadeIn / shrinkVertically + fadeOut. Collapsed = header only.</td></tr>
+    <tr><td>Bottom</td><td class="spec">divider, then “Add another account” (→ Connect flow) + “Settings” (→ Settings page). Icon in a 48 dp outlined circle + bodyLarge text.</td></tr>
+    <tr><td>Counts</td><td class="spec">none on the rows — no unread-count source; never fabricated.</td></tr>
+    <tr><td>Where</td><td class="spec">hosted in AppNavGraph (so it works on every tab). Implemented in AccountSwitcherSheet.kt; the switch writes the same active-selection preference the Accounts screen writes.</td></tr>
   </table>
 </section>
 
