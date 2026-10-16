@@ -89,8 +89,6 @@
 
   /* ---------- Top-bar reshape demo (see §3): hamburger 0<->48, pill pushed ---------- */
   var tbHam = document.getElementById("tbHamburger");
-  var tbMailActs = document.getElementById("tbActionsMail");
-  var tbOtherActs = document.getElementById("tbActionsOther");
   var tbBtns = Array.prototype.slice.call(document.querySelectorAll(".tb-tab"));
   tbBtns.forEach(function (b) {
     b.addEventListener("click", function () {
@@ -98,8 +96,7 @@
       b.classList.add("sel");
       var isMail = b.dataset.mail === "1";
       tbHam.classList.toggle("open", isMail);
-      tbMailActs.classList.toggle("show", isMail);
-      tbOtherActs.classList.toggle("show", !isMail);
+      // The DP is the only trailing action on every tab — nothing swaps.
     });
   });
 
@@ -300,5 +297,14 @@
     );
     var spAdd = document.getElementById("spAdd");
     if (spAdd) spAdd.addEventListener("click", function () { /* Connect flow: the panel stays */ });
+  }
+
+  /* ---------- Panel + underlying-page shift demo (see §10): WhatsApp motion ---------- */
+  var wsStage = document.getElementById("wsStage");
+  var wsDp = document.getElementById("wsDp");
+  var wsBack = document.getElementById("wsBack");
+  if (wsStage && wsDp && wsBack) {
+    wsDp.addEventListener("click", function () { wsStage.classList.add("ws-open"); });
+    wsBack.addEventListener("click", function () { wsStage.classList.remove("ws-open"); });
   }
 })();
