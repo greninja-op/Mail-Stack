@@ -547,3 +547,13 @@ NavigationBar's windowInsets — total bar height 80dp + nav inset,
 content clear above the system nav. Icon size (24dp), pill
 (64x32dp), label, and elevation (0dp) were already identical to
 the old bar; only the geometry was wrong. Animation untouched.
+
+## 2026-10-16 ~17:45 IST — Square tap ripple removed from pill controls (NO APK — user approval pending)
+User screenshot (Appearance, Dark tapped): besides the grey pill, a
+square highlight appeared on tap. That was the default clickable
+ripple — a rectangle filling the tapped segment/tab. The user wants
+only the pill. Fix: both custom pill controls (MoNavBar tabs and
+the Appearance segmented control) now use clickable(indication =
+null) — the sliding pill itself is the tap feedback. Standard M3
+components elsewhere keep their normal ripples; only these two
+pill controls changed.
