@@ -17,19 +17,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Menu
-import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -61,11 +54,12 @@ import com.greninjaop.mailorganizer.ui.theme.MoSpacing
  * The search field itself is the same [MoSearchField] on every tab.
  * On Mail it edits the mailbox filter (from [mailState]); on the other
  * tabs it holds a local query and opens the dedicated Search screen on
- * submit. The trailing actions swap by tab (Mail: account avatar;
- * others: account avatar + overflow) with a short fade. There is NO
- * reload button on Mail — refresh is the Instagram-style
- * pull-to-refresh on the mailbox list (see MailScreen), so the top
- * bar keeps only the account avatar (2026-10-16).
+ * submit. The trailing action is the account avatar on EVERY tab —
+ * there is no overflow menu (Gmail parity, 2026-10-16): tapping the
+ * avatar opens the account switcher sheet, and Settings, Privacy,
+ * Integrations and Accounts all live inside the Settings page. The
+ * DP sits at the far right on every tab, so removing the old menu
+ * also resized the pill (it fills the freed space).
  *
  * Shown only on primary destinations; pushed routes (thread, settings,
  * ...) keep their own top bars.
@@ -80,10 +74,8 @@ fun MoPrimaryTopBar(
     mailState: MailScreenState?,
     onOpenAccounts: () -> Unit,
     account: AccountRecord?,
-    onOpenSecondary: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var menuOpen by remember { mutableStateOf(false) }
 
     // The hamburger's width animates 0 ↔ 48dp. The icon inside slides
     // from the left edge (offset = width − 48dp) while the container
@@ -196,6 +188,10 @@ fun MoPrimaryTopBar(
                             }
                         }
                     } else {
+                        // No overflow menu (Gmail parity, 2026-10-16):
+                        // the avatar is the only trailing action. It
+                        // sits at the far right, and the pill fills
+                        // the space the old menu used to take.
                         if (account != null) {
                             IconButton(onClick = onOpenAccounts) {
                                 AccountAvatar(
@@ -205,28 +201,6 @@ fun MoPrimaryTopBar(
                                     ),
                                 )
                             }
-                        }
-                        IconButton(onClick = { menuOpen = true }) {
-                            Icon(
-                                imageVector = Icons.Filled.MoreVert,
-                                contentDescription = "More options",
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = menuOpen,
-                            onDismissRequest = { menuOpen = false },
-                        ) {
-                            AppDestinations.secondary
-                                .filter { it != AppDestinations.SEARCH }
-                                .forEach { route ->
-                                    DropdownMenuItem(
-                                        text = { Text(AppDestinations.titleFor(route)) },
-                                        onClick = {
-                                            menuOpen = false
-                                            onOpenSecondary(route)
-                                        },
-                                    )
-                                }
                         }
                     }
                 }
