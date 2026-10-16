@@ -87,7 +87,8 @@ import com.greninjaop.mailorganizer.ui.settings.AccountsViewModel
 import com.greninjaop.mailorganizer.ui.settings.AccountsViewModelFactory
 import com.greninjaop.mailorganizer.ui.settings.AppearanceViewModel
 import com.greninjaop.mailorganizer.ui.settings.AppearanceViewModelFactory
-import com.greninjaop.mailorganizer.ui.settings.PrivacyScreen
+import com.greninjaop.mailorganizer.ui.settings.PrivacyPolicyScreen
+import com.greninjaop.mailorganizer.ui.settings.TermsScreen
 import com.greninjaop.mailorganizer.ui.settings.SettingsScreen
 
 /**
@@ -110,6 +111,12 @@ object AppDestinations {
     const val SETTINGS = "settings"
     const val PRIVACY = "privacy"
     const val ACCOUNTS = "accounts"
+
+    /** Privacy Policy document (Settings footer link, 2026-10-16). */
+    const val PRIVACY_POLICY = "privacy-policy"
+
+    /** Terms of Service document (Settings footer link, 2026-10-16). */
+    const val TERMS = "terms"
 
     /** Phase 3: Google OAuth connect-account flow. */
     const val CONNECT = "connect"
@@ -201,6 +208,8 @@ object AppDestinations {
         INTEGRATIONS -> "Integrations"
         SETTINGS -> "Settings"
         PRIVACY -> "Privacy"
+        PRIVACY_POLICY -> "Privacy Policy"
+        TERMS -> "Terms of Service"
         ACCOUNTS -> "Accounts"
         CLEANUP -> "Cleanup"
         ANALYTICS -> "Analytics"
@@ -400,7 +409,6 @@ fun AppNavGraph(
                             )
                         },
                         onMenuClick = { drawerScope.launch { drawerState.open() } },
-                        mailState = mailState,
                         onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
                         account = account,
                     )
@@ -821,6 +829,20 @@ fun AppNavGraph(
                     viewModel(factory = com.greninjaop.mailorganizer.ui.privacy.PrivacyViewModelFactory(container))
                 com.greninjaop.mailorganizer.ui.privacy.PrivacyCenterScreen(
                     viewModel = vm,
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            // Settings footer links (2026-10-16): the Privacy Policy
+            // and Terms of Service documents. Drilled from Settings,
+            // so the NavHost's global transition slides them in from
+            // the right — no per-destination transition needed.
+            composable(AppDestinations.PRIVACY_POLICY) {
+                PrivacyPolicyScreen(
+                    onBack = { navController.popBackStack() },
+                )
+            }
+            composable(AppDestinations.TERMS) {
+                TermsScreen(
                     onBack = { navController.popBackStack() },
                 )
             }
