@@ -6,6 +6,8 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.scaleIn
 import androidx.compose.animation.scaleOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,6 +16,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -29,7 +32,11 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import com.greninjaop.mailorganizer.data.local.AccountRecord
+import com.greninjaop.mailorganizer.data.prefs.AccountSelection
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.di.AppContainer
@@ -258,12 +265,106 @@ fun AppNavGraph(
     // Scaffold applies no window insets of its own: the bar pads itself
     // for the system navigation bar, and each screen owns its
     // remaining insets exactly as before.
+    // 2026-10-16 (dynamic search pill): the top bar is hoisted the same
+    // way — one search pill stays mounted across tab switches, so it
+    // can reshape itself (hamburger slides in from the left, pill
+    // shrinks rightward) instead of remounting. The top bar shows only
+    // on primary destinations; pushed routes keep their own top bars.
     val backStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = backStackEntry?.destination?.route
-    val showBottomBar = currentRoute in PrimaryDestination.entries.map { it.route }
+    val showBars = currentRoute in PrimaryDestination.entries.map { it.route }
+    val isMail = currentRoute == AppDestinations.MAIL
+
+    // Whether Mail was entered via a primary-tab switch (vs popping back
+    // from a pushed route). The Mail list defers past the tab-switch
+    // transition in that case, so the bubble/slide/pill animations run
+    // without competing against the heavy list composition (2026-10-16).
+    // previousRoute lags one navigation behind: it is updated after the
+    // composition that consumed it, so it always holds the route we
+    // came from.
+    var previousRoute by remember { mutableStateOf<String?>(null) }
+    val mailEnteredViaTab = isMail &&
+        previousRoute in PrimaryDestination.entries.map { it.route }
+    LaunchedEffect(currentRoute) { previousRoute = currentRoute }
+
+    // Mail's ViewModel, shared with the Mail destination: same back-stack
+    // entry owner, same factory → the same instance MailScreen uses.
+    // Only exists while Mail is current.
+    val mailVm: MailViewModel? = if (isMail && backStackEntry != null) {
+        viewModel(
+            viewModelStoreOwner = backStackEntry!!,
+            factory = MailViewModelFactory(container),
+        )
+    } else {
+        null
+    }
+    val mailState = if (mailVm != null) {
+        val s by mailVm.state.collectAsState()
+        s
+    } else {
+        null
+    }
+
+    // Search query for the non-Mail tabs (Mail's filter lives in
+    // MailViewModel). Held here so the hoisted pill keeps its text
+    // across tab switches.
+    var otherQuery by remember { mutableStateOf("") }
+    val searchQuery = if (isMail) mailState?.filterText ?: "" else otherQuery
+
+    // Drawer-open requests for the Mail tab: the hamburger lives in the
+    // hoisted top bar, the drawer lives in MailScreen. The counter
+    // increments per tap; MailScreen opens the drawer on each change.
+    val drawerOpenSignal = remember { MutableStateFlow(0) }
+
+    // Active account for the top bar's avatar on non-Mail tabs (Mail's
+    // actions read it from MailViewModel). Same Single/Unified derivation
+    // as MailViewModel: a selected account, else null for unified.
+    val account: AccountRecord? by remember {
+        combine(
+            container.accountRepository.observeAll(),
+            container.activeAccountPreferences.activeSelection,
+        ) { list, selection ->
+            val enabled = list.filter { it.isEnabled }
+            when (selection) {
+                is AccountSelection.Single ->
+                    enabled.firstOrNull { it.accountId == selection.accountId }
+                        ?: enabled.minWithOrNull(
+                            compareBy<AccountRecord> { it.createdAtEpochMs }
+                                .thenBy { it.accountId },
+                        )
+                is AccountSelection.Unified -> null
+            }
+        }
+    }.collectAsState(initial = null)
+
     Scaffold(
+        topBar = {
+            if (showBars) {
+                MoPrimaryTopBar(
+                    isMail = isMail,
+                    searchValue = searchQuery,
+                    onSearchValueChange = { query ->
+                        if (isMail) mailVm?.setFilterText(query)
+                        else otherQuery = query
+                    },
+                    onSearchSubmit = {
+                        navController.navigate(
+                            AppDestinations.searchRoute(searchQuery),
+                        )
+                    },
+                    onMenuClick = { drawerOpenSignal.value += 1 },
+                    mailState = mailState,
+                    onRefresh = { mailVm?.refresh() },
+                    onOpenAccounts = {
+                        navController.navigate(AppDestinations.ACCOUNTS)
+                    },
+                    account = account,
+                    onOpenSecondary = navigatePrimary,
+                )
+            }
+        },
         bottomBar = {
-            if (showBottomBar) {
+            if (showBars) {
                 MoNavBar(
                     currentRoute = currentRoute ?: AppDestinations.HOME,
                     onNavigate = navigatePrimary,
@@ -276,17 +377,30 @@ fun AppNavGraph(
             navController = navController,
             startDestination = AppDestinations.HOME,
             modifier = Modifier.padding(padding),
-        // 2026-10-16: tab switches (primary ↔ primary) are INSTANT —
-        // no fade, no scale, no gap. The old fade-through (exit 200ms +
-        // enter delayed 120ms) left a gap where both screens were
-        // semi-transparent, so the platform window background showed
-        // through as a white/gray flash — and the animation itself read
-        // as a reload. Pushed routes (thread, settings, ...) keep the
-        // fade-through. Tab state is preserved via saveState/restoreState
-        // (see navigatePrimary), so a switch never reloads a tab.
+        // 2026-10-16: tab switches (primary ↔ primary) slide
+        // DIRECTIONALLY — the incoming tab's content enters from the
+        // side that tab sits on (a tab to the right slides in from the
+        // right, and vice versa), so the motion matches the jelly
+        // bubble's travel. The slide is opaque (no fade, no scale) and
+        // runs on the same 350ms spec as the bubble and the search-pill
+        // reshape, so all three land together and the new tab is fully
+        // rendered when the bubble stops. The old fade-through (exit
+        // 200ms + enter delayed 120ms) left a gap where both screens
+        // were semi-transparent, so the platform window background
+        // showed through as a white/gray flash — and the animation
+        // itself read as a reload. Pushed routes (thread, settings,
+        // ...) keep the fade-through. Tab state is preserved via
+        // saveState/restoreState (see navigatePrimary), so a switch
+        // never reloads a tab.
         enterTransition = {
             if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                EnterTransition.None
+                val dir = tabSlideDirection(
+                    initialState.destination.route,
+                    targetState.destination.route,
+                )
+                slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                    if (dir > 0) width else -width
+                }
             } else {
                 fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
                     scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
@@ -294,7 +408,13 @@ fun AppNavGraph(
         },
         exitTransition = {
             if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                ExitTransition.None
+                val dir = tabSlideDirection(
+                    initialState.destination.route,
+                    targetState.destination.route,
+                )
+                slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                    if (dir > 0) -width else width
+                }
             } else {
                 fadeOut(animationSpec = MoMotion.fadeThroughExit) +
                     scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
@@ -302,7 +422,13 @@ fun AppNavGraph(
         },
         popEnterTransition = {
             if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                EnterTransition.None
+                val dir = tabSlideDirection(
+                    initialState.destination.route,
+                    targetState.destination.route,
+                )
+                slideInHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                    if (dir > 0) width else -width
+                }
             } else {
                 fadeIn(animationSpec = MoMotion.fadeThroughEnter) +
                     scaleIn(initialScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleIn)
@@ -310,7 +436,13 @@ fun AppNavGraph(
         },
         popExitTransition = {
             if (isTabSwitch(initialState.destination.route, targetState.destination.route)) {
-                ExitTransition.None
+                val dir = tabSlideDirection(
+                    initialState.destination.route,
+                    targetState.destination.route,
+                )
+                slideOutHorizontally(animationSpec = MoMotion.tabSwitchSlide) { width ->
+                    if (dir > 0) -width else width
+                }
             } else {
                 fadeOut(animationSpec = MoMotion.fadeThroughExit) +
                     scaleOut(targetScale = 0.97f, animationSpec = MoMotion.fadeThroughScaleOut)
@@ -333,9 +465,6 @@ fun AppNavGraph(
                 onOpenCompany = { companyId ->
                     navController.navigate(AppDestinations.companyRoute(companyId))
                 },
-                onOpenSearch = { query ->
-                    navController.navigate(AppDestinations.searchRoute(query))
-                },
             )
         }
         // Phase 6: the real mailbox. Other destinations keep their honest
@@ -349,12 +478,12 @@ fun AppNavGraph(
                         AppDestinations.threadRoute(threadId, focusMessageId),
                     )
                 },
-                onOpenAccounts = { navController.navigate(AppDestinations.ACCOUNTS) },
-                // Phase 10: the mailbox search field's IME action opens the
-                // dedicated search screen with the typed query.
-                onOpenSearch = { query ->
-                    navController.navigate(AppDestinations.searchRoute(query))
-                },
+                // The mailbox drawer is opened by the hamburger in the
+                // hoisted top bar (see drawerOpenSignal above).
+                drawerOpenSignal = drawerOpenSignal,
+                // Defer the heavy list past the tab-switch transition
+                // so the bubble animation never lags on Mail.
+                deferList = mailEnteredViaTab,
             )
         }
         // Phase 11: category browsing + detail.
@@ -369,9 +498,6 @@ fun AppNavGraph(
                 },
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-                onOpenSearch = { query ->
-                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -416,9 +542,6 @@ fun AppNavGraph(
                 onOpenCompany = { companyId ->
                     navController.navigate(AppDestinations.companyRoute(companyId))
                 },
-                onOpenSearch = { query ->
-                    navController.navigate(AppDestinations.searchRoute(query))
-                },
             )
         }
         composable(
@@ -454,9 +577,6 @@ fun AppNavGraph(
                 onNavigate = navigatePrimary,
                 onOpenThread = { threadId ->
                     navController.navigate(AppDestinations.threadRoute(threadId))
-                },
-                onOpenSearch = { query ->
-                    navController.navigate(AppDestinations.searchRoute(query))
                 },
             )
         }
@@ -744,4 +864,19 @@ fun AppNavGraph(
 private fun isTabSwitch(fromRoute: String?, toRoute: String?): Boolean {
     val primary = PrimaryDestination.entries.map { it.route }
     return fromRoute in primary && toRoute in primary
+}
+
+/**
+ * Direction of a primary tab switch, in bottom-bar order (HOME, MAIL,
+ * CATEGORIES, COMPANIES, ACTIONS — left to right): +1 when the target
+ * tab sits to the right of the source tab (its content enters from the
+ * right), −1 when it sits to the left, 0 when the routes are the same
+ * or not both tabs. Only the sign matters — the slide always travels
+ * the full screen width.
+ */
+fun tabSlideDirection(fromRoute: String?, toRoute: String?): Int {
+    val from = PrimaryDestination.entries.indexOfFirst { it.route == fromRoute }
+    val to = PrimaryDestination.entries.indexOfFirst { it.route == toRoute }
+    if (from < 0 || to < 0 || from == to) return 0
+    return if (to > from) 1 else -1
 }
