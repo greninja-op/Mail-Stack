@@ -15,47 +15,32 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.MailOutline
-import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.ShoppingCart
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalDrawerSheet
-import androidx.compose.material3.ModalNavigationDrawer
-import androidx.compose.material3.NavigationDrawerItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.ui.components.MailListSkeleton
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
@@ -63,8 +48,6 @@ import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.edgeFade
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.launch
 
 /**
  * Core inbox screen (Phase 6).
@@ -72,10 +55,12 @@ import kotlinx.coroutines.launch
  * Gmail-familiar chrome (design.md): the top bar — drawer affordance,
  * search field and account avatar — is hoisted above the NavHost (see
  * MoPrimaryTopBar in ui/navigation), so the search pill can reshape
- * itself across tab switches; this screen owns the navigation drawer
- * with the six mailbox destinations (All Inbox / Primary / Promotional
- * / Social / Spam / Starred). Classification-backed destinations show
- * honest empty states until Phase 7 — never fabricated categories (§59).
+ * itself across tab switches; the navigation drawer (six mailbox
+ * destinations: All Inbox / Primary / Promotional / Social / Spam /
+ * Starred) is hoisted above the whole Scaffold in AppNavGraph (see
+ * MailDrawer in this package), so it covers the top bar too.
+ * Classification-backed destinations show honest empty states until
+ * Phase 7 — never fabricated categories (§59).
  *
  * Read-only: no mark-read/star/archive actions (phase §6, Phase 22 owns
  * Gmail writes). The refresh action delegates to Phase 4's sync engine and
@@ -90,14 +75,6 @@ fun MailScreen(
     viewModel: MailViewModel,
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
     /**
-     * Drawer-open requests from the hamburger in the hoisted top bar:
-     * a one-shot SharedFlow with no replay — only a fresh tap opens
-     * the drawer. (A StateFlow counter replays its last value to every
-     * new collector, so the drawer opened by itself whenever Mail
-     * re-entered composition after any hamburger tap.)
-     */
-    drawerOpenSignal: SharedFlow<Unit>,
-    /**
      * True when Mail was entered via a primary-tab switch (vs popping
      * back from a pushed route). The heavy lists defer past the
      * tab-switch transition so the bubble/slide/pill animations run
@@ -108,8 +85,6 @@ fun MailScreen(
 ) {
     val state by viewModel.state.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
-    val drawerState = rememberDrawerState(DrawerValue.Closed)
-    val scope = rememberCoroutineScope()
     val snackbar = remember { SnackbarHostState() }
 
     LaunchedEffect(state.syncUi) {
@@ -118,27 +93,12 @@ fun MailScreen(
         viewModel.consumeSyncResult()
     }
 
-    // Drawer requests from the hoisted top bar's hamburger. The flow
-    // has no replay, so re-entering this screen never re-opens the
-    // drawer on its own — only a fresh tap does.
-    LaunchedEffect(drawerOpenSignal) {
-        drawerOpenSignal.collect { drawerState.open() }
-    }
-
-    ModalNavigationDrawer(
-        drawerState = drawerState,
-        drawerContent = {
-            MailDrawer(
-                state = state,
-                onSelect = { dest ->
-                    viewModel.setDestination(dest)
-                    scope.launch { drawerState.close() }
-                },
-            )
-        },
-        modifier = modifier,
-    ) {
-        Scaffold(
+    // No drawer here: it is hoisted above the whole Scaffold in
+    // AppNavGraph (see MailDrawer in this package), so it covers the
+    // top bar too, exactly like Gmail's drawer — the per-screen drawer
+    // only covered the content below the top bar.
+    Scaffold(
+            modifier = modifier,
             containerColor = MaterialTheme.colorScheme.background,
             // No top bar here — it is hoisted above the NavHost (see
             // MoPrimaryTopBar). No window insets either: the hoisted
@@ -206,7 +166,6 @@ fun MailScreen(
                 )
             }
         }
-    }
 }
 
 /**
@@ -223,87 +182,6 @@ private fun syncProgressLabel(sync: SyncUiState.Syncing, stageText: String): Str
     else "${sync.processed} of ~$total emails"
     return "${(pct * 100).toInt()}% · $count · $stageText"
 }
-
-@Composable
-private fun MailDrawer(
-    state: MailScreenState,
-    onSelect: (MailboxDestination) -> Unit,
-) {
-    ModalDrawerSheet(
-        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        val account = state.activeAccount
-        Column(
-            modifier = Modifier.padding(MoSpacing.md),
-            verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
-        ) {
-            if (state.isUnified) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.Filled.MailOutline,
-                        contentDescription = null,
-                        modifier = Modifier.size(MoSpacing.huge),
-                        tint = MaterialTheme.colorScheme.primary,
-                    )
-                    Spacer(Modifier.width(MoSpacing.sm))
-                    Column {
-                        Text(
-                            text = "All Accounts",
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
-                            text = "Unified Inbox",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = MoSpacing.xs))
-            } else if (account != null) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    AccountAvatar(account = account, size = MoSpacing.huge)
-                    Spacer(Modifier.width(MoSpacing.sm))
-                    Column {
-                        Text(
-                            text = account.displayName ?: account.emailAddress,
-                            style = MaterialTheme.typography.titleSmall,
-                        )
-                        Text(
-                            text = account.emailAddress,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                HorizontalDivider(modifier = Modifier.padding(vertical = MoSpacing.xs))
-            }
-            MailboxDestination.entries.forEach { dest ->
-                NavigationDrawerItem(
-                    label = { Text(dest.title) },
-                    selected = state.destination == dest,
-                    onClick = { onSelect(dest) },
-                    icon = {
-                        Icon(
-                            imageVector = dest.icon,
-                            contentDescription = null,
-                        )
-                    },
-                )
-            }
-        }
-    }
-}
-
-private val MailboxDestination.icon
-    @Composable get() = when (this) {
-        MailboxDestination.ALL_INBOX -> Icons.Filled.Email
-        MailboxDestination.PRIMARY -> Icons.Filled.MailOutline
-        MailboxDestination.PROMOTIONAL -> Icons.Filled.ShoppingCart
-        MailboxDestination.SOCIAL -> Icons.Filled.Person
-        MailboxDestination.SPAM -> Icons.Filled.Warning
-        MailboxDestination.STARRED -> Icons.Filled.Star
-    }
-
 
 @Composable
 private fun OfflineBanner() {
