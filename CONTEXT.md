@@ -339,3 +339,52 @@
   buttons, chips, tabs, FABs, StatusPill badges, and StartupErrorScreen
   untouched. Build OK; tests 939 run, 931 pass, same 8 env-broken.
 - Version bumped to 1.0.12 (versionCode 13) for the APK delivery.
+
+## 2026-10-15 ~10:00 IST — 1.0.12 audit fix batch (1.0.13 APK)
+User-reported defects from the 1.0.12 screenshots, all fixed:
+1. Excess space: row tokens back to Gmail parity (mail row 120->88dp,
+   avatar 54->40dp, company row 86->64dp, thread header 65->48dp,
+   search row 97->72dp); ThreadRow vertical padding 12->8dp; list gaps
+   12->8dp on Mail/Categories/Companies/Search.
+2. Dark-mode text unreadable: GlassCard now provides an explicit
+   content color (theme onSurface). Previously the custom translucent
+   fills left content color unspecified, so bare Text fell back to
+   black — correct-looking on light cards, invisible on dark cards.
+3. Ghosting white stripe/lines: no white surface exists anywhere in
+   the row code (verified by audit + pixel measurement of the
+   screenshots). The artifact came from the Surface compositing path
+   for translucent elevated cards. GlassCard is reimplemented as
+   explicit layers — shadow, fill, border — with IDENTICAL values
+   (same fill, 1dp border, 24dp shape, 6dp shadow), plus the explicit
+   content color above. The glass look is unchanged.
+4. Settings lines: ALL HorizontalDividers removed from the secondary
+   screens (Settings, Accounts, Privacy, AI, Rules, Integrations,
+   Cleanup, Analytics, Automation, Privacy Center) — cards separate
+   sections now; nothing left to render as a line across a card.
+   Drawer dividers + email-content VerticalDivider untouched.
+- Version bumped to 1.0.13 (versionCode 14) for the APK delivery.
+
+## 2026-10-16 ~15:30 IST — "Mailstack Expressive" redesign (1.0.14 APK)
+User verdict on Breeze: the glass UI looked disturbing. Complete redesign
+in the Material 3 Expressive (Pixel) language, per user approval:
+- REMOVED: cold-launch splash animation (both modes, deleted
+  SplashScreen.kt + splash drawables + MainActivity wiring) and the
+  full-bleed photo background (deleted BreezeBackground + artwork +
+  assets/backgrounds backups). App opens straight into content.
+- REMOVED: all glass — Glass.kt deleted; GlassCard -> MoCard, a solid
+  tonal surfaceContainer card, 28dp radius, no border, no shadow.
+  Mail/search rows are flat rows on the background (Gmail-style), not
+  cards. Cards reserved for grouped content (Home, Settings, messages).
+- NEW color: vivid violet brand (#5238E8 light / #B9A8FF dark), fixed
+  palettes in both modes; DYNAMIC COLOR OFF (wallpaper palettes broke
+  uniformity). Dark mode is deep violet-tinted charcoal (#131120 bg,
+  #1A1826 surface) — never pure black — with near-white lavender text.
+- Expressive type (display up to 64sp) + shapes (cards 28dp, pill
+  buttons/chips, 24dp FAB). Nav bar: solid surfaceContainer with a
+  secondaryContainer pill indicator. Search: solid surfaceContainerHigh
+  pill. Scaffolds/top bars: solid background/surface (no transparency).
+- Warning pills: solid amber containers, no borders. Dividers stay
+  removed (1.0.13). 1.0.13 fixes (compact rows etc.) are included in
+  this tree; the unapproved 1.0.13 push must NOT be approved after
+  this — it would revert redesigned files.
+- Version bumped to 1.0.14 (versionCode 15).

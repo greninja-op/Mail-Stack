@@ -5,86 +5,158 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.ui.graphics.Color
 
 /**
- * Centralized color tokens — Phase 1 (source of truth: phase-01 §20).
+ * Centralized color tokens — "Mailstack Expressive" (2026-10-16 redesign).
  *
- * Brand values are taken verbatim from the execution plan:
- *   Primary #5B5CE2 · Primary Container #E8E8FF · Light Bg #F8F9FC
- *   Dark Bg #101114 · Light Surface #FFFFFF · Dark Surface #1A1B20
- *   Dark Elevated #222329 · Success #16A34A · Warning #D97706
- *   Error #DC2626 · Info #2563EB
+ * The Breeze glassmorphism system is gone: no photo background, no
+ * translucent cards, no dynamic color. Every surface is a solid tonal
+ * color from one fixed palette per mode, so light and dark are uniform
+ * mirrors of each other and text contrast never depends on what sits
+ * behind a card.
  *
- * Values marked "derived" below are not in the plan; they were chosen for
- * contrast/accessibility and are documented as such. Every screen must use
- * these tokens — no ad-hoc colors.
+ * Brand: vivid violet. Light mode pairs it with a pale violet-tinted
+ * background; dark mode is built on deep violet-tinted charcoal — never
+ * pure black — with bright lavender accents, so text stands out on solid
+ * surfaces in both modes.
  *
- * Dynamic color (Android 12+) is preferred at runtime (see Theme.kt); these
- * are the controlled fallback palettes.
+ * Dynamic color is OFF (see Theme.kt): the palette comes from the user's
+ * wallpaper otherwise, which breaks uniformity — the same app would look
+ * different on every phone and in every mode.
+ *
+ * Every screen must use these tokens — no ad-hoc colors.
  */
 
-// ---- Spec tokens (verbatim) ----
-private val SpecPrimary = Color(0xFF5B5CE2)
-private val SpecPrimaryContainer = Color(0xFFE8E8FF)
-private val SpecLightBackground = Color(0xFFF8F9FC)
-private val SpecDarkBackground = Color(0xFF101114)
-private val SpecLightSurface = Color(0xFFFFFFFF)
-private val SpecDarkSurface = Color(0xFF1A1B20)
-private val SpecDarkElevatedSurface = Color(0xFF222329)
-private val SpecSuccess = Color(0xFF16A34A)
-private val SpecWarning = Color(0xFFD97706)
-private val SpecError = Color(0xFFDC2626)
-private val SpecInfo = Color(0xFF2563EB)
+// ---- Brand ----
+private val BrandPrimary = Color(0xFF5238E8) // vivid violet
+private val BrandPrimaryContainerLight = Color(0xFFE3DCFF)
+private val OnBrandPrimaryContainerLight = Color(0xFF1D0F6E)
+private val BrandSecondaryLight = Color(0xFF6A5ACD) // softer violet
+private val BrandSecondaryContainerLight = Color(0xFFE4E0FF)
+private val OnBrandSecondaryContainerLight = Color(0xFF241A5E)
+private val BrandTertiaryLight = Color(0xFF1E7A55) // mint accent
+private val BrandTertiaryContainerLight = Color(0xFFB9F5D6)
+private val OnBrandTertiaryContainerLight = Color(0xFF002114)
 
-// ---- Derived companions (contrast-checked, not in the plan) ----
-private val OnPrimaryContainerLight = Color(0xFF1A2151) // dark indigo on #E8E8FF
-private val PrimaryContainerDark = Color(0xFF2E3370) // deep indigo for dark mode
-private val OnLightBackground = Color(0xFF141519)
-private val OnDarkBackground = Color(0xFFF4F5FA)
-private val SurfaceVariantLight = Color(0xFFE9EAF2)
-private val OnSurfaceVariantLight = Color(0xFF44464F)
-private val SurfaceVariantDark = Color(0xFF2A2B33)
-private val OnSurfaceVariantDark = Color(0xFFC6C7D0)
-private val ErrorDark = Color(0xFFFFB4AB) // #DC2626 is unreadable on #101114
+// ---- Light surfaces: pale violet-tinted, never stark white-on-white ----
+private val LightBackground = Color(0xFFF6F3FF)
+private val LightSurface = Color(0xFFFDFBFF)
+private val LightOnSurface = Color(0xFF1C1A26) // near-black violet
+private val LightSurfaceVariant = Color(0xFFE7E1F5)
+private val LightOnSurfaceVariant = Color(0xFF48455A)
+private val LightSurfaceContainerLow = Color(0xFFF7F4FF)
+private val LightSurfaceContainer = Color(0xFFEFEAFB)
+private val LightSurfaceContainerHigh = Color(0xFFE7E0F6)
+private val LightSurfaceContainerHighest = Color(0xFFDCD3F0)
+private val LightOutline = Color(0xFF7B7790)
+private val LightOutlineVariant = Color(0xFFCBC5DE)
+
+// ---- Dark surfaces: deep violet-tinted charcoal, never pure black ----
+// Background is the darkest tone; each container tier lifts visibly
+// above it so hierarchy reads without borders or shadows.
+private val DarkBackground = Color(0xFF131120)
+private val DarkSurface = Color(0xFF1A1826)
+private val DarkOnSurface = Color(0xFFF0EDFB) // near-white lavender
+private val DarkSurfaceVariant = Color(0xFF2E2A44)
+private val DarkOnSurfaceVariant = Color(0xFFCBC6DE)
+private val DarkSurfaceContainerLow = Color(0xFF1F1C2E)
+private val DarkSurfaceContainer = Color(0xFF262340)
+private val DarkSurfaceContainerHigh = Color(0xFF322D4E)
+private val DarkSurfaceContainerHighest = Color(0xFF3D3859)
+private val DarkOutline = Color(0xFF948EA9)
+private val DarkOutlineVariant = Color(0xFF48445C)
+
+// ---- Dark brand: bright lavender accents that pop on dark surfaces ----
+private val BrandPrimaryDark = Color(0xFFB9A8FF)
+private val OnBrandPrimaryDark = Color(0xFF2E1B8A)
+private val BrandPrimaryContainerDark = Color(0xFF4634A8)
+private val BrandSecondaryDark = Color(0xFFC9BEFF)
+private val OnBrandSecondaryDark = Color(0xFF382E78)
+private val BrandSecondaryContainerDark = Color(0xFF4D4096)
+private val BrandTertiaryDark = Color(0xFF7FE0B2)
+private val OnBrandTertiaryDark = Color(0xFF003828)
+private val BrandTertiaryContainerDark = Color(0xFF005741)
+
+// ---- Errors ----
+private val ErrorLight = Color(0xFFB3261E)
+private val ErrorContainerLight = Color(0xFFF9DEDC)
+private val OnErrorContainerLight = Color(0xFF410E0B)
+private val ErrorDark = Color(0xFFFFB4AB)
 private val OnErrorDark = Color(0xFF690005)
+private val ErrorContainerDark = Color(0xFF93000A)
+private val OnErrorContainerDark = Color(0xFFFFDAD6)
 
 val MoLightColorScheme = lightColorScheme(
-    primary = SpecPrimary,
+    primary = BrandPrimary,
     onPrimary = Color.White,
-    primaryContainer = SpecPrimaryContainer,
-    onPrimaryContainer = OnPrimaryContainerLight,
-    background = SpecLightBackground,
-    onBackground = OnLightBackground,
-    surface = SpecLightSurface,
-    onSurface = OnLightBackground,
-    surfaceVariant = SurfaceVariantLight,
-    onSurfaceVariant = OnSurfaceVariantLight,
-    error = SpecError,
+    primaryContainer = BrandPrimaryContainerLight,
+    onPrimaryContainer = OnBrandPrimaryContainerLight,
+    secondary = BrandSecondaryLight,
+    onSecondary = Color.White,
+    secondaryContainer = BrandSecondaryContainerLight,
+    onSecondaryContainer = OnBrandSecondaryContainerLight,
+    tertiary = BrandTertiaryLight,
+    onTertiary = Color.White,
+    tertiaryContainer = BrandTertiaryContainerLight,
+    onTertiaryContainer = OnBrandTertiaryContainerLight,
+    background = LightBackground,
+    onBackground = LightOnSurface,
+    surface = LightSurface,
+    onSurface = LightOnSurface,
+    surfaceVariant = LightSurfaceVariant,
+    onSurfaceVariant = LightOnSurfaceVariant,
+    surfaceContainerLowest = Color.White,
+    surfaceContainerLow = LightSurfaceContainerLow,
+    surfaceContainer = LightSurfaceContainer,
+    surfaceContainerHigh = LightSurfaceContainerHigh,
+    surfaceContainerHighest = LightSurfaceContainerHighest,
+    outline = LightOutline,
+    outlineVariant = LightOutlineVariant,
+    error = ErrorLight,
     onError = Color.White,
+    errorContainer = ErrorContainerLight,
+    onErrorContainer = OnErrorContainerLight,
+    inverseSurface = LightOnSurface,
+    inverseOnSurface = LightSurface,
+    inversePrimary = BrandPrimaryDark,
 )
 
 val MoDarkColorScheme = darkColorScheme(
-    primary = SpecPrimary,
-    onPrimary = Color.White,
-    primaryContainer = PrimaryContainerDark,
-    onPrimaryContainer = SpecPrimaryContainer,
-    background = SpecDarkBackground,
-    onBackground = OnDarkBackground,
-    surface = SpecDarkSurface,
-    onSurface = OnDarkBackground,
-    surfaceVariant = SurfaceVariantDark,
-    onSurfaceVariant = OnSurfaceVariantDark,
-    // Dark elevated surface (#222329) is exposed for cards/sheets that need
-    // separation from the base dark surface; see MoDarkElevatedSurface.
-    surfaceContainerHigh = SpecDarkElevatedSurface,
+    primary = BrandPrimaryDark,
+    onPrimary = OnBrandPrimaryDark,
+    primaryContainer = BrandPrimaryContainerDark,
+    onPrimaryContainer = BrandPrimaryContainerLight,
+    secondary = BrandSecondaryDark,
+    onSecondary = OnBrandSecondaryDark,
+    secondaryContainer = BrandSecondaryContainerDark,
+    onSecondaryContainer = BrandSecondaryContainerLight,
+    tertiary = BrandTertiaryDark,
+    onTertiary = OnBrandTertiaryDark,
+    tertiaryContainer = BrandTertiaryContainerDark,
+    onTertiaryContainer = BrandTertiaryContainerLight,
+    background = DarkBackground,
+    onBackground = DarkOnSurface,
+    surface = DarkSurface,
+    onSurface = DarkOnSurface,
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = DarkOnSurfaceVariant,
+    surfaceContainerLowest = Color.Black,
+    surfaceContainerLow = DarkSurfaceContainerLow,
+    surfaceContainer = DarkSurfaceContainer,
+    surfaceContainerHigh = DarkSurfaceContainerHigh,
+    surfaceContainerHighest = DarkSurfaceContainerHighest,
+    outline = DarkOutline,
+    outlineVariant = DarkOutlineVariant,
     error = ErrorDark,
     onError = OnErrorDark,
+    errorContainer = ErrorContainerDark,
+    onErrorContainer = OnErrorContainerDark,
+    inverseSurface = DarkOnSurface,
+    inverseOnSurface = DarkSurface,
+    inversePrimary = BrandPrimary,
 )
 
-/** Dark elevated surface token (#222329) for cards/sheets on dark theme. */
-val MoDarkElevatedSurface = SpecDarkElevatedSurface
-
 /**
- * Semantic status colors. Light values are the verbatim spec tokens; dark
- * values are tonal equivalents derived for contrast on #101114.
+ * Semantic status colors. Dark values are tonal equivalents chosen for
+ * contrast on the dark surfaces above.
  */
 data class MoStatusColors(
     val success: Color,
@@ -94,10 +166,10 @@ data class MoStatusColors(
 )
 
 val MoLightStatusColors = MoStatusColors(
-    success = SpecSuccess,
-    warning = SpecWarning,
-    info = SpecInfo,
-    error = SpecError,
+    success = Color(0xFF1E7A55),
+    warning = Color(0xFFB45309),
+    info = Color(0xFF1D4ED8),
+    error = ErrorLight,
 )
 
 val MoDarkStatusColors = MoStatusColors(
@@ -108,15 +180,7 @@ val MoDarkStatusColors = MoStatusColors(
 )
 
 /**
- * Category accent colors (Phase 7 §53).
- *
- * Spec mapping: Action Required → red, Important → primary, Career → blue,
- * Education → purple, Receipts & Orders → green, Security → amber,
- * Notifications → blue/neutral, Newsletters → teal, Promotions → orange,
- * Low Value → gray. Spec tokens are reused verbatim where they match
- * (red/primary/blue/green/amber); the rest are derived companions chosen
- * for contrast on light (#F8F9FC) and dark (#101114) backgrounds and are
- * documented as derived, per the token rules above.
+ * Category accent colors.
  *
  * Color is never the only category indicator — every usage pairs the
  * accent with a text label and a content description (see CategoryVisuals).
@@ -136,12 +200,12 @@ data class MoCategoryColors(
 )
 
 val MoLightCategoryColors = MoCategoryColors(
-    actionRequired = SpecError,
-    important = SpecPrimary,
-    career = SpecInfo,
+    actionRequired = ErrorLight,
+    important = BrandPrimary,
+    career = Color(0xFF1D4ED8),
     education = Color(0xFF7C3AED),
-    receiptsOrders = SpecSuccess,
-    security = SpecWarning,
+    receiptsOrders = Color(0xFF1E7A55),
+    security = Color(0xFFB45309),
     notifications = Color(0xFF0284C7),
     newsletters = Color(0xFF0D9488),
     promotions = Color(0xFFEA580C),
@@ -151,7 +215,7 @@ val MoLightCategoryColors = MoCategoryColors(
 
 val MoDarkCategoryColors = MoCategoryColors(
     actionRequired = ErrorDark,
-    important = Color(0xFFA8ABFF),
+    important = Color(0xFFB9A8FF),
     career = Color(0xFF60A5FA),
     education = Color(0xFFC4B5FD),
     receiptsOrders = Color(0xFF4ADE80),

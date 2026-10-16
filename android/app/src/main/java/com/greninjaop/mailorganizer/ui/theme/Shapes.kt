@@ -8,19 +8,20 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 
 /**
- * Centralized shape tokens — Phase 1 (source of truth: phase-01 §23).
+ * Centralized shape tokens — "Mailstack Expressive" (2026-10-16 redesign).
  *
- * Standard radii: 8 / 12 / 16 / 20 dp, plus pill. Use [MoShapes] via
- * MaterialTheme; reach for [MoRadii] only when a component needs an
- * explicit radius value.
+ * Material 3 Expressive radii: chunkier than the old 8/12/16/20 scale —
+ * cards land at 28dp, buttons and chips are pills, FABs are 24dp. Use
+ * [MoShapes] via MaterialTheme; reach for [MoRadii] only when a component
+ * needs an explicit radius value.
  */
 object MoRadii {
-    val small: Dp = 8.dp
-    val medium: Dp = 12.dp
-    val large: Dp = 16.dp
-    val extraLarge: Dp = 20.dp
+    val small: Dp = 12.dp
+    val medium: Dp = 16.dp
+    val large: Dp = 24.dp
+    val extraLarge: Dp = 28.dp
 
-    /** Pill shape for chips, account indicators, and similar components. */
+    /** Pill shape for buttons, chips, nav indicators, account pills. */
     val pill: Shape = CircleShape
 }
 
