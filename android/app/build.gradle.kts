@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 18
+        versionCode = 19
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -75,7 +75,7 @@ android {
         //        fixed 80dp height — bar sits clear above the system
         //        nav buttons again); square tap ripple removed from
         //        the pill controls (nav tabs + Appearance picker).
-        versionName = "1.0.17"
+        versionName = "1.0.18"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

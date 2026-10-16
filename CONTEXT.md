@@ -607,3 +607,22 @@ thread shows the list immediately.
 Tests: 968 run / 960 pass (same 8 known env failures: Robolectric
 DB/sync tests needing network). New: TabSlideDirectionTest (3 tests).
 No on-device verification possible from the sandbox.
+
+## 2026-10-16 ~18:18 IST — Mailstack 1.0.18 delivered (user: "rename the APK properly, increment after each release")
+APK: Mailstack-1.0.18.apk, 17,107,516 bytes, package
+com.greninjaop.mailorganizer, versionName 1.0.18, versionCode 19,
+stable cert SHA-1 07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05.
+Contents (all pushed earlier same day, byte-verified): hoisted
+dynamic top bar (search pill reshapes as the hamburger slides in
+from the left on Mail); directional tab slides (content enters from
+its tab's side, opaque, 350ms, synced with the bubble); skeleton
+loading for the mail list (content / empty / skeleton); subtle
+top+bottom edge fade on the mail list; white circular backing for
+artwork logos in dark mode; Mail list defers 300ms past tab-switch
+transitions so the bubble never lags. Tests at push time: 968 run /
+960 pass (same 8 known env failures). APK verified: aapt badging
+(1.0.18/code 19), apksigner cert SHA-1 matches the stable key,
+MoPrimaryTopBar + edgeFade present in DEX, 6 secondary dex files
+differ from 1.0.17. Naming rule restated: every release increments
+the version — never reuse a version name.
+No on-device verification possible from the sandbox.
