@@ -15,6 +15,13 @@ import com.greninjaop.mailorganizer.data.sync.SyncApiException
 /**
  * Gmail integration adapter (Phase 17).
  *
+ * NOTE (2026-10-16): this adapter is NOT wired into the
+ * [com.greninjaop.mailorganizer.domain.integrations.IntegrationManager].
+ * Gmail is not an integration — the app IS a Gmail app, and signing in
+ * IS Gmail — so the Integrations screen lists only Calendar and Tasks.
+ * The adapter stays (with its tests) as the honest capability/status
+ * model for Gmail's connection; it is not shown as an integration row.
+ *
  * Wraps Phase 4's [GmailSyncApi] seam — the app's local sync engine — and
  * reports its status honestly:
  * - No account in scope → [IntegrationStatus.DISCONNECTED].

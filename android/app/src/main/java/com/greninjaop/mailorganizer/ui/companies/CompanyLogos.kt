@@ -368,6 +368,13 @@ fun CompanyLogo(
     name: String,
     modifier: Modifier = Modifier,
     size: Dp = MoSpacing.rowAvatar,
+    /**
+     * When false, the fallback while the logo is loading / unresolvable
+     * is a plain tonal circle — NO letter. Integrations use this: their
+     * rows must show the real product logo, never a letter badge.
+     * Mail rows keep the default (letter avatar fallback).
+     */
+    showLetterFallback: Boolean = true,
 ) {
     // Dark mode by the actual background luminance, not the system
     // setting — the app's Appearance picker (System/Light/Dark) can
@@ -421,7 +428,7 @@ fun CompanyLogo(
         }
         return
     }
-    RemoteCompanyLogo(domain = domain, name = name, modifier = modifier, size = size)
+    RemoteCompanyLogo(domain = domain, name = name, modifier = modifier, size = size, showLetterFallback = showLetterFallback)
 }
 
 @Composable
@@ -430,6 +437,7 @@ private fun RemoteCompanyLogo(
     name: String,
     modifier: Modifier = Modifier,
     size: Dp,
+    showLetterFallback: Boolean = true,
 ) {
     val context = LocalContext.current
     var bitmap by remember(domain) { mutableStateOf<Bitmap?>(null) }
@@ -465,12 +473,21 @@ private fun RemoteCompanyLogo(
                         .padding(size / 6),
                 )
             }
-        } else {
+        } else if (showLetterFallback) {
             SenderAvatar(
                 key = domain,
                 displayName = name,
                 emailAddress = domain,
                 size = size,
+            )
+        } else {
+            // Integrations: no letter, ever — a plain tonal circle
+            // while the real product logo loads / can't be fetched.
+            Box(
+                modifier = Modifier
+                    .size(size)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.secondaryContainer),
             )
         }
     }

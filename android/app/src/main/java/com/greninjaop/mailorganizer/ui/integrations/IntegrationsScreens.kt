@@ -56,6 +56,7 @@ import com.greninjaop.mailorganizer.core.integrations.IntegrationCapability
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationSnapshot
 import com.greninjaop.mailorganizer.core.integrations.IntegrationStatus
+import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -255,7 +256,7 @@ private fun IntegrationRow(
             .padding(MoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IntegrationBadge(id = snapshot.id)
+        IntegrationBadge(snapshot = snapshot)
         Spacer(Modifier.width(MoSpacing.md))
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -280,21 +281,31 @@ private fun IntegrationRow(
     }
 }
 
-/** Circular badge with the integration's initial — no invented icons. */
+/**
+ * The integration's ORIGINAL product logo (2026-10-16), resolved by its
+ * product domain through the same logo pipeline mail rows use (bundled →
+ * ICONS-ASSETS → favicon) — Calendar shows the real Google Calendar logo,
+ * Tasks the real Google Tasks logo. The old letter badge ("C", "T") is
+ * gone. No letter fallback, ever: while the logo loads / can't be fetched,
+ * a plain tonal circle. An integration without a product domain yet gets
+ * the plain circle too.
+ */
 @Composable
-private fun IntegrationBadge(id: IntegrationId) {
-    Box(
-        modifier = Modifier
-            .size(MoSpacing.huge)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.primaryContainer),
-        contentAlignment = Alignment.Center,
-    ) {
-        Text(
-            text = id.value.firstOrNull()?.uppercase() ?: "?",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onPrimaryContainer,
+private fun IntegrationBadge(snapshot: IntegrationSnapshot) {
+    val domain = snapshot.id.logoDomain()
+    if (domain != null) {
+        CompanyLogo(
+            domain = domain,
+            name = snapshot.displayName,
+            size = MoSpacing.huge,
+            showLetterFallback = false,
+        )
+    } else {
+        Box(
+            modifier = Modifier
+                .size(MoSpacing.huge)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondaryContainer),
         )
     }
 }
@@ -591,7 +602,7 @@ private fun DetailHeader(snapshot: IntegrationSnapshot) {
         modifier = Modifier.padding(MoSpacing.md),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        IntegrationBadge(id = snapshot.id)
+        IntegrationBadge(snapshot = snapshot)
         Spacer(Modifier.width(MoSpacing.md))
         Column {
             Text(

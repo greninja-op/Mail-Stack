@@ -14,7 +14,6 @@ import com.greninjaop.mailorganizer.data.auth.SecureTokenStorage
 import com.greninjaop.mailorganizer.data.local.AppDatabase
 import com.greninjaop.mailorganizer.data.local.Migrations
 import com.greninjaop.mailorganizer.data.local.SearchIndexStore
-import com.greninjaop.mailorganizer.data.integrations.GmailIntegrationAdapter
 import com.greninjaop.mailorganizer.data.prefs.DataStoreThemePreferences
 import com.greninjaop.mailorganizer.data.prefs.ThemePreferences
 import com.greninjaop.mailorganizer.data.repository.AccountRepository
@@ -377,23 +376,16 @@ class AppContainer(private val appContext: Context) {
     }
 
     // ---- Phase 17: Integration Manager ----
-    // Coordinates the app's integrations (Gmail, Calendar, Tasks) without
+    // Coordinates the app's integrations (Calendar, Tasks) without
     // absorbing their API-specific logic. Calendar/Tasks adapters are
-    // honest UNAVAILABLE placeholders (Phases 15/16 deferred); the Gmail
-    // adapter wraps Phase 4's fail-closed sync seam. Nothing here performs
+    // honest UNAVAILABLE placeholders (Phases 15/16 deferred). Gmail is
+    // NOT an integration — the app IS a Gmail app. Nothing here performs
     // external side effects or bypasses Phase 14's confirmation boundary.
 
     val integrationStateRepository: IntegrationStateRepository by lazy {
         RoomIntegrationStateRepository(
             dao = database.integrationStateDao(),
             dispatchers = dispatchers,
-        )
-    }
-
-    val gmailIntegrationAdapter: GmailIntegrationAdapter by lazy {
-        GmailIntegrationAdapter(
-            syncApi = gmailSyncApi,
-            accounts = accountRepository,
         )
     }
 
@@ -414,8 +406,10 @@ class AppContainer(private val appContext: Context) {
 
     val integrationManager: IntegrationManager by lazy {
         IntegrationManager(
+            // Gmail is NOT an integration (2026-10-16): the app IS a
+            // Gmail app — signing in IS Gmail. Only the integrations
+            // apart from Gmail belong here (Calendar, Tasks).
             adapters = listOf(
-                gmailIntegrationAdapter,
                 calendarIntegrationAdapter,
                 tasksIntegrationAdapter,
             ),

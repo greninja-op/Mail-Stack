@@ -5,13 +5,11 @@ import com.greninjaop.mailorganizer.core.AppDispatchers
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
 import com.greninjaop.mailorganizer.core.integrations.IntegrationStatus
 import com.greninjaop.mailorganizer.data.integrations.CalendarIntegrationAdapter
-import com.greninjaop.mailorganizer.data.integrations.GmailIntegrationAdapter
 import com.greninjaop.mailorganizer.data.integrations.TasksIntegrationAdapter
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.ConnectionState
 import com.greninjaop.mailorganizer.data.local.IntegrationStateRecord
 import com.greninjaop.mailorganizer.data.repository.IntegrationStateRepository
-import com.greninjaop.mailorganizer.data.sync.DeferredGmailSyncApi
 import com.greninjaop.mailorganizer.domain.integrations.IntegrationManager
 import com.greninjaop.mailorganizer.ui.mail.FakeAccountRepository
 import kotlinx.coroutines.Dispatchers
@@ -64,8 +62,9 @@ class IntegrationsViewModelTest {
     )
 
     private fun manager() = IntegrationManager(
+        // Gmail is NOT an integration (2026-10-16) — the app IS Gmail.
+        // The registry holds only Calendar + Tasks.
         adapters = listOf(
-            GmailIntegrationAdapter(DeferredGmailSyncApi(), accounts),
             CalendarIntegrationAdapter(),
             TasksIntegrationAdapter(),
         ),
@@ -105,7 +104,7 @@ class IntegrationsViewModelTest {
     }
 
     @Test
-    fun `loads all three integrations with honest statuses`() = runTest(testDispatcher) {
+    fun `loads the two integrations with honest statuses`() = runTest(testDispatcher) {
         seedAccount()
         val vm = viewModel()
         vm.uiState.test {
@@ -113,14 +112,11 @@ class IntegrationsViewModelTest {
             // Eagerly-started flow may emit Loading first; skip to Loaded.
             val loaded = if (state is IntegrationsUiState.Loaded) state
             else awaitItem() as IntegrationsUiState.Loaded
-            assertEquals(3, loaded.snapshots.size)
+            assertEquals(2, loaded.snapshots.size)
             assertEquals("a1@example.com", loaded.accountEmail)
             val byId = loaded.snapshots.associateBy { it.id }
-            // Gmail: local-only account → AUTH_REQUIRED, never CONNECTED.
-            assertEquals(
-                IntegrationStatus.AUTH_REQUIRED,
-                byId[IntegrationId.GMAIL]?.status,
-            )
+            // No Gmail row: Gmail is the app itself, not an integration.
+            assertTrue(byId.keys.none { it == IntegrationId.GMAIL })
             // Calendar/Tasks: deferred → UNAVAILABLE.
             assertEquals(
                 IntegrationStatus.UNAVAILABLE,
@@ -132,22 +128,6 @@ class IntegrationsViewModelTest {
             )
             // Nothing is ever reported connected.
             assertTrue(loaded.snapshots.none { it.status == IntegrationStatus.CONNECTED })
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
-    fun `gmail connect emits honest not-connected message`() = runTest(testDispatcher) {
-        seedAccount()
-        val vm = viewModel()
-        vm.events.test {
-            vm.onConnect(IntegrationId.GMAIL)
-            val event = awaitItem()
-            assertTrue(event is IntegrationsEvent.Message)
-            assertTrue(
-                "was: ${(event as IntegrationsEvent.Message).text}",
-                event.text.contains("Accounts", ignoreCase = true),
-            )
             cancelAndIgnoreRemainingEvents()
         }
     }

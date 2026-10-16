@@ -29,6 +29,19 @@ value class IntegrationId(val value: String) {
         val TASKS = IntegrationId("tasks")
     }
 
+    /**
+     * The product's public domain, used to resolve its ORIGINAL product
+     * logo through the same logo pipeline mail rows use (bundled →
+     * ICONS-ASSETS → favicon). Null for integrations without a product
+     * domain yet — those get a plain circle, never a letter. A future
+     * integration adds one line here and its real logo follows.
+     */
+    fun logoDomain(): String? = when (this) {
+        CALENDAR -> "calendar.google.com"
+        TASKS -> "tasks.google.com"
+        else -> null
+    }
+
     override fun toString(): String = value
 }
 
