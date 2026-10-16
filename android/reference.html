@@ -517,8 +517,8 @@
   <table>
     <tr><th>Component</th><th>Spec</th></tr>
     <tr><td>Search pill</td><td class="spec">Rounded, indicator-free text field; surfaceContainerHigh; leading search icon; trailing clear button when text present. On Mail it filters the mailbox in place; on other tabs it opens the Search screen on submit. Hoisted — one instance across tabs, reshapes as the hamburger slides in/out.</td></tr>
-    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. 16 dp edge margin on both sides — the pill (and the hamburger on Mail) never touches the screen edges. Mail: hamburger + pill + account avatar — NO reload button (refresh is the pull-to-refresh gesture, §7). Other tabs: pill + account avatar — NO overflow menu (Gmail parity). The avatar is always the account's DP: in the unified inbox it is the default account's DP (earliest created), never a generic icon — tap it for the account switcher sheet (§8). Avatar is ONE size on every tab: 40 dp (xxxl), the same as the mail row avatar — Mail used to be 32 dp and the other tabs 24 dp, so the DP visibly enlarged on Mail.</td></tr>
-    <tr><td>Account switcher sheet</td><td class="spec">Bottom sheet on DP tap (any tab): current selection + collapse arrow, the other accounts, “Add another account” + “Settings”. No unread counts (no source — never fabricated). — see §8.</td></tr>
+    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. 16 dp edge margin on both sides — the pill (and the hamburger on Mail) never touches the screen edges. Mail: hamburger + pill + account avatar — NO reload button (refresh is the pull-to-refresh gesture, §7). Other tabs: pill + account avatar — NO overflow menu (Gmail parity). The avatar is always the account's DP: in the unified inbox it is the default account's DP (earliest created), never a generic icon — tap it for the Settings panel (§9). Avatar is ONE size on every tab: 40 dp (xxxl), the same as the mail row avatar — Mail used to be 32 dp and the other tabs 24 dp, so the DP visibly enlarged on Mail.</td></tr>
+    <tr><td>Settings panel</td><td class="spec">Full-screen panel on DP tap (any tab): slides in from the right; accounts section at the top (current account + chevron, expands inline to the signed-in list + “Add an account”); below it the settings options (Privacy, Rules, Integrations, Cleanup, Analytics, AI, Automation, Appearance, About). No unread counts (no source — never fabricated). No “Manage your Google Account” / storage rows. — see §9.</td></tr>
     <tr><td>Bottom nav</td><td class="spec">80 dp content + system-nav inset outside it; 24 dp icons; 64 × 32 pill; tonal elevation 0; one sliding jelly pill (see §1).</td></tr>
     <tr><td>Mail row</td><td class="spec">Min height 88 dp; 40 dp avatar (company logo or letter); line 1 sender + time; line 2 subject; line 3 snippet. Flat on background, no card, no divider, no border.</td></tr>
     <tr><td>Company logo</td><td class="spec">Artwork fitted inside a circle, never cropped. In dark mode a white circular backing (dark logos stay visible). Monochrome bundled logos: tonal circle + tinted glyph.</td></tr>
@@ -532,13 +532,13 @@
   <table>
     <tr><th>Motion</th><th>Spec</th></tr>
     <tr><td>Bubble (bottom nav)</td><td class="spec">Leading spring 550, trailing spring 300, damping 0.70, squash + settle wobble — see §1.</td></tr>
-    <tr><td>Tab content slide</td><td class="spec">Directional (enters from its tab's side), opaque, tween 350 ms FastOutSlowIn. Same 350 ms as the bubble + pill reshape — all three land together. Pushed routes keep fade-through (exit 200 ms, enter 350 ms after 120 ms delay, 0.97 → 1.0 scale). — see §4.</td></tr>
+    <tr><td>Tab content slide</td><td class="spec">Directional (enters from its tab's side), opaque, tween 350 ms FastOutSlowIn. Same 350 ms as the bubble + pill reshape — all three land together. Pushed routes keep fade-through (exit 200 ms, enter 350 ms after 120 ms delay, 0.97 → 1.0 scale) — EXCEPT the Settings panel, which slides in from the right / out to the right (350 ms FastOutSlowIn, full-screen). — see §4, §9.</td></tr>
     <tr><td>Search-pill reshape + hamburger</td><td class="spec">Hamburger width 0 ↔ 48 dp, icon slides in from the left edge; pill fills the rest. 350 ms FastOutSlowIn, same as the slide + bubble. — see §3.</td></tr>
     <tr><td>Scroll edge fade</td><td class="spec">28 dp, top + bottom, only where more content waits — see §2.</td></tr>
     <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
     <tr><td>Mail list on tab entry</td><td class="spec">Skeleton shows only on the true first load (content Loading — nothing cached yet). Once the mailbox is loaded, the ViewModel caches it, so tab switches show the cached list immediately — no skeleton flash on every Mail entry. Popping back from a thread shows the list immediately too.</td></tr>
     <tr><td>Pull to refresh</td><td class="spec">Damped drag (list travels a fraction of the finger), pill fades in (alpha follows the pull), arc fills 0 → 100%; at the threshold the label flips to “Release to refresh”; release past it reloads the whole mailbox; release before it springs back with no reload. — see §7.</td></tr>
-    <tr><td>Account switcher sheet</td><td class="spec">Bottom sheet slides up (M3 ModalBottomSheet); the list collapses/expands with expand/shrink + fade; tapping an account switches the app's selection. — see §8.</td></tr>
+    <tr><td>Settings panel</td><td class="spec">Full-screen panel slides in from the right / out to the right (350 ms FastOutSlowIn, MoMotion.panelSlide); the account list expands/collapses inline with expand/shrink + fade; tapping an account switches the app's selection and closes the panel. — see §9.</td></tr>
     <tr><td>Scroll-hide bars</td><td class="spec">Scroll down → top bar slides up out + bottom bar slides down out (hide: LinearOutSlowIn, fast → slow). Scroll up → both slide back (show: FastOutSlowIn, slow → fast → land). Pure translate, no fade, no spring. 250 ms. — see §6.</td></tr>
     <tr><td>Tap feedback</td><td class="spec">The pill is the only feedback on bubble controls (indication = null). Other controls keep normal Material ripples.</td></tr>
   </table>
@@ -765,6 +765,7 @@
     <tr><td>Indicator</td><td class="spec">pill, 50% rounded (full pill), surfaceContainerHigh, 4 dp shadow. 20 dp arc (2 dp stroke) + labelMedium text. Arc fills 0 → 100% with the pull. Alpha follows the pull (0 at rest, 1 at threshold).</td></tr>
     <tr><td>Labels</td><td class="spec">“Pull to refresh” (below threshold) → “Release to refresh” (at/past threshold) → “Refreshing…” + indeterminate spinner (while the sync runs).</td></tr>
     <tr><td>Reload</td><td class="spec">release past the threshold calls the same refresh the old reload button called (full mailbox sync via the ViewModel). While syncing, the pill shows the spinner; when the sync finishes, the list settles back.</td></tr>
+    <tr><td>Demo accounts</td><td class="spec">demo accounts (seeded fixtures, id <code>fixture-*</code>, + Add-Local test accounts, id <code>local-*</code>) are NEVER synced: they were never connected to Gmail, hold no tokens, and have no remote mail. The scheduler, the background worker, and the ViewModel all exclude them — a refresh touches only real connected accounts, and when nothing is syncable the refresh finishes immediately with the same "Gmail isn't connected yet…" guidance the old not-configured failure gave, instead of spinning. Demo accounts were "stale forever", so excluding them also stops a sync attempt on every app start / resume / connectivity recovery.</td></tr>
     <tr><td>Top bar</td><td class="spec">no reload button on Mail — the gesture is the reload. The account avatar is the DP (default account's DP in the unified inbox) and opens Accounts.</td></tr>
     <tr><td>Where</td><td class="spec">the mailbox list (Mail tab), all states. Implemented in MailContent (MailScreen.kt) + InstagramPullIndicator.</td></tr>
   </table>
@@ -772,6 +773,7 @@
 
 <section id="accswitch">
   <h2>8 &nbsp; Account Switcher Sheet — Tap the DP, Pick an Account</h2>
+  <p><b>Superseded — retained as the reusable bottom-sheet animation study.</b> The account switcher is no longer a bottom sheet: tapping the DP now opens the full-screen Settings panel (§9). This section stays because animation sections are never removed.</p>
   <p>Tap the account DP in the top bar — on <b>any</b> tab — and a bottom sheet slides up.
   The header shows the current selection (the account, or “All Accounts” for the unified
   inbox) plus a collapse arrow. Expanding shows the other accounts: tap one and the whole
@@ -892,6 +894,137 @@
     <tr><td>Bottom</td><td class="spec">divider, then “Add another account” (→ Connect flow) + “Settings” (→ Settings page). Icon in a 48 dp outlined circle + bodyLarge text.</td></tr>
     <tr><td>Counts</td><td class="spec">none on the rows — no unread-count source; never fabricated.</td></tr>
     <tr><td>Where</td><td class="spec">hosted in AppNavGraph (so it works on every tab). Implemented in AccountSwitcherSheet.kt; the switch writes the same active-selection preference the Accounts screen writes.</td></tr>
+  </table>
+</section>
+
+<section id="settingspanel">
+  <h2>9 &nbsp; Settings Panel — Full Screen, Slides In From the Right</h2>
+  <p>Tap the account DP in the top bar — on <b>any</b> tab — and the whole Settings page slides in from the right, <b>full-screen</b> (not a half-screen sheet). The accounts section is at the top: the current account, with a chevron on its right. Tap it and the signed-in list expands inline — the other accounts + “Add an account” — pushing the settings below down. Below the divider, the settings options list downwards: Privacy, Rules, Integrations, Cleanup, Analytics, AI, Automation, Appearance, About. No “Manage your Google Account” / storage rows, no unread counts.
+  <b>Try it:</b> tap the DP below, expand the list with the chevron, pick another account.</p>
+
+  <div class="sp-stage" id="spStage">
+    <div class="hide-topbar">
+      <span class="hide-ham"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg></span>
+      <div class="tb-pill"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M15.5 14h-.8l-.3-.3a6.5 6.5 0 1 0-.7.7l.3.3v.8l5 5 1.5-1.5zm-6 0a4.5 4.5 0 1 1 0-9 4.5 4.5 0 0 1 0 9z"/></svg><span>Search mail</span></div>
+      <span class="hide-ava as-dpbtn" id="spTopAvatar" title="Open the settings panel">A</span>
+    </div>
+    <div class="ptr-viewport" style="cursor:default">
+      <div class="ptr-list">
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+        <div class="sp-row"><i></i><div><b></b><em></em></div></div>
+      </div>
+    </div>
+    <div class="hide-bottombar">
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 3 2 12h3v8h6v-6h2v6h6v-8h3z"/></svg>Home</span>
+      <span class="hide-tab sel"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M20 4H4a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2zm0 4-8 5-8-5V6l8 5 8-5z"/></svg>Mail</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 5h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>Categories</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0 2-2zM9 17H7v-7h2zm4 0h-2V7h2zm4 0h-2v-4h2z"/></svg>Companies</span>
+      <span class="hide-tab"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 6-6 1.4 1.4z"/></svg>Actions</span>
+    </div>
+    <div class="sp-panel acc-collapsed" id="spPanel">
+      <div class="sp-panelbar"><button class="sp-back" id="spBack" title="Back">←</button><b>Settings</b></div>
+      <div class="sp-acchead" id="spAccHead">
+        <span class="as-rowava" id="spHeadAvatar">A</span>
+        <div class="as-headtext"><b id="spHeadName">Arjun Sabu</b><em id="spHeadEmail">arjunsabu360@gmail.com</em></div>
+        <span class="sp-arrow" id="spArrow">∨</span>
+      </div>
+      <div class="sp-accbody" id="spAccBody">
+        <div class="as-row" data-name="All Accounts" data-email="View combined threads across all enabled accounts" data-letter="A"><span class="as-rowava as-rowmail">✉</span><div><b>All Accounts (Unified Inbox)</b><em>Combined threads, all enabled accounts</em></div></div>
+        <div class="as-row" data-name="GRENINJA GAMING" data-email="greninjagamingyt9@gmail.com" data-letter="G"><span class="as-rowava" style="background:#1E7A55">G</span><div><b>GRENINJA GAMING</b><em>greninjagamingyt9@gmail.com</em></div></div>
+        <div class="as-row" data-name="Cody Manu" data-email="codymanuappdev@gmail.com" data-letter="C"><span class="as-rowava" style="background:#0066CC">C</span><div><b>Cody Manu</b><em>codymanuappdev@gmail.com</em></div></div>
+        <div class="as-action" id="spAdd"><span class="as-acticon">+</span><b>Add an account</b></div>
+      </div>
+      <hr class="as-div">
+      <div class="sp-setrow"><div><b>Privacy Center</b><em>Data audit, Google scopes &amp; security hardening</em></div></div>
+      <div class="sp-setrow"><div><b>Rules</b><em>Automatic sorting and your corrections</em></div></div>
+      <div class="sp-setrow"><div><b>Integrations</b><em>Calendar, Tasks and more</em></div></div>
+      <div class="sp-setrow"><div><b>Cleanup &amp; Newsletters</b><em>Review newsletters, notifications and low-value mail</em></div></div>
+      <div class="sp-setrow"><div><b>Analytics &amp; Insights</b><em>Local workload, categories, sources &amp; attention patterns</em></div></div>
+      <div class="sp-setrow"><div><b>AI Assistance (Optional)</b><em>Optional secondary fallback for ambiguous emails</em></div></div>
+      <div class="sp-setrow"><div><b>Advanced Automation</b><em>Trigger-based rules, safe local actions &amp; execution history</em></div></div>
+      <div class="sp-setrow"><div><b>Appearance</b><em>System / Light / Dark</em></div></div>
+      <div class="sp-setrow"><div><b>About</b><em>Mail Organizer — your Gmail, organized on your device</em></div></div>
+    </div>
+  </div>
+  <p class="demo-caption">Tap the DP — the panel slides in from the right, full-screen. Tap the account header — the list expands inline, pushing the settings down. Tap another account — the header and the top-bar DP switch to it, and the panel closes.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class="fig">
+    <svg viewBox="0 0 640 360" role="img" aria-label="Annotated diagram of the settings panel">
+      <defs><marker id="ah9" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L7,3 L0,6 Z" fill="#C00000"/></marker></defs>
+      <!-- phone -->
+      <rect x="20" y="20" width="300" height="310" rx="14" fill="#FDFBFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <!-- top bar -->
+      <rect x="20" y="20" width="300" height="44" rx="8" fill="#EFEAFB"/>
+      <rect x="40" y="32" width="160" height="20" rx="10" fill="#E7E0F6"/>
+      <circle cx="286" cy="42" r="13" fill="#5238E8"/><text x="286" y="47" font-size="13" fill="#fff" text-anchor="middle" font-weight="700">A</text>
+      <text x="332" y="30" font-family="Caveat" font-size="23" fill="#222">tap the DP (any tab) →</text>
+      <text x="332" y="54" font-family="Caveat" font-size="23" fill="#222">panel slides in from the RIGHT</text>
+      <!-- panel -->
+      <rect x="60" y="76" width="260" height="240" rx="10" fill="#FFFFFF" stroke="#CBC5DE" stroke-width="1.5"/>
+      <path d="M 60 196 L 30 196" fill="none" stroke="#C00000" stroke-width="2" marker-end="url(#ah9)"/>
+      <text x="332" y="100" font-family="Caveat" font-size="23" fill="#222">full-screen — fills the</text>
+      <text x="332" y="124" font-family="Caveat" font-size="23" fill="#222">whole screen, not half</text>
+      <!-- panel bar -->
+      <text x="76" y="100" font-size="14" fill="#222">←  Settings</text>
+      <!-- account header -->
+      <circle cx="96" cy="132" r="16" fill="#5238E8"/><text x="96" y="138" font-size="15" fill="#fff" text-anchor="middle" font-weight="700">A</text>
+      <rect x="122" y="124" width="100" height="9" rx="4" fill="#222" opacity="0.75"/>
+      <rect x="122" y="138" width="130" height="7" rx="3" fill="#CBC5DE"/>
+      <text x="300" y="140" font-size="16" fill="#222">∨</text>
+      <text x="332" y="172" font-family="Caveat" font-size="23" fill="#222">header = current account</text>
+      <text x="332" y="196" font-family="Caveat" font-size="23" fill="#222">chevron expands the list ↓</text>
+      <!-- expanded rows -->
+      <g><circle cx="96" cy="176" r="12" fill="#1E7A55"/><text x="96" y="181" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">G</text><rect x="122" y="169" width="90" height="8" rx="4" fill="#CBC5DE"/><rect x="122" y="180" width="120" height="6" rx="3" fill="#E7E0F6"/></g>
+      <g><circle cx="96" cy="206" r="12" fill="#0066CC"/><text x="96" y="211" font-size="12" fill="#fff" text-anchor="middle" font-weight="700">C</text><rect x="96" y="200" width="0" height="0"/></g>
+      <text x="122" y="200" font-size="10" fill="#666">Cody Manu · codymanuappdev@gmail.com</text>
+      <text x="122" y="232" font-size="12" fill="#222">+ Add an account</text>
+      <line x1="60" y1="244" x2="320" y2="244" stroke="#CBC5DE" stroke-width="1"/>
+      <text x="332" y="248" font-family="Caveat" font-size="23" fill="#222">divider, then the settings</text>
+      <text x="76" y="264" font-size="12" fill="#222">Privacy Center · Rules · Integrations · …</text>
+      <text x="332" y="300" font-family="Caveat" font-size="23" fill="#222">tap a row → app switches,</text>
+      <text x="332" y="324" font-family="Caveat" font-size="23" fill="#222">panel slides out to the right</text>
+      <text x="20" y="350" font-family="Caveat" font-size="23" fill="#222">Collapsed = header only. The settings below stay visible until the list opens.</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class="sub" style="margin-bottom:6px">One tap, one switch. The panel is the whole Settings page — accounts on top, settings below.</p>
+  <div class="frames">
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:16px;height:20px;background:var(--container-high);border-radius:10px"></div><div style="position:absolute;top:14px;right:8px;width:24px;height:24px;border-radius:50%;background:var(--violet);color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700">A</div></div><div class="cap">1 · top bar — tap the DP</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:2px;bottom:2px;background:var(--surface);border-radius:8px"></div><div style="position:absolute;left:40%;right:0;top:0;bottom:0;background:var(--container-high);border-left:2px solid var(--violet)"></div><div style="position:absolute;top:6px;right:8px;font-size:10px">← Settings</div></div><div class="cap">2 · panel sliding in from the right</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:2px;bottom:2px;background:var(--surface);border-radius:8px"></div><div style="position:absolute;top:4px;left:8px;width:22px;height:22px;border-radius:50%;background:var(--violet)"></div><div style="position:absolute;top:6px;left:36px;width:52px;height:8px;background:#222;opacity:.7;border-radius:4px"></div><div style="position:absolute;top:16px;left:36px;width:70px;height:6px;background:var(--outline);border-radius:3px"></div><div style="position:absolute;top:30px;left:8px;right:8px;height:1px;background:var(--outline)"></div><div style="position:absolute;top:34px;left:8px;width:18px;height:18px;border-radius:50%;background:#1E7A55"></div><div style="position:absolute;top:36px;left:30px;width:60px;height:6px;background:var(--outline);border-radius:3px"></div></div><div class="cap">3 · chevron — list expanded inline</div></div>
+    <div class="frame-sep">→</div>
+    <div class="frame"><div class="stage"><div style="position:absolute;left:6px;right:6px;top:16px;height:20px;background:var(--container-high);border-radius:10px"></div><div style="position:absolute;top:14px;right:8px;width:24px;height:24px;border-radius:50%;background:#1E7A55;color:#fff;font-size:12px;display:flex;align-items:center;justify-content:center;font-weight:700">G</div></div><div class="cap">4 · switched — whole app follows</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class="hand pen-blue">(scribbled notes)</span></h3>
+  <div class="notebook">
+    <div class="step"><div class="no">1</div><p class="hand">The DP is the only trailing action on every tab. Tap it → the full-screen Settings panel slides in from the right (350 ms FastOutSlowIn, MoMotion.panelSlide). It fills the screen — not a half-screen sheet.</p></div>
+    <div class="step"><div class="no">2</div><p class="hand">The panel IS the Settings page: accounts at the top, then the settings options listed downwards. There is no separate “Settings” button — the panel itself is Settings. Back (or the system back gesture) slides it out to the right.</p></div>
+    <div class="step"><div class="no">3</div><p class="hand">Accounts: collapsed = a single layer (the current account + chevron). There is no “Accounts” label — the account itself IS the section, like Gmail's header. Single → its DP + name + email. Unified → the default account's DP + “All Accounts”.</p></div>
+    <div class="step"><div class="no">4</div><p class="hand">Tap the header / chevron → the signed-in list expands inline (expand/shrink + fade), pushing the settings below down. Tap again → it collapses. <span class="arrow">← dropdown!</span></p></div>
+    <div class="step"><div class="no">5</div><p class="hand">Tap an account → the whole app switches to it (the same selection the Accounts screen writes) and the panel closes. Tap “All Accounts” → back to the unified inbox. “Add an account” → the Connect / Google sign-in flow.</p></div>
+    <div class="step"><div class="no">6</div><p class="hand">No unread counts on the rows. Gmail shows them, but we have no real unread-count source — and counts are <u>never fabricated</u>. No “Manage your Google Account” / storage rows — those are Google-Account features we do not have.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Entry</td><td class="spec">tap the top-bar DP on any tab. The DP is the only trailing action — no overflow menu anywhere.</td></tr>
+    <tr><td>Panel</td><td class="spec">full-screen Settings destination. Enter: slideInHorizontally(MoMotion.panelSlide) { fullWidth } (from the right). Pop exit: slideOutHorizontally(panelSlide) { fullWidth } (to the right). The source screen stays put (a 0-offset slide) while the panel slides over it. Drilling deeper (Settings → Privacy, …): the panel exits left, the deeper screen enters from the right. Popping back: the deeper screen exits right, the panel re-enters from the left. 350 ms FastOutSlowIn throughout.</td></tr>
+    <tr><td>Account section</td><td class="spec">at the top of the panel. Header = current selection. Single → DP 40 dp (xxxl) + name (titleMedium, bold) + email (bodySmall). Unified → default account's DP + “All Accounts” + “View combined threads across all enabled accounts”. No accounts → generic person mark + “No accounts”. Collapsed by default.</td></tr>
+    <tr><td>List</td><td class="spec">the OTHER accounts (current is the header, never repeated). “All Accounts (Unified Inbox)” row when a single account is current. Row: DP 32 dp (xxl) + name + email. Tap → switch the selection + close the panel. Then “Add an account” (→ Connect flow): Add icon in a 48 dp outlined circle + bodyLarge text.</td></tr>
+    <tr><td>Collapse</td><td class="spec">tapping the header / chevron toggles the list. AnimatedVisibility expandVertically + fadeIn / shrinkVertically + fadeOut. Collapsed = header only; the settings below stay visible.</td></tr>
+    <tr><td>Divider</td><td class="spec">HorizontalDivider after the account section, before the settings options.</td></tr>
+    <tr><td>Settings below</td><td class="spec">Privacy Center, Rules, Integrations, Cleanup &amp; Newsletters, Analytics &amp; Insights, AI Assistance (Optional), Advanced Automation, Appearance, About — the existing Settings rows, unchanged.</td></tr>
+    <tr><td>Counts</td><td class="spec">none on the rows — no unread-count source; never fabricated.</td></tr>
+    <tr><td>Where</td><td class="spec">AppNavGraph: the SETTINGS destination carries the per-destination slide transitions, and the NavHost's global transitions are Settings-aware (source stays put on open, deeper screens drill in/out around the panel). AccountSection in SettingsScreens.kt. The bottom-sheet file AccountSwitcherSheet.kt was deleted (fix = remove).</td></tr>
   </table>
 </section>
 
