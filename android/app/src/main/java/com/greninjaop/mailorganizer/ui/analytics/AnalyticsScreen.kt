@@ -1,6 +1,7 @@
 package com.greninjaop.mailorganizer.ui.analytics
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -174,9 +175,14 @@ private fun DateRangeFilterRow(
     onSelectRange: (AnalyticsDateRange) -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    // 2026-10-16: the row scrolls horizontally instead of squeezing
+    // all four chips into the screen width — the old fixed Row let the
+    // longest label ("All synchronized") wrap into three lines. Labels
+    // are also pinned to one line so a chip can never stack its text.
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .horizontalScroll(rememberScrollState())
             .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
         horizontalArrangement = Arrangement.spacedBy(MoSpacing.sm),
     ) {
@@ -185,7 +191,7 @@ private fun DateRangeFilterRow(
             FilterChip(
                 selected = isSelected,
                 onClick = { onSelectRange(range) },
-                label = { Text(range.label) },
+                label = { Text(range.label, maxLines = 1, softWrap = false) },
             )
         }
     }

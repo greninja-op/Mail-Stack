@@ -10,7 +10,7 @@ enum class AnalyticsDateRange(val label: String, val days: Int) {
     TODAY("Today", 1),
     LAST_7_DAYS("Last 7 days", 7),
     LAST_30_DAYS("Last 30 days", 30),
-    ALL_TIME("All synchronized", 0),
+    ALL_TIME("All time", 0),
 }
 
 const val UNIFIED_ACCOUNT_ID = "__UNIFIED__"
