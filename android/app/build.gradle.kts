@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 23
+        versionCode = 24
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -101,7 +101,15 @@ android {
         //        shows the account's DP in every mode — unified
         //        inbox shows the default account's DP instead of
         //        the confusing envelope icon.
-        versionName = "1.0.22"
+        // 1.0.23: Gmail-style account switcher sheet — tapping the
+        //        top-bar DP opens a bottom sheet on any tab
+        //        (current selection + collapse arrow, the other
+        //        accounts, "Add another account" + "Settings");
+        //        the three-dots overflow menu is removed from all
+        //        tabs (Gmail parity — the DP is the only trailing
+        //        action, Settings/Privacy/Integrations/Accounts all
+        //        live inside the Settings page).
+        versionName = "1.0.23"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
