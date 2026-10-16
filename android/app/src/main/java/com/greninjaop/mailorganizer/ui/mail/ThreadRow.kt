@@ -1,5 +1,6 @@
 package com.greninjaop.mailorganizer.ui.mail
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -27,7 +28,6 @@ import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.Priority
 import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -157,20 +157,16 @@ internal fun MailRowLayout(
     modifier: Modifier = Modifier,
 ) {
     val emphasis = if (unread) FontWeight.Bold else FontWeight.Normal
-    // 2026-10-13 (Breeze redesign): each mail row is a translucent glass
-    // card over the background artwork — no dividers, no flat rows.
-    GlassCard(
+    // 2026-10-16 (Expressive redesign): flat row straight on the
+    // background — no card, no border, no shadow — like Gmail.
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MoSpacing.rowMinHeight),
-        onClick = onClick,
+            .heightIn(min = MoSpacing.rowMinHeight)
+            .clickable(onClick = onClick)
+            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
         if (showAccountIndicator && account != null) {
             AccountAvatar(account = account, size = MoSpacing.xxl)
             Spacer(Modifier.width(MoSpacing.sm))
@@ -271,6 +267,5 @@ internal fun MailRowLayout(
                 modifier = Modifier.size(MoSpacing.lg),
             )
         }
-    }
     }
 }

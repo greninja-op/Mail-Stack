@@ -242,13 +242,9 @@ fun AppNavGraph(
             navController.navigate(route)
         }
     }
-    // 2026-10-13 (Breeze redesign): the background artwork lives here, once,
-    // behind the whole NavHost — every destination shows it, and it stays
-    // static while screens fade through above it. Screens use transparent
-    // Scaffold containers so the artwork shows through.
-    Box(modifier = Modifier.fillMaxSize()) {
-        com.greninjaop.mailorganizer.ui.theme.BreezeBackground()
-        NavHost(
+    // 2026-10-16 (Expressive redesign): no background artwork — screens
+    // sit on the solid theme background (see Color.kt).
+    NavHost(
             navController = navController,
             startDestination = AppDestinations.HOME,
         // 2026-10-13 (redone): Material fade-through on every route change.
@@ -694,6 +690,5 @@ fun AppNavGraph(
                 onBack = { navController.popBackStack() },
             )
         }
-    }
     }
 }

@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.ui.components
 
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
@@ -18,20 +17,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
- * The Gmail-style search pill shared by every primary destination
- * (2026-10-13): a rounded, indicator-free [TextField] with a leading
- * search icon and a trailing clear button. Typing filters locally via
- * [onValueChange]; the keyboard's search action fires [onSearchSubmit]
- * (the mailbox and the other destinations open the dedicated Search
- * screen with the typed query).
+ * The Gmail-style search pill shared by every primary destination:
+ * a rounded, indicator-free [TextField] with a leading search icon and
+ * a trailing clear button. Typing filters locally via [onValueChange];
+ * the keyboard's search action fires [onSearchSubmit] (the mailbox and
+ * the other destinations open the dedicated Search screen with the
+ * typed query).
  *
- * 2026-10-13 (Breeze redesign): frosted-glass pill — translucent bar
- * color + hairline border, so the background artwork shows through.
+ * 2026-10-16 (Expressive redesign): solid surfaceContainerHigh pill, no
+ * border, no translucency.
  */
 @Composable
 fun MoSearchField(
@@ -41,7 +38,7 @@ fun MoSearchField(
     placeholder: String,
     modifier: Modifier = Modifier,
 ) {
-    val glass = rememberGlassPalette()
+    val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     TextField(
         value = value,
         onValueChange = onValueChange,
@@ -61,19 +58,13 @@ fun MoSearchField(
         keyboardActions = KeyboardActions(onSearch = { onSearchSubmit() }),
         shape = RoundedCornerShape(MoSpacing.xxl),
         colors = TextFieldDefaults.colors(
-            focusedContainerColor = glass.bar,
-            unfocusedContainerColor = glass.bar,
-            disabledContainerColor = glass.bar,
+            focusedContainerColor = containerColor,
+            unfocusedContainerColor = containerColor,
+            disabledContainerColor = containerColor,
             focusedIndicatorColor = Color.Transparent,
             unfocusedIndicatorColor = Color.Transparent,
             disabledIndicatorColor = Color.Transparent,
         ),
-        modifier = modifier
-            .fillMaxWidth()
-            .border(
-                width = 1.dp,
-                color = glass.barBorder,
-                shape = RoundedCornerShape(MoSpacing.xxl),
-            ),
+        modifier = modifier.fillMaxWidth(),
     )
 }
