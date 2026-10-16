@@ -18,7 +18,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -41,7 +40,6 @@ import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.components.MoSearchField
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
 import com.greninjaop.mailorganizer.ui.mail.MailScreenState
-import com.greninjaop.mailorganizer.ui.mail.SyncUiState
 import com.greninjaop.mailorganizer.ui.theme.MoMotion
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -63,8 +61,11 @@ import com.greninjaop.mailorganizer.ui.theme.MoSpacing
  * The search field itself is the same [MoSearchField] on every tab.
  * On Mail it edits the mailbox filter (from [mailState]); on the other
  * tabs it holds a local query and opens the dedicated Search screen on
- * submit. The trailing actions swap by tab (Mail: refresh + account;
- * others: account + overflow) with a short fade.
+ * submit. The trailing actions swap by tab (Mail: account avatar;
+ * others: account avatar + overflow) with a short fade. There is NO
+ * reload button on Mail — refresh is the Instagram-style
+ * pull-to-refresh on the mailbox list (see MailScreen), so the top
+ * bar keeps only the account avatar (2026-10-16).
  *
  * Shown only on primary destinations; pushed routes (thread, settings,
  * ...) keep their own top bars.
@@ -77,7 +78,6 @@ fun MoPrimaryTopBar(
     onSearchSubmit: () -> Unit,
     onMenuClick: () -> Unit,
     mailState: MailScreenState?,
-    onRefresh: () -> Unit,
     onOpenAccounts: () -> Unit,
     account: AccountRecord?,
     onOpenSecondary: (String) -> Unit,
@@ -152,20 +152,37 @@ fun MoPrimaryTopBar(
             ) { mail ->
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (mail) {
-                        val syncing = mailState?.syncUi is SyncUiState.Syncing
-                        IconButton(onClick = onRefresh, enabled = !syncing) {
-                            Icon(
-                                Icons.Filled.Refresh,
-                                contentDescription = "Sync now",
-                            )
-                        }
                         if (mailState?.isUnified == true) {
-                            IconButton(onClick = onOpenAccounts) {
-                                Icon(
-                                    imageVector = Icons.Filled.MailOutline,
-                                    contentDescription = "All Accounts (Unified Inbox). Tap to switch account.",
-                                    tint = MaterialTheme.colorScheme.primary,
+                            // Unified inbox: no single active account,
+                            // so show the DEFAULT account's DP
+                            // (earliest created) — the old envelope
+                            // icon read as "mail", not "accounts", and
+                            // gave no way to tell whose mailbox this
+                            // is (2026-10-16 fix). Tapping opens
+                            // Accounts, like every avatar.
+                            val defaultAccount = mailState?.accountsById
+                                ?.values
+                                ?.minWithOrNull(
+                                    compareBy<AccountRecord> { it.createdAtEpochMs }
+                                        .thenBy { it.accountId },
                                 )
+                            if (defaultAccount != null) {
+                                IconButton(onClick = onOpenAccounts) {
+                                    AccountAvatar(
+                                        account = defaultAccount,
+                                        size = MoSpacing.xxl,
+                                    )
+                                }
+                            } else {
+                                // No accounts at all: keep the envelope
+                                // as the Accounts entry point.
+                                IconButton(onClick = onOpenAccounts) {
+                                    Icon(
+                                        imageVector = Icons.Filled.MailOutline,
+                                        contentDescription = "Accounts. Tap to switch account.",
+                                        tint = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
                             }
                         } else {
                             val activeAccount = mailState?.activeAccount
