@@ -8,7 +8,6 @@ import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.auth.AuthErrorReason
 import com.greninjaop.mailorganizer.data.auth.AuthRepository
 import com.greninjaop.mailorganizer.data.auth.AuthResult
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,9 +23,12 @@ import kotlinx.coroutines.launch
  * 3. This ViewModel collects [AuthRepository.observeOAuthResults] and
  *    drives the connecting/success/error states.
  *
- * If the user presses Back in the browser, no redirect arrives — the
- * screen reports foregrounding via [onForegrounded] and falls back to
- * Idle so the user isn't stuck on a spinner.
+ * If the user backs out of the browser, no redirect arrives — the
+ * Connecting state offers an explicit Cancel ([reset]). There is
+ * deliberately NO timeout reset: the token exchange can take longer
+ * than any fixed grace, and the old 2s timeout reset used to flip the
+ * UI back to "Connect with Google" mid-exchange, inviting a second tap
+ * that opened Chrome all over again.
  */
 class ConnectAccountViewModel(
     private val authRepository: AuthRepository,
@@ -35,14 +37,10 @@ class ConnectAccountViewModel(
     private val _uiState = MutableStateFlow<ConnectAccountUiState>(ConnectAccountUiState.Idle)
     val uiState: StateFlow<ConnectAccountUiState> = _uiState.asStateFlow()
 
-    /** True between launching the browser and receiving its result. */
-    private var awaitingResult = false
-
     init {
         viewModelScope.launch {
             try {
                 authRepository.observeOAuthResults().collect { result ->
-                    awaitingResult = false
                     _uiState.value = when (result) {
                         is AuthResult.Success ->
                             ConnectAccountUiState.Success(result.accountId.value, result.email)
@@ -77,32 +75,16 @@ class ConnectAccountViewModel(
      */
     fun createOAuthIntent(): Intent {
         _uiState.value = ConnectAccountUiState.Connecting
-        awaitingResult = true
         return authRepository.createOAuthIntent()
     }
 
-    /**
-     * Called when the screen foregrounds (e.g. user pressed Back in the
-     * browser). If no OAuth result arrives shortly, treat as cancelled.
-     */
-    fun onForegrounded() {
-        viewModelScope.launch {
-            delay(FOREGROUND_GRACE_MS)
-            if (awaitingResult && _uiState.value is ConnectAccountUiState.Connecting) {
-                awaitingResult = false
-                _uiState.value = ConnectAccountUiState.Idle
-            }
-        }
-    }
-
+    /** Cancel a pending connect (e.g. backed out of the browser). */
     fun reset() {
-        awaitingResult = false
         _uiState.value = ConnectAccountUiState.Idle
     }
 
     companion object {
         private const val TAG = "ConnectAccountViewModel"
-        private const val FOREGROUND_GRACE_MS = 2_000L
     }
 }
 

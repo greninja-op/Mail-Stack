@@ -13,8 +13,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -22,10 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import com.greninjaop.mailorganizer.ui.theme.MoCard
-import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.LifecycleEventObserver
 
 /**
  * Connect Gmail account screen (Phase 3 §21).
@@ -43,19 +40,6 @@ fun ConnectAccountScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    // If the user backs out of the browser, no redirect arrives — tell
-    // the ViewModel we foregrounded so it can leave the spinner state.
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.onForegrounded()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
-    }
 
     fun launchOAuth() {
         val intent = viewModel.createOAuthIntent()
@@ -128,6 +112,15 @@ fun ConnectAccountScreen(
                     text = "Waiting for Google… complete the sign-in in your browser.",
                     style = MaterialTheme.typography.bodyMedium,
                 )
+                // Explicit cancel (2026-10-16): backing out of the browser
+                // leaves no redirect, so the spinner needs a user-driven
+                // way out. The old 2s auto-reset used to fire while the
+                // token exchange was still running and flip the UI back
+                // to "Connect with Google" mid-flow.
+                Spacer(modifier = Modifier.height(8.dp))
+                TextButton(onClick = { viewModel.reset() }) {
+                    Text("Cancel")
+                }
             }
             is ConnectAccountUiState.Success -> {
                 Text(
