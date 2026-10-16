@@ -1,11 +1,6 @@
 package com.greninjaop.mailorganizer.ui.navigation
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
@@ -14,7 +9,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.MailOutline
 import androidx.compose.material.icons.filled.Menu
@@ -26,14 +20,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.ui.components.MoSearchField
 import com.greninjaop.mailorganizer.ui.mail.AccountAvatar
-import com.greninjaop.mailorganizer.ui.mail.MailScreenState
 import com.greninjaop.mailorganizer.ui.theme.MoMotion
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
@@ -53,15 +45,24 @@ import com.greninjaop.mailorganizer.ui.theme.MoSpacing
  * bar, the page, and the bubble land together.
  *
  * The search field itself is the same [MoSearchField] on every tab.
- * On Mail it edits the mailbox filter (from [mailState]); on the other
+ * On Mail it edits the mailbox filter; on the other
  * tabs it holds a local query and opens the dedicated Search screen on
  * submit. The trailing action is the account avatar on EVERY tab —
  * there is no overflow menu (Gmail parity, 2026-10-16): tapping the
  * avatar opens the full-screen Settings panel (it slides in from
  * the right; the accounts section is at its top), and Privacy,
- * Integrations and the rest all live inside that panel. The
- * DP sits at the far right on every tab, so removing the old menu
- * also resized the pill (it fills the freed space).
+ * Integrations and the rest all live inside that panel.
+ *
+ * The DP NEVER animates (2026-10-16 fix): it used to sit inside an
+ * AnimatedContent keyed on the tab, so it crossfaded (flickered) on
+ * every tab switch even though the avatar itself never changed. It is
+ * now one [AccountAvatar] rendered from the single [account] source on
+ * every tab — same account, same size, no animation — so leaving Mail
+ * cannot make it flicker. And it is CENTRED in the trailing region
+ * (2026-10-16 fix): the avatar sits in a fixed 64dp box spanning from
+ * the search pill's end to the screen's right edge, centred inside it,
+ * so the gap pill → avatar equals the gap avatar → screen edge (12dp
+ * each side). It never sits jammed against the edge.
  *
  * Shown only on primary destinations; pushed routes (thread, settings,
  * ...) keep their own top bars.
@@ -73,7 +74,6 @@ fun MoPrimaryTopBar(
     onSearchValueChange: (String) -> Unit,
     onSearchSubmit: () -> Unit,
     onMenuClick: () -> Unit,
-    mailState: MailScreenState?,
     onOpenSettings: () -> Unit,
     account: AccountRecord?,
     modifier: Modifier = Modifier,
@@ -105,13 +105,18 @@ fun MoPrimaryTopBar(
         Row(
             modifier = Modifier
                 .statusBarsPadding()
-                // 16dp edge margin, both sides: the search pill (and the
-                // hamburger on Mail) never touches the screen edges.
+                // 16dp left margin: the search pill (and the hamburger
+                // on Mail) never touches the left screen edge. NO right
+                // padding — the trailing avatar region (64dp, below)
+                // spans to the screen's right edge, and the avatar is
+                // centred inside it (2026-10-16 fix), so the pill's
+                // width is unchanged and the avatar is equidistant
+                // from the pill and the edge.
                 // The pre-hoist bar was a Material3 TopAppBar, which
                 // carries this inset itself; the hoisted Row must add
                 // it explicitly, or the pill expands edge-to-edge when
                 // the hamburger retracts (2026-10-16 fix).
-                .padding(horizontal = 16.dp)
+                .padding(start = 16.dp)
                 .height(64.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -143,76 +148,38 @@ fun MoPrimaryTopBar(
                 placeholder = "Search mail",
                 modifier = Modifier.weight(1f),
             )
-            AnimatedContent(
-                targetState = isMail,
-                transitionSpec = {
-                    fadeIn(animationSpec = MoMotion.fadeThroughExit) togetherWith
-                        fadeOut(animationSpec = MoMotion.fadeThroughExit)
-                },
-                label = "top-bar-actions",
-            ) { mail ->
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (mail) {
-                        if (mailState?.isUnified == true) {
-                            // Unified inbox: no single active account,
-                            // so show the DEFAULT account's DP
-                            // (earliest created) — the old envelope
-                            // icon read as "mail", not "accounts", and
-                            // gave no way to tell whose mailbox this
-                            // is (2026-10-16 fix). Tapping opens
-                            // Settings, like every avatar.
-                            val defaultAccount = mailState?.accountsById
-                                ?.values
-                                ?.minWithOrNull(
-                                    compareBy<AccountRecord> { it.createdAtEpochMs }
-                                        .thenBy { it.accountId },
-                                )
-                            if (defaultAccount != null) {
-                                IconButton(onClick = onOpenSettings) {
-                                    AccountAvatar(
-                                        account = defaultAccount,
-                                        size = avatarSize,
-                                    )
-                                }
-                            } else {
-                                // No accounts at all: keep the envelope
-                                // as the Settings entry point.
-                                IconButton(onClick = onOpenSettings) {
-                                    Icon(
-                                        imageVector = Icons.Filled.MailOutline,
-                                        contentDescription = "Settings. Tap to switch account.",
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(avatarSize),
-                                    )
-                                }
-                            }
-                        } else {
-                            val activeAccount = mailState?.activeAccount
-                            if (activeAccount != null) {
-                                IconButton(onClick = onOpenSettings) {
-                                    AccountAvatar(
-                                        account = activeAccount,
-                                        size = avatarSize,
-                                    )
-                                }
-                            }
-                        }
+            // Trailing avatar: NO AnimatedContent (2026-10-16 fix). The
+            // avatar is one [AccountAvatar] from the single [account]
+            // source on every tab — Mail's unified mode and the other
+            // tabs resolve to the same account (the default / selected
+            // one), so there is nothing to crossfade between, and the
+            // crossfade was the flicker on leaving Mail. No accounts
+            // at all → the envelope stays as the Settings entry point.
+            //
+            // Centred in the 64dp trailing region (2026-10-16 fix):
+            // the region spans from the pill's end to the screen's
+            // right edge, and the 48dp IconButton (40dp avatar inside)
+            // is centred in it — gap pill → avatar = gap avatar →
+            // screen edge = 12dp each side. The pill keeps its exact
+            // current width: the region replaces the old 48dp button
+            // + 16dp Row padding (48 + 16 = 64).
+            Box(
+                modifier = Modifier.width(64.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                IconButton(onClick = onOpenSettings) {
+                    if (account != null) {
+                        AccountAvatar(
+                            account = account,
+                            size = avatarSize,
+                        )
                     } else {
-                        // No overflow menu (Gmail parity, 2026-10-16):
-                        // the avatar is the only trailing action. It
-                        // sits at the far right, and the pill fills
-                        // the space the old menu used to take.
-                        if (account != null) {
-                            IconButton(onClick = onOpenSettings) {
-                                AccountAvatar(
-                                    account = account,
-                                    size = avatarSize,
-                                    modifier = Modifier.clip(CircleShape).clickable(
-                                        onClick = onOpenSettings,
-                                    ),
-                                )
-                            }
-                        }
+                        Icon(
+                            imageVector = Icons.Filled.MailOutline,
+                            contentDescription = "Settings. Tap to switch account.",
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(avatarSize),
+                        )
                     }
                 }
             }
