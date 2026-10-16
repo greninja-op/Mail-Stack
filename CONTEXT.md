@@ -573,3 +573,37 @@ per-dex: 5 secondary dex files differ from 1.0.16, and MoNavBarKt
 in classes8.dex references the new clickable overload. Lesson:
 compare ALL classes*.dex, never just classes.dex.
 No on-device verification possible from the sandbox.
+## 2026-10-16 ~18:15 IST — Dynamic top bar + directional slides + skeleton + 3 fixes (not yet in an APK)
+Source push (no APK — user did not ask for one). Changes:
+1. Hoisted top bar (MoPrimaryTopBar, above the NavHost like the bottom
+bar): one search pill stays mounted across tab switches. On Mail the
+hamburger slides in from the left and the pill shrinks rightward to
+make room; leaving Mail it slides out left and the pill expands. The
+pill never enters from the right. Same 350ms spec as the page slide
+and the jelly bubble, so all three land together. Mail's pill edits
+the mailbox filter; other tabs' pill holds a local query and opens
+Search on submit. Mail's drawer is opened via a drawer-open signal
+(the hamburger lives in the hoisted bar, the drawer in MailScreen).
+MoAppTopBar deleted. The 5 primary screens lost their per-screen
+top bars and set contentWindowInsets=0 (pushed routes keep theirs).
+2. Directional tab slides: content enters from the side its tab sits
+on (tab to the right slides in from the right, and vice versa),
+opaque (no fade/scale) so the 1.0.15 flash cannot return. Pushed
+routes keep fade-through.
+3. Skeleton loading (Boneyard-style: skeleton mirrors the real rows'
+geometry — same 88dp height, padding, 40dp avatar, 3 text lines —
+hand-rolled shimmer, no library). Mail list now has 3 states:
+content / empty / skeleton (loading).
+4. Edge fade: mail list dissolves gently (28dp, subtle) at top+bottom
+while scrolling, only where more content exists in that direction —
+replaces the hard clip that read as a black bar cutting rows off.
+5. Dark logos: in dark mode, artwork logos sit on a white circular
+backing (black Apple logo now visible). Light mode unchanged.
+Monochrome bundled logos keep their tonal circle.
+6. Mail bubble lag: on a tab-switch entry to Mail, the heavy list
+defers 300ms behind the skeleton so the bubble/slide/pill run
+without competing against list composition. Popping back from a
+thread shows the list immediately.
+Tests: 968 run / 960 pass (same 8 known env failures: Robolectric
+DB/sync tests needing network). New: TabSlideDirectionTest (3 tests).
+No on-device verification possible from the sandbox.
