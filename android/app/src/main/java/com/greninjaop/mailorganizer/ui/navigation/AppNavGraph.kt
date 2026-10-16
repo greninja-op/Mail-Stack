@@ -348,8 +348,24 @@ fun AppNavGraph(
         }
     }.collectAsState(initial = null)
 
-    // One ModalNavigationDrawer above the whole Scaffold: the sheet +
-    // scrim cover the top bar, the page, and the bottom bar (Gmail).
+    // Account switcher sheet (2026-10-16): tapping the top-bar DP
+    // opens Gmail's account sheet on ANY tab — current account +
+    // collapse arrow, the other accounts, "Add another account" +
+    // "Settings". The sheet needs the enabled accounts (earliest
+    // first, so the first is the default) and the live selection.
+    var showAccountSheet by remember { mutableStateOf(false) }
+    val sheetAccounts: List<AccountRecord> by remember {
+        container.accountRepository.observeAll()
+    }.collectAsState(initial = emptyList())
+    val sheetSelection: AccountSelection by remember {
+        container.activeAccountPreferences.activeSelection
+    }.collectAsState(initial = AccountSelection.Unified)
+    val sheetEnabledAccounts = sheetAccounts
+        .filter { it.isEnabled }
+        .sortedWith(
+            compareBy<AccountRecord> { it.createdAtEpochMs }
+                .thenBy { it.accountId },
+        )
     // Mail-scoped: the drawer holds mailbox destinations, so the
     // edge-swipe only opens it on Mail (the hamburger is Mail-only
     // too). Opening it from another tab and picking a destination
@@ -398,11 +414,8 @@ fun AppNavGraph(
                         },
                         onMenuClick = { drawerScope.launch { drawerState.open() } },
                         mailState = mailState,
-                        onOpenAccounts = {
-                            navController.navigate(AppDestinations.ACCOUNTS)
-                        },
+                        onOpenAccounts = { showAccountSheet = true },
                         account = account,
-                        onOpenSecondary = navigatePrimary,
                     )
                 }
             },
@@ -894,6 +907,35 @@ fun AppNavGraph(
                 )
             }
         }
+        }
+        // Gmail-style account switcher sheet (2026-10-16): hosted
+        // here so the DP opens it from any tab. Tapping an account
+        // switches the selection (same mechanism as the Accounts
+        // screen); Add goes to the Connect flow; Settings opens
+        // the Settings page (Privacy, Integrations, Accounts and
+        // the rest all live there).
+        if (showAccountSheet) {
+            AccountSwitcherSheet(
+                accounts = sheetEnabledAccounts,
+                selection = sheetSelection,
+                onSelectAccount = { accountId ->
+                    drawerScope.launch {
+                        container.activeAccountPreferences.setActiveSelection(
+                            AccountSelection.Single(accountId),
+                        )
+                    }
+                },
+                onSelectUnified = {
+                    drawerScope.launch {
+                        container.activeAccountPreferences.setActiveSelection(
+                            AccountSelection.Unified,
+                        )
+                    }
+                },
+                onAddAccount = { navController.navigate(AppDestinations.CONNECT) },
+                onOpenSettings = { navController.navigate(AppDestinations.SETTINGS) },
+                onDismiss = { showAccountSheet = false },
+            )
         }
     }
 }
