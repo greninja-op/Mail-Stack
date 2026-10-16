@@ -535,7 +535,7 @@
     <tr><td>Search-pill reshape + hamburger</td><td class="spec">Hamburger width 0 ↔ 48 dp, icon slides in from the left edge; pill fills the rest. 350 ms FastOutSlowIn, same as the slide + bubble. — see §3.</td></tr>
     <tr><td>Scroll edge fade</td><td class="spec">28 dp, top + bottom, only where more content waits — see §2.</td></tr>
     <tr><td>Skeleton shimmer</td><td class="spec">Hand-rolled gradient sweep, 1400 ms loop. No library.</td></tr>
-    <tr><td>Mail list on tab entry</td><td class="spec">Heavy list defers 300 ms behind the skeleton on tab-switch entry, so the bubble never lags. Popping back from a thread shows the list immediately.</td></tr>
+    <tr><td>Mail list on tab entry</td><td class="spec">Skeleton shows only on the true first load (content Loading — nothing cached yet). Once the mailbox is loaded, the ViewModel caches it, so tab switches show the cached list immediately — no skeleton flash on every Mail entry. Popping back from a thread shows the list immediately too.</td></tr>
     <tr><td>Scroll-hide bars</td><td class="spec">Scroll down → top bar slides up out + bottom bar slides down out (hide: LinearOutSlowIn, fast → slow). Scroll up → both slide back (show: FastOutSlowIn, slow → fast → land). Pure translate, no fade, no spring. 250 ms. — see §6.</td></tr>
     <tr><td>Tap feedback</td><td class="spec">The pill is the only feedback on bubble controls (indication = null). Other controls keep normal Material ripples.</td></tr>
   </table>
