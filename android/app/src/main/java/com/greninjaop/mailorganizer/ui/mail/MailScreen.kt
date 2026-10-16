@@ -60,7 +60,6 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
-import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 import kotlinx.coroutines.launch
 
 /**
@@ -110,7 +109,7 @@ fun MailScreen(
         modifier = modifier,
     ) {
         Scaffold(
-            containerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.background,
             topBar = {
                 MailTopBar(
                     state = state,
@@ -220,7 +219,7 @@ private fun MailTopBar(
     val syncing = state.syncUi is SyncUiState.Syncing
     TopAppBar(
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color.Transparent,
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
         navigationIcon = {
             IconButton(onClick = onMenuClick) {
@@ -265,7 +264,7 @@ private fun MailDrawer(
     onSelect: (MailboxDestination) -> Unit,
 ) {
     ModalDrawerSheet(
-        drawerContainerColor = rememberGlassPalette().drawer,
+        drawerContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
         val account = state.activeAccount
         Column(
@@ -342,9 +341,8 @@ private val MailboxDestination.icon
 
 @Composable
 private fun OfflineBanner() {
-    val glass = rememberGlassPalette()
     Surface(
-        color = glass.bar,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Row(

@@ -31,7 +31,6 @@ import com.greninjaop.mailorganizer.core.search.SearchResult
 import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import com.greninjaop.mailorganizer.ui.mail.SenderAvatar
-import com.greninjaop.mailorganizer.ui.theme.GlassCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 
 /**
@@ -84,11 +83,10 @@ fun SearchMessageRow(
     val timeText = remember(record.timestampEpochMs) {
         MailFormatting.relativeTime(record.timestampEpochMs, System.currentTimeMillis())
     }
-    GlassCard(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick,
-    ) {
     ListItem(
+        modifier = modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = {
             Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically) {
@@ -137,7 +135,6 @@ fun SearchMessageRow(
             )
         },
     )
-    }
 }
 
 /** One thread hit: subject, match count, newest matched preview. */
@@ -160,13 +157,11 @@ fun SearchThreadRow(
         )?.normalizedDomain
     }
     val senderName = MailFormatting.senderDisplay(preview.fromName, preview.fromAddress)
-    GlassCard(
+    ListItem(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(min = MoSpacing.searchRowMinHeight),
-        onClick = onClick,
-    ) {
-    ListItem(
+            .heightIn(min = MoSpacing.searchRowMinHeight)
+            .clickable(onClick = onClick),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
             if (senderDomain != null) {
@@ -213,7 +208,6 @@ fun SearchThreadRow(
             )
         },
     )
-    }
 }
 
 /**

@@ -138,7 +138,7 @@ fun ThreadSummarySection(
                                     fontWeight = FontWeight.SemiBold,
                                     modifier = Modifier
                                         .clip(RoundedCornerShape(MoSpacing.xs))
-                                        .background(MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.6f))
+                                        .background(MaterialTheme.colorScheme.secondaryContainer)
                                         .padding(horizontal = MoSpacing.xs, vertical = 2.dp),
                                 )
                                 Spacer(Modifier.width(MoSpacing.sm))

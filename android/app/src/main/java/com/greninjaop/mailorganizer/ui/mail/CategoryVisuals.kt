@@ -169,7 +169,7 @@ fun CategoryChipWithExplanation(
                     color = MaterialTheme.colorScheme.secondary,
                     modifier = Modifier
                         .background(
-                            MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f),
+                            MaterialTheme.colorScheme.secondaryContainer,
                             RoundedCornerShape(MoSpacing.xs),
                         )
                         .padding(horizontal = MoSpacing.xs, vertical = 2.dp),

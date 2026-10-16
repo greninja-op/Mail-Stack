@@ -62,7 +62,6 @@ import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.MoLoadingState
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
-import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
 
 /**
  * Dedicated search experience (Phase 10, phase §9–§11).
@@ -93,11 +92,11 @@ fun SearchScreen(
 
     Scaffold(
         modifier = modifier,
-        containerColor = Color.Transparent,
+        containerColor = MaterialTheme.colorScheme.background,
         topBar = {
             TopAppBar(
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.Transparent,
+                    containerColor = MaterialTheme.colorScheme.surface,
                 ),
                 navigationIcon = {
                     IconButton(onClick = onBack) {
@@ -125,9 +124,9 @@ fun SearchScreen(
                             onSearch = { focusManager.clearFocus() },
                         ),
                         colors = TextFieldDefaults.colors(
-                            focusedContainerColor = rememberGlassPalette().bar,
-                            unfocusedContainerColor = rememberGlassPalette().bar,
-                            disabledContainerColor = rememberGlassPalette().bar,
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
                             disabledIndicatorColor = Color.Transparent,
@@ -136,11 +135,6 @@ fun SearchScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(focusRequester)
-                            .border(
-                                width = 1.dp,
-                                color = rememberGlassPalette().barBorder,
-                                shape = RoundedCornerShape(MoSpacing.xxl),
-                            ),
                     )
                 },
             )

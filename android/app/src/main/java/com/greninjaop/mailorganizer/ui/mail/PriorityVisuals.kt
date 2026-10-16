@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.ui.mail
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,7 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.greninjaop.mailorganizer.data.local.Priority
 import com.greninjaop.mailorganizer.data.local.PriorityRecord
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
-import com.greninjaop.mailorganizer.ui.theme.rememberGlassPalette
+import com.greninjaop.mailorganizer.ui.theme.rememberMoWarningColors
 
 /**
  * Priority presentation (Phase 9).
@@ -60,9 +59,9 @@ fun Priority.visuals(): PriorityVisuals? = when (this) {
 /**
  * Compact priority badge for mail rows. Renders nothing for NORMAL/LOW.
  *
- * 2026-10-13 (Breeze redesign): amber warning pill per the reference —
- * pale amber container + amber-brown text + thin amber border in light
- * mode, dark amber tint + amber text in dark mode. The label text still
+ * 2026-10-16 (Expressive redesign): solid amber warning pill —
+ * pale amber container + amber-brown text in light mode, deep amber
+ * container + amber text in dark mode. The label text still
  * carries the meaning (never color alone).
  */
 @Composable
@@ -71,12 +70,11 @@ fun PriorityBadge(
     modifier: Modifier = Modifier,
 ) {
     val visuals = remember(priority) { priority.visuals() } ?: return
-    val glass = rememberGlassPalette()
+    val warning = rememberMoWarningColors()
     Surface(
         shape = RoundedCornerShape(MoSpacing.xs),
-        color = glass.warningContainer,
-        contentColor = glass.warningContent,
-        border = BorderStroke(1.dp, glass.warningBorder),
+        color = warning.container,
+        contentColor = warning.content,
         modifier = modifier.semantics {
             contentDescription = visuals.contentDescription
         },
@@ -147,10 +145,9 @@ fun PriorityWithExplanation(
  * Action-required filter chip (Phase 9). Toggles the "action required"
  * view — mail classified ACTION_REQUIRED by the deterministic engine.
  *
- * 2026-10-13 (Breeze redesign): amber warning pill per the reference —
- * amber exclamation icon + amber text on a pale amber container with a
- * thin amber border, in both modes. The active state adds a stronger
- * border; the label still carries the meaning.
+ * 2026-10-16 (Expressive redesign): solid amber warning chip —
+ * amber exclamation icon + amber text on an amber container, in both
+ * modes. The label still carries the meaning.
  */
 @Composable
 fun ActionRequiredFilterChip(
@@ -158,7 +155,7 @@ fun ActionRequiredFilterChip(
     onToggle: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val glass = rememberGlassPalette()
+    val warning = rememberMoWarningColors()
     androidx.compose.material3.FilterChip(
         selected = active,
         onClick = onToggle,
@@ -166,32 +163,24 @@ fun ActionRequiredFilterChip(
             Text(
                 text = "Action required",
                 style = MaterialTheme.typography.labelMedium,
-                color = glass.warningContent,
+                color = warning.content,
             )
         },
         leadingIcon = {
             Icon(
                 imageVector = Icons.Filled.Warning,
                 contentDescription = null,
-                tint = glass.warningContent,
+                tint = warning.content,
                 modifier = Modifier.size(MoSpacing.md),
             )
         },
         colors = androidx.compose.material3.FilterChipDefaults.filterChipColors(
-            containerColor = glass.warningContainer,
-            selectedContainerColor = glass.warningContainer,
-            labelColor = glass.warningContent,
-            selectedLabelColor = glass.warningContent,
-            iconColor = glass.warningContent,
-            selectedLeadingIconColor = glass.warningContent,
-        ),
-        border = androidx.compose.material3.FilterChipDefaults.filterChipBorder(
-            borderColor = glass.warningBorder,
-            selectedBorderColor = glass.warningContent,
-            borderWidth = 1.dp,
-            selectedBorderWidth = 1.5.dp,
-            enabled = true,
-            selected = active,
+            containerColor = warning.container,
+            selectedContainerColor = warning.container,
+            labelColor = warning.content,
+            selectedLabelColor = warning.content,
+            iconColor = warning.content,
+            selectedLeadingIconColor = warning.content,
         ),
         modifier = modifier.semantics {
             contentDescription = if (active) {
