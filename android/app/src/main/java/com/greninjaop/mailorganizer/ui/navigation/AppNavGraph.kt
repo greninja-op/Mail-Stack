@@ -321,9 +321,11 @@ fun AppNavGraph(
         if (!isMail) drawerState.close()
     }
 
-    // Active account for the top bar's avatar on non-Mail tabs (Mail's
-    // actions read it from MailViewModel). Same Single/Unified derivation
-    // as MailViewModel: a selected account, else null for unified.
+    // Account for the top bar's avatar on non-Mail tabs (Mail's
+    // actions read it from MailViewModel). A selected account, else
+    // the DEFAULT account (earliest created) for unified — the avatar
+    // always shows a real DP, never a generic icon (2026-10-16 fix:
+    // the envelope icon read as "mail", not "accounts").
     val account: AccountRecord? by remember {
         combine(
             container.accountRepository.observeAll(),
@@ -337,7 +339,11 @@ fun AppNavGraph(
                             compareBy<AccountRecord> { it.createdAtEpochMs }
                                 .thenBy { it.accountId },
                         )
-                is AccountSelection.Unified -> null
+                is AccountSelection.Unified ->
+                    enabled.minWithOrNull(
+                        compareBy<AccountRecord> { it.createdAtEpochMs }
+                            .thenBy { it.accountId },
+                    )
             }
         }
     }.collectAsState(initial = null)
@@ -392,7 +398,6 @@ fun AppNavGraph(
                         },
                         onMenuClick = { drawerScope.launch { drawerState.open() } },
                         mailState = mailState,
-                        onRefresh = { mailVm?.refresh() },
                         onOpenAccounts = {
                             navController.navigate(AppDestinations.ACCOUNTS)
                         },
