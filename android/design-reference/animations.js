@@ -146,4 +146,74 @@
     else if (st < hideLast) { hideStage.classList.remove("bars-hidden"); }
     hideLast = st;
   }, { passive: true });
+
+  /* ---------- Instagram-style pull to refresh demo (see §7) ---------- */
+  var ptrViewport = document.getElementById("ptrViewport");
+  var ptrList = document.getElementById("ptrList");
+  var ptrPill = document.getElementById("ptrPill");
+  var ptrArc = document.getElementById("ptrArc");
+  var ptrArcSvg = document.getElementById("ptrArcSvg");
+  var ptrLabel = document.getElementById("ptrLabel");
+  if (ptrViewport && ptrList && ptrPill && ptrArc && ptrArcSvg && ptrLabel) {
+    var PTR_THRESHOLD = 64;   // px of list travel = the release threshold
+    var PTR_DAMP = 0.5;       // list travels half the finger — the smooth, easy pull
+    var PTR_CIRC = 56.5;      // arc circumference (r = 9)
+    var ptrStartY = 0, ptrPulling = false, ptrRefreshing = false, ptrProgress = 0;
+    function ptrRender(progress, label) {
+      ptrList.style.transform = "translateY(" + (progress * PTR_THRESHOLD) + "px)";
+      ptrPill.style.opacity = progress > 0 ? Math.min(progress, 1) : 0;
+      ptrArc.style.strokeDashoffset = String(PTR_CIRC * (1 - Math.min(progress, 1)));
+      ptrLabel.textContent = label;
+    }
+    function ptrSnapBack() {
+      ptrList.style.transition = "transform 220ms ease";
+      ptrPill.style.transition = "opacity 220ms ease";
+      ptrList.style.transform = "translateY(0)";
+      ptrPill.style.opacity = 0;
+      setTimeout(function () {
+        ptrList.style.transition = "";
+        ptrPill.style.transition = "";
+        ptrRefreshing = false;
+      }, 240);
+    }
+    ptrViewport.addEventListener("pointerdown", function (e) {
+      if (ptrRefreshing) return;
+      ptrPulling = true;
+      ptrStartY = e.clientY;
+      ptrProgress = 0;
+      ptrList.style.transition = "none";
+      ptrPill.style.transition = "none";
+      ptrViewport.setPointerCapture(e.pointerId);
+    });
+    ptrViewport.addEventListener("pointermove", function (e) {
+      if (!ptrPulling || ptrRefreshing) return;
+      var dy = e.clientY - ptrStartY;
+      if (dy <= 0) { ptrProgress = 0; ptrRender(0, "Pull to refresh"); return; }
+      ptrProgress = (dy * PTR_DAMP) / PTR_THRESHOLD;
+      ptrRender(ptrProgress, ptrProgress >= 1 ? "Release to refresh" : "Pull to refresh");
+    });
+    function ptrEnd() {
+      if (!ptrPulling) return;
+      ptrPulling = false;
+      if (ptrRefreshing) return;
+      if (ptrProgress >= 1) {
+        ptrRefreshing = true;
+        ptrList.style.transition = "transform 180ms ease";
+        ptrList.style.transform = "translateY(" + PTR_THRESHOLD + "px)";
+        ptrPill.style.opacity = 1;
+        ptrArc.style.strokeDashoffset = "14";
+        ptrArcSvg.classList.add("ptr-spinning");
+        ptrLabel.textContent = "Refreshing\u2026";
+        setTimeout(function () {
+          ptrArcSvg.classList.remove("ptr-spinning");
+          ptrArc.style.strokeDashoffset = String(PTR_CIRC);
+          ptrSnapBack();
+        }, 1200);
+      } else {
+        ptrSnapBack();
+      }
+    }
+    ptrViewport.addEventListener("pointerup", ptrEnd);
+    ptrViewport.addEventListener("pointercancel", ptrEnd);
+  }
 })();
