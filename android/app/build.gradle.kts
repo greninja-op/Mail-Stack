@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 19
+        versionCode = 20
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -75,7 +75,15 @@ android {
         //        fixed 80dp height — bar sits clear above the system
         //        nav buttons again); square tap ripple removed from
         //        the pill controls (nav tabs + Appearance picker).
-        versionName = "1.0.18"
+        // 1.0.18: hoisted dynamic top bar (hamburger slides in, pill
+        //        reshapes), directional tab slides, skeleton loading,
+        //        scroll edge fade, dark logo backing, 300ms Mail-list
+        //        defer; top-bar 16dp edge margin; one-shot drawer-open
+        //        event (SharedFlow, no replay).
+        // 1.0.19: Gmail-fidelity drawer hoisted above the Scaffold
+        //        (covers top + bottom bars), 48dp rows, 14sp labels,
+        //        selected pill; hamburger opens via DrawerState.
+        versionName = "1.0.19"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
