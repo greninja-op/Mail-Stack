@@ -63,7 +63,7 @@ import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.edgeFade
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -91,9 +91,12 @@ fun MailScreen(
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
     /**
      * Drawer-open requests from the hamburger in the hoisted top bar:
-     * the counter increments per tap; the drawer opens on each change.
+     * a one-shot SharedFlow with no replay — only a fresh tap opens
+     * the drawer. (A StateFlow counter replays its last value to every
+     * new collector, so the drawer opened by itself whenever Mail
+     * re-entered composition after any hamburger tap.)
      */
-    drawerOpenSignal: StateFlow<Int>,
+    drawerOpenSignal: SharedFlow<Unit>,
     /**
      * True when Mail was entered via a primary-tab switch (vs popping
      * back from a pushed route). The heavy lists defer past the
@@ -115,10 +118,11 @@ fun MailScreen(
         viewModel.consumeSyncResult()
     }
 
-    // Drawer requests from the hoisted top bar's hamburger.
-    val drawerSignal by drawerOpenSignal.collectAsState()
-    LaunchedEffect(drawerSignal) {
-        if (drawerSignal > 0) drawerState.open()
+    // Drawer requests from the hoisted top bar's hamburger. The flow
+    // has no replay, so re-entering this screen never re-opens the
+    // drawer on its own — only a fresh tap does.
+    LaunchedEffect(drawerOpenSignal) {
+        drawerOpenSignal.collect { drawerState.open() }
     }
 
     ModalNavigationDrawer(

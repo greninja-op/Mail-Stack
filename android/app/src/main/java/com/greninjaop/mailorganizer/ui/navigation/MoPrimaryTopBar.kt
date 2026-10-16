@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -103,6 +104,13 @@ fun MoPrimaryTopBar(
         Row(
             modifier = Modifier
                 .statusBarsPadding()
+                // 16dp edge margin, both sides: the search pill (and the
+                // hamburger on Mail) never touches the screen edges.
+                // The pre-hoist bar was a Material3 TopAppBar, which
+                // carries this inset itself; the hoisted Row must add
+                // it explicitly, or the pill expands edge-to-edge when
+                // the hamburger retracts (2026-10-16 fix).
+                .padding(horizontal = 16.dp)
                 .height(64.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

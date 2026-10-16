@@ -32,7 +32,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import com.greninjaop.mailorganizer.data.local.AccountRecord
@@ -312,9 +312,15 @@ fun AppNavGraph(
     val searchQuery = if (isMail) mailState?.filterText ?: "" else otherQuery
 
     // Drawer-open requests for the Mail tab: the hamburger lives in the
-    // hoisted top bar, the drawer lives in MailScreen. The counter
-    // increments per tap; MailScreen opens the drawer on each change.
-    val drawerOpenSignal = remember { MutableStateFlow(0) }
+    // hoisted top bar, the drawer lives in MailScreen. This is a
+    // ONE-SHOT event, so it is a SharedFlow with no replay — a StateFlow
+    // counter replays its last value to every new collector, so every
+    // time Mail re-entered composition after any hamburger tap, the
+    // drawer opened by itself around tab switches (2026-10-16 fix).
+    // With replay = 0, only a fresh hamburger tap opens the drawer.
+    val drawerOpenSignal = remember {
+        MutableSharedFlow<Unit>(replay = 0, extraBufferCapacity = 1)
+    }
 
     // Active account for the top bar's avatar on non-Mail tabs (Mail's
     // actions read it from MailViewModel). Same Single/Unified derivation
@@ -352,7 +358,7 @@ fun AppNavGraph(
                             AppDestinations.searchRoute(searchQuery),
                         )
                     },
-                    onMenuClick = { drawerOpenSignal.value += 1 },
+                    onMenuClick = { drawerOpenSignal.tryEmit(Unit) },
                     mailState = mailState,
                     onRefresh = { mailVm?.refresh() },
                     onOpenAccounts = {

@@ -299,14 +299,14 @@
   <table>
     <tr><th>Component</th><th>Spec</th></tr>
     <tr><td>Search pill</td><td class="spec">Rounded, indicator-free text field; surfaceContainerHigh; leading search icon; trailing clear button when text present. On Mail it filters the mailbox in place; on other tabs it opens the Search screen on submit. Hoisted — one instance across tabs, reshapes as the hamburger slides in/out.</td></tr>
-    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. Mail: hamburger + pill + refresh + account. Other tabs: pill + account + overflow menu.</td></tr>
+    <tr><td>Top bar</td><td class="spec">64 dp + status-bar inset, surface. Hoisted. 16 dp edge margin on both sides — the pill (and the hamburger on Mail) never touches the screen edges. Mail: hamburger + pill + refresh + account. Other tabs: pill + account + overflow menu.</td></tr>
     <tr><td>Bottom nav</td><td class="spec">80 dp content + system-nav inset outside it; 24 dp icons; 64 × 32 pill; tonal elevation 0; one sliding jelly pill (see §1).</td></tr>
     <tr><td>Mail row</td><td class="spec">Min height 88 dp; 40 dp avatar (company logo or letter); line 1 sender + time; line 2 subject; line 3 snippet. Flat on background, no card, no divider, no border.</td></tr>
     <tr><td>Company logo</td><td class="spec">Artwork fitted inside a circle, never cropped. In dark mode a white circular backing (dark logos stay visible). Monochrome bundled logos: tonal circle + tinted glyph.</td></tr>
     <tr><td>Filter chips</td><td class="spec">Pill chips (e.g. Action required, company filter). “All time” analytics filter; filter rows scroll horizontally, labels one line.</td></tr>
     <tr><td>Mail list states</td><td class="spec">Three states, always: <b>content</b> (rows) · <b>empty</b> (honest empty state, never fabricated) · <b>skeleton</b> (loading — skeleton rows mirror the real rows' geometry, hand-rolled shimmer, 1400 ms sweep).</td></tr>
     <tr><td>Pull-to-refresh</td><td class="spec">Gmail-style, wired to the sync engine. Sync progress: determinate bar when the total is known, indeterminate otherwise, with an honest stage label.</td></tr>
-    <tr><td>Navigation drawer</td><td class="spec">Mail destinations (All Inbox / Primary / Promotional / Social / Spam / Starred). Opens from the hoisted top bar's hamburger via a drawer-open signal.</td></tr>
+    <tr><td>Navigation drawer</td><td class="spec">Mail destinations (All Inbox / Primary / Promotional / Social / Spam / Starred). Opens from the hoisted top bar's hamburger via a one-shot drawer-open event (SharedFlow, no replay — only a fresh hamburger tap opens it, never a recomposition or a tab switch).</td></tr>
   </table>
 
   <h3>Motion — every spec in one table</h3>
