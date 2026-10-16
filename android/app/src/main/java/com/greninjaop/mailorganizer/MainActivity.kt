@@ -90,6 +90,15 @@ class MainActivity : ComponentActivity() {
         if (data.scheme != com.greninjaop.mailorganizer.data.auth.GoogleAuthRepository.REDIRECT_SCHEME) {
             return
         }
+        // Consume the redirect (2026-10-16): the authorization code is
+        // single-use, and this Activity's stored intent survives
+        // recreation — without consuming it, a later onCreate would
+        // re-handle the same code, the re-exchange would fail, and the
+        // UI would flip Success -> Error ("Try Again" -> back to
+        // Chrome). The in-flight handling holds its own reference to
+        // the intent, so clearing the stored one is safe. Non-OAuth
+        // intents are never consumed (early returns above).
+        setIntent(Intent())
         val container = (application as? MailOrganizerApp)?.containerOrNull() ?: return
         lifecycleScope.launch(Dispatchers.IO) {
             try {

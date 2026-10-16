@@ -411,3 +411,28 @@ switches; asked for wallpaper-adaptive theming like Pixel UI.
   from the wallpaper; below 12 the violet palettes are the fallback.
   ThemeMode.SYSTEM follows the system (system-dark -> dynamic dark).
 - Version bumped to 1.0.15 (versionCode 16).
+
+## 2026-10-16 ~16:35 IST — OAuth "Continue loops back to Chrome" fix (NO APK — user approval pending)
+User report: Connect -> Chrome sign-in -> app shows "Connected as
+<email>" + Continue -> tapping Continue sends them back to Google
+sign-in in Chrome instead of staying in the app.
+- Root causes (all in the Connect flow):
+  1. MainActivity never consumed the OAuth redirect intent: the stored
+     intent survives Activity recreation, so a later onCreate re-handled
+     the same single-use authorization code; the re-exchange failed
+     (invalid_grant, code already used) and flipped the UI
+     Success -> Error -> "Try Again" -> back to Chrome.
+  2. handleOAuthResult had no dedup: a twice-delivered redirect was
+     exchanged twice.
+  3. ConnectAccountViewModel's 2s onForegrounded reset flipped
+     Connecting -> Idle while the token exchange was still running, so
+     the UI showed "Connect with Google" mid-exchange and invited a
+     second tap that opened Chrome again.
+- Fix (5 files): MainActivity consumes the redirect (setIntent(empty)
+  after an OAuth redirect; non-OAuth intents untouched);
+  GoogleAuthRepository dedups identical (state, code) deliveries under
+  a Mutex and returns the first handling's result (dedupKeyFor is a
+  pure, unit-tested function); Connect flow drops the timeout reset —
+  the Connecting state now has an explicit Cancel button (reset()).
+- Version NOT bumped and NO APK built — user said no APK until they
+  say okay. When they approve, bump (1.0.16) + build + deliver.
