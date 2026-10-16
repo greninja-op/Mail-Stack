@@ -557,3 +557,19 @@ the Appearance segmented control) now use clickable(indication =
 null) — the sliding pill itself is the tap feedback. Standard M3
 components elsewhere keep their normal ripples; only these two
 pill controls changed.
+
+## 2026-10-16 ~17:50 IST — Mailstack 1.0.17 delivered (user said "give me apk")
+APK: Mailstack-1.0.17.apk, 17,091,132 bytes, package
+com.greninjaop.mailorganizer, versionName 1.0.17, versionCode 18,
+stable cert SHA-1 07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05.
+Contents: bottom-bar geometry fix (nav-bar padding outside the
+fixed 80dp height — bar sits clear above the system nav buttons);
+square tap ripple removed from the pill controls (nav tabs +
+Appearance picker). Tests: 965 run / 957 pass (same 8 env-broken).
+Verification note: the first 1.0.17 builds looked stale because
+only the primary classes.dex was compared — the app's classes live
+in secondary dex files (multidex). The delivered APK was verified
+per-dex: 5 secondary dex files differ from 1.0.16, and MoNavBarKt
+in classes8.dex references the new clickable overload. Lesson:
+compare ALL classes*.dex, never just classes.dex.
+No on-device verification possible from the sandbox.
