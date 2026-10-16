@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 22
+        versionCode = 23
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -92,7 +92,16 @@ android {
         //        skeleton defer on every Mail tab entry is removed;
         //        once the mailbox is cached, tab switches show the
         //        cached list immediately.
-        versionName = "1.0.21"
+        // 1.0.22: Instagram-style pull-to-refresh — one hoisted
+        //        PullToRefreshBox over the whole mailbox with a
+        //        custom pill indicator (filling arc + "Pull to
+        //        refresh" / "Release to refresh" / "Refreshing…");
+        //        the top-bar reload button is removed (the gesture
+        //        is the reload). The top-bar account button now
+        //        shows the account's DP in every mode — unified
+        //        inbox shows the default account's DP instead of
+        //        the confusing envelope icon.
+        versionName = "1.0.22"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
