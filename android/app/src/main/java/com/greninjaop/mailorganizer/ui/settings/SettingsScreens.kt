@@ -13,6 +13,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -72,6 +73,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
@@ -221,7 +223,9 @@ fun SettingsScreen(
                 onClick = { onNavigate(AppDestinations.AUTOMATION) },
             )
             AppearanceSection(viewModel = appearanceViewModel)
-            AboutSection()
+            // Gmail-style footer (2026-10-16): the informational pages
+            // are NOT rows in this list — only real settings are.
+            SettingsFooter(onNavigate = onNavigate)
         }
     }
 }
@@ -474,29 +478,63 @@ private fun AccountSection(
     }
 }
 
+/**
+ * Gmail-style footer at the very bottom of Settings (2026-10-16):
+ * small centred links — "Privacy Policy • Terms of Service" — plus a
+ * small centred About paragraph beneath. The informational pages are
+ * NOT buttons/rows in the Settings list; only real settings are
+ * (Privacy Center, Rules, Integrations, Cleanup, Analytics, AI,
+ * Automation, Appearance). Each link opens its document screen. The
+ * weighted spacer pushes the footer to the bottom when the content
+ * is shorter than the screen; when it overflows, the footer simply
+ * follows the last row.
+ */
 @Composable
-private fun AboutSection(modifier: Modifier = Modifier) {
-    // 2026-10-14 (Expressive redesign): plain column -> MoCard.
-    MoCard(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.xs),
-    ) {
-    Column(
+private fun ColumnScope.SettingsFooter(onNavigate: (String) -> Unit) {
+    Spacer(Modifier.weight(1f))
+    Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = MoSpacing.md, vertical = MoSpacing.sm),
+            .padding(top = MoSpacing.lg, bottom = MoSpacing.xs),
+        horizontalArrangement = Arrangement.Center,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = "About", style = MaterialTheme.typography.titleSmall)
-        Spacer(Modifier.height(MoSpacing.xs))
+        FooterLink(
+            text = "Privacy Policy",
+            onClick = { onNavigate(AppDestinations.PRIVACY_POLICY) },
+        )
         Text(
-            text = "Mail Organizer — a personal email organization and action " +
-                "system. Your Gmail, organized on your device.",
-            style = MaterialTheme.typography.bodyMedium,
+            text = "•",
+            style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(horizontal = MoSpacing.xs),
+        )
+        FooterLink(
+            text = "Terms of Service",
+            onClick = { onNavigate(AppDestinations.TERMS) },
         )
     }
-    }
+    Text(
+        text = "Mailstack — your Gmail, organized on your device.",
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = MoSpacing.md, end = MoSpacing.md, bottom = MoSpacing.lg),
+    )
+}
+
+@Composable
+private fun FooterLink(text: String, onClick: () -> Unit) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .clickable(role = Role.Button, onClick = onClick)
+            .semantics { contentDescription = "$text. Opens the $text screen." },
+    )
 }
 
 @Composable
@@ -1016,13 +1054,15 @@ private fun connectionText(account: AccountRecord): String = when (account.conne
 }
 
 /**
- * Privacy destination — Phase 11 (phase §38).
- *
- * Only claims what is actually implemented. No privacy theater.
+ * Privacy Policy destination (2026-10-16) — the document the Settings
+ * footer's "Privacy Policy" link opens. This is the policy text, NOT
+ * the Privacy Center (the functional audit/controls screen, which
+ * stays as its own Settings row). Only claims what is actually
+ * implemented. No privacy theater.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PrivacyScreen(
+fun PrivacyPolicyScreen(
     onBack: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -1034,7 +1074,7 @@ fun PrivacyScreen(
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.surface,
                 ),
-                title = { Text("Privacy") },
+                title = { Text("Privacy Policy") },
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(
@@ -1053,30 +1093,30 @@ fun PrivacyScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = MoSpacing.md),
         ) {
-            PrivacyPoint(
+            PolicyPoint(
                 title = "Local-first",
                 body = "Classification, company detection, priority, and search all " +
                     "run on this device. Your email content is never sent to " +
                     "Mail Organizer servers — there are none.",
             )
-            PrivacyPoint(
+            PolicyPoint(
                 title = "Gmail is the source of truth",
                 body = "Mail Organizer keeps a local copy for offline use, search, " +
                     "and organization. The authoritative copy of your mail stays " +
                     "in Gmail.",
             )
-            PrivacyPoint(
+            PolicyPoint(
                 title = "Account isolation",
                 body = "Every stored item is scoped to the Gmail account it came " +
                     "from. Accounts never mix.",
             )
-            PrivacyPoint(
+            PolicyPoint(
                 title = "No credential storage by Mail Organizer",
                 body = "Google sign-in (Phase 3) will use the official Google " +
                     "authentication flow. Mail Organizer never asks for your " +
                     "Google password.",
             )
-            PrivacyPoint(
+            PolicyPoint(
                 title = "No remote AI",
                 body = "There is no AI fallback sending your mail anywhere. " +
                     "Intelligence is deterministic and on-device.",
@@ -1087,7 +1127,7 @@ fun PrivacyScreen(
 }
 
 @Composable
-private fun PrivacyPoint(title: String, body: String) {
+private fun PolicyPoint(title: String, body: String) {
     // 2026-10-14 (Expressive redesign): plain column -> MoCard.
     MoCard(
         modifier = Modifier
@@ -1103,6 +1143,88 @@ private fun PrivacyPoint(title: String, body: String) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
+    }
+}
+
+/**
+ * Terms of Service destination (2026-10-16) — the document the
+ * Settings footer's "Terms of Service" link opens. Plain, factual
+ * statements about how the app works. Nothing is claimed that the
+ * app doesn't do.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TermsScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        modifier = modifier,
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.surface,
+                ),
+                title = { Text("Terms of Service") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back",
+                        )
+                    }
+                },
+            )
+        },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = MoSpacing.md),
+        ) {
+            PolicyPoint(
+                title = "What Mailstack is",
+                body = "Mailstack is a personal email organizer for your Gmail. " +
+                    "It organizes, classifies, and surfaces actions from your " +
+                    "mail on your device.",
+            )
+            PolicyPoint(
+                title = "Gmail is the source of truth",
+                body = "Your mail stays in Gmail. Mailstack keeps a local copy " +
+                    "for offline use, search, and organization. Mailstack never " +
+                    "sends or modifies mail without your explicit action.",
+            )
+            PolicyPoint(
+                title = "Your data stays on your device",
+                body = "Classification, company detection, priority, and search " +
+                    "run on this device. Mailstack has no servers and does " +
+                    "not sell or share your data.",
+            )
+            PolicyPoint(
+                title = "Google sign-in",
+                body = "Signing in uses Google's official authentication flow. " +
+                    "Mailstack never asks for your Google password. Calendar " +
+                    "and Tasks access is granted only when you enable those " +
+                    "integrations, through Google's permission screen.",
+            )
+            PolicyPoint(
+                title = "Your responsibility",
+                body = "You are responsible for the accounts you connect and " +
+                    "the actions you confirm (such as sending mail or " +
+                    "deleting local data). Disconnecting an account removes " +
+                    "its local data from this device; your Gmail is untouched.",
+            )
+            PolicyPoint(
+                title = "No warranty",
+                body = "Mailstack is provided as-is, without warranty of any " +
+                    "kind. Organization, classification, and suggested actions " +
+                    "are best-effort — always check before acting on them.",
+            )
+            Spacer(Modifier.height(MoSpacing.xl))
+        }
     }
 }
 
