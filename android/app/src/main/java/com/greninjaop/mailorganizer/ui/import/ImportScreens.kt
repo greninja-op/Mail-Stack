@@ -57,6 +57,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -74,9 +75,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.greninjaop.mailorganizer.R
+import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.MessageRecord
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
-import com.greninjaop.mailorganizer.ui.mail.SenderAvatar
 import kotlinx.coroutines.delay
 import kotlin.math.atan2
 
@@ -153,6 +154,7 @@ private val M3OnSurfaceBody = Color(0xFFC4C6D0)
 private val M3OnSurfaceMuted = Color(0xFF8E9099)
 private val M3ConnectedBlue = Color(0xFF8AB4F8)
 private val M3PrimaryPillBlue = Color(0xFF9CCAFF)
+private val M3AvatarBlue = Color(0xFF1B5E8A)
 private val M3OnPrimaryPillNavy = Color(0xFF003258)
 private val M3OutlineStroke = Color(0xFF3C4043)
 private val M3TimestampBlue = Color(0xFF7FCFFF)
@@ -546,11 +548,11 @@ private fun UnifiedTransferSingleCardContent(
                 val primaryMail = recentMails.getOrNull(0)
                 val secondaryMail = recentMails.getOrNull(1)
                 if (primaryMail != null) {
-                    TranspiringMailRowView(item = primaryMail, alpha = 1f)
+                    TranspiringMailRowView(item = primaryMail, account = account, alpha = 1f)
                 }
                 if (secondaryMail != null) {
-                    Spacer(Modifier.height(10.dp))
-                    TranspiringMailRowView(item = secondaryMail, alpha = 0.55f)
+                    Spacer(Modifier.height(16.dp))
+                    TranspiringMailRowView(item = secondaryMail, account = account, alpha = 0.55f)
                 }
                 if (primaryMail != null) {
                     Spacer(Modifier.height(18.dp))
@@ -582,25 +584,68 @@ private fun UnifiedTransferSingleCardContent(
 }
 
 /**
- * One transpiring mail row: sender avatar + sender/timestamp line, subject,
- * snippet. Same structure as the reference's sample rows, but the data is a
- * real [MessageRecord] — avatar via the app's [SenderAvatar], timestamp via
- * [MailFormatting.relativeTime]. The blue timestamp is the reference's accent.
+ * One transpiring mail row, to the reference screenshots (the supplied code
+ * does not contain this composable's body): a small ACCOUNT avatar (the
+ * account the mail is being imported into, 32dp) + the sender avatar (48dp)
+ * + the sender/timestamp line, subject, snippet.
+ *
+ * The sender avatar uses a deterministic brand-style (bg, fg) pair picked
+ * from the sender address. The screenshots' per-sender colours come from
+ * Gemini's hardcoded sample data (Google blue, Adobe white/red, Swiggy
+ * orange, ...), so a deterministic palette is the faithful generalisation
+ * for real senders — the look is the same, no sample data is copied.
  */
 @Composable
-private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
+private fun TranspiringMailRowView(
+    item: MessageRecord,
+    account: AccountRecord?,
+    alpha: Float,
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .graphicsLayer { this.alpha = alpha },
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        SenderAvatar(
-            key = item.fromAddress,
-            displayName = item.fromName,
-            emailAddress = item.fromAddress,
-            size = 40.dp,
-        )
+        // Account avatar (small): the account receiving the mail.
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .clip(CircleShape)
+                .background(M3AvatarBlue),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = MailFormatting.avatarInitial(
+                    account?.displayName,
+                    account?.emailAddress.orEmpty(),
+                ),
+                color = Color.White,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        // Sender avatar (48dp, brand-style palette).
+        val (avatarBg, avatarFg) = remember(item.fromAddress) {
+            senderAvatarColors(item.fromAddress)
+        }
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(CircleShape)
+                .background(avatarBg),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                text = MailFormatting.avatarInitial(item.fromName, item.fromAddress),
+                color = avatarFg,
+                fontSize = 18.sp,
+                fontWeight = FontWeight.Bold,
+                maxLines = 1,
+            )
+        }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
             Row(
@@ -611,8 +656,8 @@ private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
                 Text(
                     text = MailFormatting.senderDisplay(item.fromName, item.fromAddress),
                     color = M3OnSurface,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.SemiBold,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Bold,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false),
@@ -624,7 +669,7 @@ private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
                         System.currentTimeMillis(),
                     ),
                     color = M3TimestampBlue,
-                    fontSize = 12.sp,
+                    fontSize = 13.sp,
                     fontWeight = FontWeight.Medium,
                     maxLines = 1,
                 )
@@ -633,7 +678,8 @@ private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
             Text(
                 text = MailFormatting.subjectDisplay(item.subject),
                 color = M3OnSurface,
-                fontSize = 13.5.sp,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -641,7 +687,7 @@ private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
             Text(
                 text = item.snippet.orEmpty(),
                 color = M3OnSurfaceMuted,
-                fontSize = 12.5.sp,
+                fontSize = 13.sp,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -652,19 +698,53 @@ private fun TranspiringMailRowView(item: MessageRecord, alpha: Float) {
 }
 
 /**
- * Fluid conduit between the Gmail logo (left) and the Mailstack logo (right).
+ * Deterministic brand-style (background, letter) pairs for the
+ * transpiring-row sender avatars, mirroring the reference screenshots'
+ * look (coloured disc + white letter, or white disc + coloured letter).
+ */
+private val TranspiringSenderPalette = listOf(
+    Color(0xFF1B5E8A) to Color.White, // blue disc, white letter
+    Color.White to Color(0xFFEB1000), // white disc, red letter
+    Color(0xFFFC8019) to Color.White, // orange disc, white letter
+    Color.White to Color(0xFFE50914), // white disc, red letter
+    Color.White to Color(0xFF7B68EE), // white disc, purple letter
+    Color(0xFF34A853) to Color.White, // green disc, white letter
+    Color.White to Color(0xFF4285F4), // white disc, blue letter
+    Color(0xFF7B68EE) to Color.White, // purple disc, white letter
+)
+
+private fun senderAvatarColors(key: String): Pair<Color, Color> {
+    val index = kotlin.math.abs(key.hashCode()) % TranspiringSenderPalette.size
+    return TranspiringSenderPalette[index]
+}
+
+/**
+ * Conduit between the Gmail logo (left) and the Mailstack node (right).
  *
  * The reference calls this composable but its body was not in the supplied
- * code, so it is built to the reference's description: a fluid tube with
- * envelopes travelling Gmail → Mailstack. The tube fills with blue up to
- * the real [progress]; a dashed stream crawls along it for the fluid feel;
- * envelopes spawn from REAL progress (one per ~8 imported messages, the
- * same honesty rule as the old flying-mail animation) — never on a timer.
+ * code, so it is built to the reference screenshots:
+ *
+ * - One smooth ARC: a quadratic-bezier hill from the Gmail circle's right
+ *   edge to the Mailstack circle's left edge, peaking 35dp above the
+ *   centre line. NOT a tube, NOT a wave — the envelopes ride ON the arc.
+ * - Track: the full arc, thin (6dp), faint white. Fill: #9CCAFF, 5dp,
+ *   dash-length = progress x arc length, growing Gmail -> Mailstack.
+ * - Soft glow: a wide low-alpha stroke behind the track and the fill,
+ *   plus a radial glow dot at the fill's leading edge, and halos behind
+ *   both nodes.
+ * - Progress RING around the Mailstack node: 4dp #9CCAFF arc starting at
+ *   the top, sweeping clockwise by progress x 360 deg.
+ * - Mailstack node: the reference's illustration (white envelope + dots +
+ *   list badge on a pale blue/green disc), NOT the launcher icon.
+ * - Envelopes: white 36x24 cards with a coloured dot (red/green/blue,
+ *   cycled by spawn id) + a grey line, tangent-aligned, spawned from
+ *   REAL progress (one per ~8 imported messages, the same honesty rule
+ *   as the old flying-mail animation) — never on a timer.
  *
  * Logos: the Gmail "M" ([R.drawable.ic_gmail_logo], vector traced from the
- * official icon and pixel-verified) in a white circle on the left, the
- * app's own round launcher icon on the right. Both 56dp circles, vertically
- * centred, exactly at the conduit ends.
+ * official icon and pixel-verified) in a white circle on the left, 56dp,
+ * vertically centred, exactly at the arc start. The Mailstack node is the
+ * same 56dp circle, vertically centred, exactly at the arc end.
  */
 @Composable
 private fun GmailToMailstackFluidConduitCanvas(
@@ -694,7 +774,7 @@ private fun GmailToMailstackFluidConduitCanvas(
         }
     }
 
-    // Frame clock: drives envelope motion + the crawling flow dashes.
+    // Frame clock: drives envelope motion.
     var frameNanos by remember { mutableLongStateOf(System.nanoTime()) }
     LaunchedEffect(Unit) {
         withInfiniteAnimationFrameNanos { frameNanos = it }
@@ -709,6 +789,8 @@ private fun GmailToMailstackFluidConduitCanvas(
             )
         }
         // Gmail logo, left — white circle, M cropped with even padding.
+        // The Mailstack node (illustration + progress ring) is drawn
+        // inside the Canvas, at the arc end, so there is no Image here.
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -725,16 +807,6 @@ private fun GmailToMailstackFluidConduitCanvas(
                 modifier = Modifier.size(40.dp, 30.dp),
             )
         }
-        // Mailstack logo, right — the app's own round launcher icon.
-        Image(
-            painter = painterResource(id = R.mipmap.ic_launcher_round),
-            contentDescription = "Mailstack logo",
-            modifier = Modifier
-                .align(Alignment.CenterEnd)
-                .padding(end = CONDUIT_LOGO_INSET)
-                .size(CONDUIT_LOGO_SIZE)
-                .clip(CircleShape),
-        )
     }
 }
 
@@ -746,11 +818,25 @@ private data class ConduitEnvelope(
 
 private const val ENVELOPE_PER_MESSAGES = 8
 
-/** Conduit geometry: logo circles sit exactly at the tube ends. */
+/** Conduit geometry: logo circles sit exactly at the arc ends. */
 private val CONDUIT_LOGO_SIZE = 56.dp
-private val CONDUIT_LOGO_INSET = 4.dp
-private val CONDUIT_TUBE_WIDTH = 12.dp
-private val CONDUIT_WAVE = 16.dp
+// Inset chosen so the Mailstack progress ring (gap + stroke) ends 1dp
+// inside the canvas: -inset + gap + stroke = -1dp.
+private val CONDUIT_LOGO_INSET = 8.dp
+private val CONDUIT_TRACK_WIDTH = 6.dp
+private val CONDUIT_FILL_WIDTH = 5.dp
+private val CONDUIT_ARC_PEAK = 35.dp
+private val CONDUIT_RING_GAP = 3.dp
+private val CONDUIT_RING_WIDTH = 4.dp
+private val CONDUIT_ENVELOPE_W = 36.dp
+private val CONDUIT_ENVELOPE_H = 24.dp
+
+/** Flying-envelope dot colours, cycled by spawn id (Gmail palette). */
+private val ConduitEnvelopeDotColors = listOf(
+    Color(0xFFEA4335), // red
+    Color(0xFF34A853), // green
+    Color(0xFF4285F4), // blue
+)
 
 private fun DrawScope.drawConduitScene(
     nowNanos: Long,
@@ -759,67 +845,76 @@ private fun DrawScope.drawConduitScene(
 ) {
     val w = size.width
     val cy = size.height / 2f
+    val logoR = (CONDUIT_LOGO_SIZE / 2f).toPx()
     val startX = (CONDUIT_LOGO_INSET + CONDUIT_LOGO_SIZE).toPx()
     val endX = w - (CONDUIT_LOGO_INSET + CONDUIT_LOGO_SIZE).toPx()
-    val span = (endX - startX).coerceAtLeast(0f)
-    val wave = CONDUIT_WAVE.toPx()
+    val gmailCenter = Offset(startX - logoR, cy)
+    val msCenter = Offset(endX + logoR, cy)
+    val midX = (startX + endX) / 2f
 
-    // Gentle S-wave conduit: cubic bezier, control points offset in
-    // opposite directions so the tube feels fluid, not rigid.
+    // Smooth arc: quadratic bezier hill. The curve's peak (t = 0.5) lands
+    // halfway between the centre line and the control point, so the
+    // control point sits at twice the peak height.
     val p0 = Offset(startX, cy)
-    val p1 = Offset(startX + span * 0.25f, cy - wave)
-    val p2 = Offset(startX + span * 0.75f, cy + wave)
-    val p3 = Offset(endX, cy)
+    val p1 = Offset(midX, cy - 2f * CONDUIT_ARC_PEAK.toPx())
+    val p2 = Offset(endX, cy)
     val path = Path().apply {
         moveTo(p0.x, p0.y)
-        cubicTo(p1.x, p1.y, p2.x, p2.y, p3.x, p3.y)
+        quadraticTo(p1.x, p1.y, p2.x, p2.y)
     }
-    val tubeWidth = CONDUIT_TUBE_WIDTH.toPx()
+    val totalLength = quadBezierLength(p0, p1, p2)
+    val progressClamped = (progress ?: 0f).coerceIn(0f, 1f)
 
-    // Track: faint tube.
+    // Soft halos behind both nodes.
+    drawHalo(gmailCenter, logoR + 12.dp.toPx(), Color.White, 0.14f)
+    drawHalo(msCenter, logoR + 12.dp.toPx(), M3PrimaryPillBlue, 0.12f)
+
+    // Track: the full arc, halo + thin faint line.
     drawPath(
         path,
         color = Color.White,
-        alpha = 0.10f,
-        style = Stroke(width = tubeWidth, cap = StrokeCap.Round),
+        alpha = 0.05f,
+        style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round),
     )
-    // Fill: blue up to the real progress, via a dash whose length is the
-    // filled fraction of the sampled path length.
-    val totalLength = cubicBezierLength(p0, p1, p2, p3)
-    val fillLength = ((progress ?: 0f).coerceIn(0f, 1f) * totalLength)
+    drawPath(
+        path,
+        color = Color.White,
+        alpha = 0.12f,
+        style = Stroke(width = CONDUIT_TRACK_WIDTH.toPx(), cap = StrokeCap.Round),
+    )
+
+    // Fill: #9CCAFF, glow + line, dash-length = progress x arc length,
+    // growing from the Gmail end towards Mailstack.
+    val fillLength = progressClamped * totalLength
     if (fillLength > 0f) {
+        val dash = PathEffect.dashPathEffect(
+            floatArrayOf(fillLength, (totalLength - fillLength).coerceAtLeast(1f)),
+            0f,
+        )
         drawPath(
             path,
             color = M3PrimaryPillBlue,
-            alpha = 0.55f,
-            style = Stroke(
-                width = tubeWidth,
-                cap = StrokeCap.Round,
-                pathEffect = PathEffect.dashPathEffect(
-                    floatArrayOf(fillLength, (totalLength - fillLength).coerceAtLeast(1f)),
-                    0f,
-                ),
-            ),
+            alpha = 0.18f,
+            style = Stroke(width = 11.dp.toPx(), cap = StrokeCap.Round, pathEffect = dash),
+        )
+        drawPath(
+            path,
+            color = M3PrimaryPillBlue,
+            style = Stroke(width = CONDUIT_FILL_WIDTH.toPx(), cap = StrokeCap.Round, pathEffect = dash),
+        )
+        // Leading-edge glow dot at the fill's head.
+        drawHalo(
+            center = quadBezierPoint(p0, p1, p2, progressClamped),
+            radius = 16.dp.toPx(),
+            color = M3PrimaryPillBlue,
+            peakAlpha = 0.35f,
         )
     }
-    // Stream: thin dashed line crawling along the tube (fluid motion).
-    // Dash period 20dp; the phase loops seamlessly.
-    val dashPhase = -((nowNanos / 1_000_000L / 30L) % 20) * 1.dp.toPx()
-    drawPath(
-        path,
-        color = Color.White,
-        alpha = 0.45f,
-        style = Stroke(
-            width = 4.dp.toPx(),
-            cap = StrokeCap.Round,
-            pathEffect = PathEffect.dashPathEffect(
-                floatArrayOf(8.dp.toPx(), 12.dp.toPx()),
-                dashPhase,
-            ),
-        ),
-    )
 
-    // Envelopes in flight along the same bezier.
+    // Mailstack node: illustration + progress ring.
+    drawMailstackNode(msCenter, logoR, progressClamped)
+
+    // Envelopes in flight along the same arc.
     val alive = envelopes.filter { env ->
         (nowNanos - env.birthNanos) < env.durationMs * 1_000_000L
     }
@@ -829,8 +924,8 @@ private fun DrawScope.drawConduitScene(
     for (env in alive) {
         val t = ((nowNanos - env.birthNanos).toFloat() / (env.durationMs * 1_000_000L))
             .coerceIn(0f, 1f)
-        val pos = cubicBezierPoint(p0, p1, p2, p3, t)
-        val tangent = cubicBezierTangent(p0, p1, p2, p3, t)
+        val pos = quadBezierPoint(p0, p1, p2, t)
+        val tangent = quadBezierTangent(p0, p1, p2, t)
         val angleDeg = Math.toDegrees(atan2(tangent.y, tangent.x).toDouble()).toFloat()
         val alpha = when {
             t < 0.08f -> t / 0.08f
@@ -841,67 +936,252 @@ private fun DrawScope.drawConduitScene(
             center = pos,
             angleDeg = angleDeg,
             alpha = alpha,
-            body = Color.White,
-            flap = M3PrimaryPillBlue,
+            dot = ConduitEnvelopeDotColors[
+                (kotlin.math.abs(env.id) % ConduitEnvelopeDotColors.size).toInt()
+            ],
         )
     }
 }
 
-private fun cubicBezierPoint(p0: Offset, p1: Offset, p2: Offset, p3: Offset, t: Float): Offset {
-    val u = 1f - t
-    return Offset(
-        u * u * u * p0.x + 3f * u * u * t * p1.x + 3f * u * t * t * p2.x + t * t * t * p3.x,
-        u * u * u * p0.y + 3f * u * u * t * p1.y + 3f * u * t * t * p2.y + t * t * t * p3.y,
+/** Soft radial halo: [peakAlpha] at the centre, fading to transparent. */
+private fun DrawScope.drawHalo(center: Offset, radius: Float, color: Color, peakAlpha: Float) {
+    drawCircle(
+        brush = Brush.radialGradient(
+            colors = listOf(color.copy(alpha = peakAlpha), color.copy(alpha = 0f)),
+            center = center,
+            radius = radius,
+        ),
+        radius = radius,
+        center = center,
     )
 }
 
-private fun cubicBezierTangent(p0: Offset, p1: Offset, p2: Offset, p3: Offset, t: Float): Offset {
+/**
+ * The Mailstack node, to the reference screenshots: the illustration —
+ * white envelope (blue flap, red + green dots, grey text lines, blue
+ * "send" triangle) + a white checklist badge — on a pale diagonal disc
+ * (blue bottom-left -> mint top-right) — plus the progress ring: a 4dp
+ * #9CCAFF arc starting at the top, sweeping clockwise by
+ * progress x 360 deg.
+ */
+private fun DrawScope.drawMailstackNode(center: Offset, radius: Float, progress: Float) {
+    // Disc: pale diagonal gradient.
+    drawCircle(
+        brush = Brush.linearGradient(
+            colors = listOf(Color(0xFFD9EAF6), Color(0xFFDDEBD9)),
+            start = Offset(center.x - radius, center.y + radius),
+            end = Offset(center.x + radius, center.y - radius),
+        ),
+        radius = radius,
+        center = center,
+    )
+
+    // Envelope: white card, slightly left of centre.
+    val ew = 34.dp.toPx()
+    val eh = 24.dp.toPx()
+    val ex = center.x - ew / 2f - 2.dp.toPx()
+    val ey = center.y - eh / 2f + 1.dp.toPx()
+    drawRoundRect(
+        color = Color.White,
+        topLeft = Offset(ex, ey),
+        size = Size(ew, eh),
+        cornerRadius = CornerRadius(3.dp.toPx()),
+    )
+    // Flap: blue triangle at the envelope's top.
+    val flapPath = Path().apply {
+        moveTo(ex, ey)
+        lineTo(ex + ew, ey)
+        lineTo(ex + ew / 2f, ey + eh * 0.38f)
+        close()
+    }
+    drawPath(flapPath, color = Color(0xFF4285F4))
+    // Red + green dots, grey text lines.
+    drawCircle(
+        color = Color(0xFFEA4335),
+        radius = 2.5.dp.toPx(),
+        center = Offset(ex + ew * 0.16f, ey + eh * 0.58f),
+    )
+    drawCircle(
+        color = Color(0xFF34A853),
+        radius = 2.5.dp.toPx(),
+        center = Offset(ex + ew * 0.16f, ey + eh * 0.78f),
+    )
+    drawLine(
+        color = Color(0xFF9AA0A6),
+        start = Offset(ex + ew * 0.32f, ey + eh * 0.58f),
+        end = Offset(ex + ew * 0.84f, ey + eh * 0.58f),
+        strokeWidth = 2.dp.toPx(),
+        cap = StrokeCap.Round,
+    )
+    drawLine(
+        color = Color(0xFF9AA0A6),
+        start = Offset(ex + ew * 0.32f, ey + eh * 0.78f),
+        end = Offset(ex + ew * 0.84f, ey + eh * 0.78f),
+        strokeWidth = 2.dp.toPx(),
+        cap = StrokeCap.Round,
+    )
+    // Blue "send" triangle on the envelope's left edge.
+    val arrowPath = Path().apply {
+        moveTo(ex - 3.dp.toPx(), ey + eh * 0.5f)
+        lineTo(ex + 4.dp.toPx(), ey + eh * 0.32f)
+        lineTo(ex + 4.dp.toPx(), ey + eh * 0.68f)
+        close()
+    }
+    drawPath(arrowPath, color = Color(0xFF4285F4))
+
+    // Badge: white disc bottom-right, mini checklist (dots + lines).
+    val badgeCenter = Offset(center.x + radius * 0.45f, center.y + radius * 0.45f)
+    val badgeR = radius * 0.34f
+    drawCircle(color = Color.White, radius = badgeR, center = badgeCenter)
+    drawCircle(
+        color = Color(0xFFDADCE0),
+        radius = badgeR,
+        center = badgeCenter,
+        style = Stroke(width = 1.dp.toPx()),
+    )
+    val badgeDots = listOf(Color(0xFFEA4335), Color(0xFF34A853), Color(0xFF4285F4))
+    for (i in 0..2) {
+        val dy = badgeCenter.y + (i - 1) * badgeR * 0.5f
+        drawCircle(
+            color = badgeDots[i],
+            radius = 1.6.dp.toPx(),
+            center = Offset(badgeCenter.x - badgeR * 0.45f, dy),
+        )
+        drawLine(
+            color = Color(0xFF5F6368),
+            start = Offset(badgeCenter.x - badgeR * 0.15f, dy),
+            end = Offset(badgeCenter.x + badgeR * 0.5f, dy),
+            strokeWidth = 1.4.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+    }
+
+    // Progress ring: starts at the top, sweeps clockwise by progress x 360 deg.
+    val sweep = 360f * progress
+    if (sweep > 0f) {
+        val ringR = radius + CONDUIT_RING_GAP.toPx() + CONDUIT_RING_WIDTH.toPx() / 2f
+        val ringTopLeft = Offset(center.x - ringR, center.y - ringR)
+        val ringSize = Size(ringR * 2f, ringR * 2f)
+        drawArc(
+            color = M3PrimaryPillBlue,
+            alpha = 0.20f,
+            startAngle = -90f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = ringTopLeft,
+            size = ringSize,
+            style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round),
+        )
+        drawArc(
+            color = M3PrimaryPillBlue,
+            startAngle = -90f,
+            sweepAngle = sweep,
+            useCenter = false,
+            topLeft = ringTopLeft,
+            size = ringSize,
+            style = Stroke(width = CONDUIT_RING_WIDTH.toPx(), cap = StrokeCap.Round),
+        )
+    }
+}
+
+/** Quadratic bezier point. */
+private fun quadBezierPoint(p0: Offset, p1: Offset, p2: Offset, t: Float): Offset {
     val u = 1f - t
     return Offset(
-        3f * u * u * (p1.x - p0.x) + 6f * u * t * (p2.x - p1.x) + 3f * t * t * (p3.x - p2.x),
-        3f * u * u * (p1.y - p0.y) + 6f * u * t * (p2.y - p1.y) + 3f * t * t * (p3.y - p2.y),
+        u * u * p0.x + 2f * u * t * p1.x + t * t * p2.x,
+        u * u * p0.y + 2f * u * t * p1.y + t * t * p2.y,
+    )
+}
+
+/** Quadratic bezier tangent (direction of travel). */
+private fun quadBezierTangent(p0: Offset, p1: Offset, p2: Offset, t: Float): Offset {
+    val u = 1f - t
+    return Offset(
+        2f * u * (p1.x - p0.x) + 2f * t * (p2.x - p1.x),
+        2f * u * (p1.y - p0.y) + 2f * t * (p2.y - p1.y),
     )
 }
 
 /** Path length by sampling (Compose has no PathMeasure). 64 samples is plenty. */
-private fun cubicBezierLength(p0: Offset, p1: Offset, p2: Offset, p3: Offset): Float {
+private fun quadBezierLength(p0: Offset, p1: Offset, p2: Offset): Float {
     var length = 0f
     var prev = p0
     for (i in 1..64) {
-        val pt = cubicBezierPoint(p0, p1, p2, p3, i / 64f)
+        val pt = quadBezierPoint(p0, p1, p2, i / 64f)
         length += (pt - prev).getDistance()
         prev = pt
     }
     return length
 }
 
-/** Sealed envelope glyph: white rounded body + blue flap chevron. */
+/**
+ * Flying envelope, to the reference screenshots: white 36x24 card with a
+ * V flap line, a coloured dot and a grey line — riding ON the arc,
+ * tangent-aligned, with a soft glow behind it.
+ */
 private fun DrawScope.drawConduitEnvelope(
     center: Offset,
     angleDeg: Float,
     alpha: Float,
-    body: Color,
-    flap: Color,
+    dot: Color,
 ) {
-    val w = 40.dp.toPx()
-    val h = 28.dp.toPx()
+    val w = CONDUIT_ENVELOPE_W.toPx()
+    val h = CONDUIT_ENVELOPE_H.toPx()
     rotate(angleDeg, center) {
+        // Soft glow behind the envelope.
+        drawCircle(
+            brush = Brush.radialGradient(
+                colors = listOf(
+                    Color.White.copy(alpha = 0.10f * alpha),
+                    Color.White.copy(alpha = 0f),
+                ),
+                center = center,
+                radius = 20.dp.toPx(),
+            ),
+            radius = 20.dp.toPx(),
+            center = center,
+        )
+        // Shadow.
         drawRoundRect(
-            color = body,
+            color = Color.Black,
+            alpha = 0.16f * alpha,
+            topLeft = Offset(center.x - w / 2f, center.y - h / 2f + 2.dp.toPx()),
+            size = Size(w, h),
+            cornerRadius = CornerRadius(4.dp.toPx()),
+        )
+        // Body.
+        drawRoundRect(
+            color = Color.White,
+            alpha = alpha,
             topLeft = Offset(center.x - w / 2f, center.y - h / 2f),
             size = Size(w, h),
-            cornerRadius = CornerRadius(6.dp.toPx()),
-            alpha = alpha,
+            cornerRadius = CornerRadius(4.dp.toPx()),
         )
+        // Flap V.
         val flapPath = Path().apply {
-            moveTo(center.x - w / 2f + 3.dp.toPx(), center.y - h / 2f + 4.dp.toPx())
-            lineTo(center.x, center.y + 2.dp.toPx())
-            lineTo(center.x + w / 2f - 3.dp.toPx(), center.y - h / 2f + 4.dp.toPx())
+            moveTo(center.x - w / 2f + 2.dp.toPx(), center.y - h / 2f + 2.dp.toPx())
+            lineTo(center.x, center.y - 1.dp.toPx())
+            lineTo(center.x + w / 2f - 2.dp.toPx(), center.y - h / 2f + 2.dp.toPx())
         }
         drawPath(
             flapPath,
-            color = flap,
-            style = Stroke(width = 2.5.dp.toPx()),
+            color = Color(0xFFDADCE0),
+            style = Stroke(width = 1.5.dp.toPx()),
+            alpha = alpha,
+        )
+        // Coloured dot + grey line.
+        drawCircle(
+            color = dot,
+            radius = 3.dp.toPx(),
+            center = Offset(center.x - w * 0.28f, center.y + 1.dp.toPx()),
+            alpha = alpha,
+        )
+        drawLine(
+            color = Color(0xFF9AA0A6),
+            start = Offset(center.x - w * 0.12f, center.y + 1.dp.toPx()),
+            end = Offset(center.x + w * 0.38f, center.y + 1.dp.toPx()),
+            strokeWidth = 2.5.dp.toPx(),
+            cap = StrokeCap.Round,
             alpha = alpha,
         )
     }
