@@ -3,7 +3,6 @@ package com.greninjaop.mailorganizer.data.auth
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
-import androidx.browser.customtabs.CustomTabsIntent
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.greninjaop.mailorganizer.data.local.AppDatabase
@@ -14,6 +13,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -51,8 +51,14 @@ class GoogleAuthRepositoryResultDeliveryTest {
             .allowMainThreadQueries()
             .build()
         val dispatchers = com.greninjaop.mailorganizer.core.AppDispatchers()
+        // Plain prefs: Robolectric has no AndroidKeyStore, and these
+        // tests only need pending-flow read/write + result delivery.
+        val plainPrefs = context.getSharedPreferences(
+            "oauth_delivery_test",
+            Context.MODE_PRIVATE,
+        )
         repo = GoogleAuthRepository(
-            tokenStorage = SecureTokenStorage(context),
+            tokenStorage = SecureTokenStorage(context, prefsOverride = plainPrefs),
             accountRepository = RoomAccountRepository(db.accountDao(), dispatchers),
             oauthClientId = "test-client-id",
         )
@@ -69,14 +75,17 @@ class GoogleAuthRepositoryResultDeliveryTest {
     )
 
     @Test
-    fun `createOAuthIntent returns a custom tab intent`() {
-        // 2026-10-17 fix for the Connect → Chrome loop: the sign-in
-        // page must open in a Chrome Custom Tab (trusted context —
-        // Chrome hands the custom-scheme return back to the app), not
-        // a plain ACTION_VIEW into full Chrome (where Chrome can refuse
-        // the return and strand the user in the browser).
+    fun `createOAuthIntent returns a plain browser intent`() {
+        // 2026-10-17 (1.0.33): Custom Tabs were reverted — on the user's
+        // phone the Custom Tab kept them in Chrome after consent. Plain
+        // ACTION_VIEW hands the custom-scheme redirect back reliably.
         val intent = repo.createOAuthIntent()
-        assertTrue(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION))
+        assertEquals(Intent.ACTION_VIEW, intent.action)
+        assertFalse(
+            "must not be a Custom Tab (EXTRA_SESSION)",
+            intent.hasExtra("android.support.customtabs.extra.SESSION") ||
+                intent.hasExtra("androidx.browser.customtabs.extra.SESSION"),
+        )
         val data = intent.data
         assertNotNull(data)
         assertEquals("https", data!!.scheme)

@@ -17,12 +17,15 @@ class SampleMailboxSeederTest {
     ) = Triple(SampleMailboxSeeder(accounts, mail, clock), accounts, mail)
 
     @Test
-    fun `seeds two fixture accounts and seven threads`() = runTest {
+    fun `seeds two fixture accounts and the demo inbox`() = runTest {
+        // 2026-10-13: demo inbox expanded (7 original + company threads)
+        // → 32 threads / 37 messages. Counts must track the seeder, not
+        // the pre-expansion fixture size.
         val (s, accounts, mail) = seeder()
         assertTrue(s.seedIfEmpty())
         assertEquals(2, accounts.observeAllForTest().size)
-        assertEquals(7, mail.threadCount())
-        assertEquals(11, mail.messageCount())
+        assertEquals(32, mail.threadCount())
+        assertEquals(37, mail.messageCount())
     }
 
     @Test
@@ -53,7 +56,7 @@ class SampleMailboxSeederTest {
         val (s, _, mail) = seeder()
         assertTrue(s.seedIfEmpty())
         assertFalse(s.seedIfEmpty())
-        assertEquals(7, mail.threadCount())
+        assertEquals(32, mail.threadCount())
     }
 
     @Test
@@ -91,13 +94,14 @@ class SampleMailboxSeederTest {
         val acct2 = mail.allMessages().filter {
             it.accountId == SampleMailboxSeeder.ACCT_PRIYA
         }
+        // Priya still owns only the original 2-message sprint thread.
         assertEquals(2, acct2.size)
         assertTrue(acct2.all { it.threadId.endsWith("thread-t7") })
-        // No cross-account leakage in the other direction either.
+        // No cross-account leakage: Alex owns every other demo thread.
         val acct1Threads = mail.allMessages()
             .filter { it.accountId == SampleMailboxSeeder.ACCT_ALEX }
             .map { it.threadId }.toSet()
-        assertEquals(6, acct1Threads.size)
+        assertEquals(31, acct1Threads.size)
     }
 
     @Test
@@ -122,7 +126,8 @@ class SampleMailboxSeederTest {
     fun `starred fixture exists for the starred destination`() = runTest {
         val (s, _, mail) = seeder()
         s.seedIfEmpty()
-        assertEquals(1, mail.allMessages().count { it.starred })
+        // Two starred demo messages (original fixture + one company thread).
+        assertEquals(2, mail.allMessages().count { it.starred })
     }
 
     // Small helper: collect the accounts flow.

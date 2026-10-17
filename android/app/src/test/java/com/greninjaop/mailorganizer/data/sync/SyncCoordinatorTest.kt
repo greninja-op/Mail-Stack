@@ -496,20 +496,21 @@ class SyncCoordinatorTest {
     }
 
     @Test
-    fun `progress never pins at 100 percent when gmail estimate underestimates`() = runTest {
-        // 2026-10-17 fix: Gmail's resultSizeEstimate can UNDERestimate
-        // (here 5, but 25 messages actually arrive). The old code kept
-        // totalEstimate at 5, so processed/total coerced to 1.0 = 100%
-        // while mail was still arriving. The coordinator must revise
-        // the estimate upward, so every Running emission keeps
-        // processed < totalEstimate (the UI additionally caps the
-        // displayed fraction at 99% while Running).
+    fun `progress uses fixed mailbox total so the bar never goes backwards`() = runTest {
+        // 2026-10-17 (later): revising resultSizeEstimate upward mid-sync
+        // made the bar fall backwards (81% → 60%). The coordinator now
+        // fetches messagesTotal ONCE via mailboxTotal and never changes
+        // it. The UI still caps the displayed fraction at 99% while
+        // Running so a stale page estimate cannot claim "done".
         seedAccount("acc-a")
         val page1 = (1..10).map { fakeRemoteMessage("m-$it", "t-$it") }
         val page2 = (11..20).map { fakeRemoteMessage("m-$it", "t-$it") }
         val page3 = (21..25).map { fakeRemoteMessage("m-$it", "t-$it") }
+        fake.scriptMailboxTotal("acc-a", 25)
         fake.scriptPages(
             "acc-a",
+            // Deliberately stale page estimates — must be ignored once
+            // mailboxTotal is known.
             MessagePage(page1, "tok-2", resultSizeEstimate = 5),
             MessagePage(page2, "tok-3", resultSizeEstimate = 5),
             MessagePage(page3, null, resultSizeEstimate = 5),
@@ -526,15 +527,57 @@ class SyncCoordinatorTest {
         assertEquals(25, (outcome as SyncOutcome.Success).summary.messagesProcessed)
         val running = seen.filterIsInstance<SyncProgress.Running>()
         assertTrue(running.isNotEmpty())
-        for (progress in running) {
-            val total = progress.totalEstimate
-            if (total != null) {
-                assertTrue(
-                    "processed=${progress.messagesProcessed} must stay below " +
-                        "totalEstimate=$total while Running (stage=${progress.stage})",
-                    progress.messagesProcessed < total,
-                )
-            }
+        // CONNECTING fires before mailboxTotal is read (total = null).
+        // Once the fixed total is known, every later Running emission
+        // keeps it at 25 — never revised from the stale page estimate.
+        val withTotal = running.filter { it.totalEstimate != null }
+        assertTrue(withTotal.isNotEmpty())
+        assertTrue(withTotal.all { it.totalEstimate == 25 })
+        // Totals must be monotonic: never shrink across Running emissions.
+        val totals = withTotal.map { it.totalEstimate!! }
+        assertEquals(totals, totals.sorted())
+        // Mid-fetch (FETCHING/SAVING) processed stays below the fixed
+        // total; FINALIZING may equal it (UI still caps Running at 99%).
+        for (progress in withTotal.filter {
+            it.stage == SyncStage.FETCHING || it.stage == SyncStage.SAVING
+        }) {
+            assertTrue(
+                "processed=${progress.messagesProcessed} must stay below " +
+                    "totalEstimate=${progress.totalEstimate} during " +
+                    "${progress.stage}",
+                progress.messagesProcessed < progress.totalEstimate!!,
+            )
         }
     }
+
+    @Test
+    fun `stale page estimate is not revised upward mid sync`() = runTest {
+        // When mailboxTotal is unavailable, the first page's estimate is
+        // used once and NEVER revised — even if processed passes it.
+        // Revising upward mid-sync was the backwards-bar bug.
+        seedAccount("acc-a")
+        val page1 = (1..10).map { fakeRemoteMessage("m-$it", "t-$it") }
+        val page2 = (11..20).map { fakeRemoteMessage("m-$it", "t-$it") }
+        fake.scriptPages(
+            "acc-a",
+            MessagePage(page1, "tok-2", resultSizeEstimate = 5),
+            MessagePage(page2, null, resultSizeEstimate = 5),
+        )
+        fake.scriptHistoryCursor("acc-a", "h-100")
+        fake.scriptSpamPage(MessagePage(emptyList(), null))
+
+        val c = coordinator()
+        val seen = mutableListOf<SyncProgress>()
+        val collectJob = launch { c.progress.collect { seen.add(it) } }
+        val outcome = c.syncNow(accA)
+        collectJob.cancel()
+        assertTrue(outcome is SyncOutcome.Success)
+        assertEquals(20, (outcome as SyncOutcome.Success).summary.messagesProcessed)
+        val runningWithTotal = seen.filterIsInstance<SyncProgress.Running>()
+            .filter { it.totalEstimate != null }
+        assertTrue(runningWithTotal.isNotEmpty())
+        // Fixed at the first-page estimate for the whole run.
+        assertTrue(runningWithTotal.all { it.totalEstimate == 5 })
+    }
 }
+
