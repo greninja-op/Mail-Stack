@@ -35,8 +35,13 @@ sealed interface MoError {
     /** Authentication/authorization failure (expired token, revoked grant, ...). */
     data class Authentication(val message: String) : MoError
 
-    /** OS permission denied by the user or policy. */
-    data class PermissionDenied(val permission: String) : MoError
+    /**
+     * OS permission denied by the user or policy. [detail] carries the
+     * remote API's reason when the denial came from Gmail (e.g.
+     * insufficientPermissions / accessNotConfigured) so the UI can show
+     * WHY instead of a generic "permission denied".
+     */
+    data class PermissionDenied(val permission: String, val detail: String? = null) : MoError
 
     /** Remote API returned an error payload. */
     data class Api(val code: Int?, val message: String) : MoError

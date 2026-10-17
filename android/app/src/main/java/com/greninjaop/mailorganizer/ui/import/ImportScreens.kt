@@ -51,6 +51,7 @@ import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,8 +77,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.greninjaop.mailorganizer.R
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.local.MessageRecord
+import com.greninjaop.mailorganizer.ui.companies.CompanyLogo
 import com.greninjaop.mailorganizer.ui.mail.MailFormatting
 import kotlinx.coroutines.delay
 import kotlin.math.atan2
@@ -636,24 +640,45 @@ private fun TranspiringMailRowView(
             )
         }
         Spacer(Modifier.width(8.dp))
-        // Sender avatar (48dp, brand-style palette).
-        val (avatarBg, avatarFg) = remember(item.fromAddress) {
-            senderAvatarColors(item.fromAddress)
+        // Sender avatar (48dp): the COMPANY logo, same pipeline as the
+        // Mail list rows (bundled -> ICONS-ASSETS -> favicon -> letter
+        // fallback). 2026-10-17: the old letter-only avatar hid the
+        // company logos the user expects (Dribbble, ElevenLabs, ...).
+        // CompanyLogo falls back to the letter avatar when no logo
+        // resolves, so unbranded senders look exactly as before.
+        val senderDomain = remember(item.fromAddress, item.fromName) {
+            CompanyDetector.detect(
+                CompanyDetectionInput(
+                    fromAddress = item.fromAddress,
+                    fromName = item.fromName,
+                ),
+            )?.normalizedDomain
         }
-        Box(
-            modifier = Modifier
-                .size(48.dp)
-                .clip(CircleShape)
-                .background(avatarBg),
-            contentAlignment = Alignment.Center,
-        ) {
-            Text(
-                text = MailFormatting.avatarInitial(item.fromName, item.fromAddress),
-                color = avatarFg,
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                maxLines = 1,
+        if (senderDomain != null) {
+            CompanyLogo(
+                domain = senderDomain,
+                name = MailFormatting.senderDisplay(item.fromName, item.fromAddress),
+                size = 48.dp,
             )
+        } else {
+            val (avatarBg, avatarFg) = remember(item.fromAddress) {
+                senderAvatarColors(item.fromAddress)
+            }
+            Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .clip(CircleShape)
+                    .background(avatarBg),
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = MailFormatting.avatarInitial(item.fromName, item.fromAddress),
+                    color = avatarFg,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    maxLines = 1,
+                )
+            }
         }
         Spacer(Modifier.width(12.dp))
         Column(modifier = Modifier.weight(1f)) {
@@ -743,17 +768,18 @@ private fun senderAvatarColors(key: String): Pair<Color, Color> {
  *   both nodes.
  * - Progress RING around the Mailstack node: 4dp #9CCAFF arc starting at
  *   the top, sweeping clockwise by progress x 360 deg.
- * - Mailstack node: the reference's illustration (white envelope + dots +
- *   list badge on a pale blue/green disc), NOT the launcher icon.
+ * - Mailstack node: the REAL app logo (user-supplied PNG, 2026-10-17),
+ *   NOT the old Canvas illustration.
  * - Envelopes: white 36x24 cards with a coloured dot (red/green/blue,
  *   cycled by spawn id) + a grey line, tangent-aligned, spawned from
  *   REAL progress (one per ~8 imported messages, the same honesty rule
  *   as the old flying-mail animation) — never on a timer.
  *
- * Logos: the Gmail "M" ([R.drawable.ic_gmail_logo], vector traced from the
- * official icon and pixel-verified) in a white circle on the left, 56dp,
- * vertically centred, exactly at the arc start. The Mailstack node is the
- * same 56dp circle, vertically centred, exactly at the arc end.
+ * Logos: the Gmail "M" ([R.drawable.ic_gmail_logo], user-supplied PNG
+ * with the real gradient, 2026-10-17 — the old flat vector is gone) in
+ * a white circle on the left, 56dp, vertically centred, exactly at the
+ * arc start. The Mailstack node is the same 56dp circle, vertically
+ * centred, exactly at the arc end.
  */
 @Composable
 private fun GmailToMailstackFluidConduitCanvas(
@@ -769,9 +795,31 @@ private fun GmailToMailstackFluidConduitCanvas(
     LaunchedEffect(processed) {
         val delta = (processed - lastProcessed).coerceAtLeast(0)
         lastProcessed = processed
-        if (delta > 0 || envelopes.isEmpty()) {
-            val count = if (delta > 0) (delta / ENVELOPE_PER_MESSAGES).coerceIn(1, 6) else 2
+        if (delta > 0) {
+            val count = (delta / ENVELOPE_PER_MESSAGES).coerceIn(1, 6)
             repeat(count) { i ->
+                spawnSeed++
+                envelopes.add(
+                    ConduitEnvelope(
+                        id = spawnSeed,
+                        birthNanos = System.nanoTime() + i * 120_000_000L,
+                    ),
+                )
+            }
+        }
+    }
+
+    // Re-seed: keep the conduit alive (reference: "the conduit is never
+    // dead"). When every envelope has landed and the import is still
+    // running, two seed envelopes fly so the arc is never empty between
+    // real progress batches (the old code only seeded on a progress
+    // change, so a slow batch left the arc bare — the "no flying mails"
+    // the user reported). Seeds are only the "alive" indicator; real
+    // envelopes still come from progress deltas above.
+    val currentProgress by rememberUpdatedState(progress)
+    LaunchedEffect(envelopes.size) {
+        if (envelopes.isEmpty() && (currentProgress ?: 0f) < 1f) {
+            repeat(2) { i ->
                 spawnSeed++
                 envelopes.add(
                     ConduitEnvelope(
@@ -798,8 +846,10 @@ private fun GmailToMailstackFluidConduitCanvas(
             )
         }
         // Gmail logo, left — white circle, M cropped with even padding.
-        // The Mailstack node (illustration + progress ring) is drawn
-        // inside the Canvas, at the arc end, so there is no Image here.
+        // Mailstack logo, right — the REAL app logo (user-supplied,
+        // 2026-10-17), circle-clipped; the progress ring is drawn
+        // inside the Canvas around it, so there is no Image here for
+        // the ring.
         Box(
             modifier = Modifier
                 .align(Alignment.CenterStart)
@@ -814,6 +864,24 @@ private fun GmailToMailstackFluidConduitCanvas(
                 contentDescription = "Gmail logo",
                 contentScale = ContentScale.Fit,
                 modifier = Modifier.size(40.dp, 30.dp),
+            )
+        }
+        Box(
+            modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .padding(end = CONDUIT_LOGO_INSET)
+                .size(CONDUIT_LOGO_SIZE)
+                .clip(CircleShape),
+            contentAlignment = Alignment.Center,
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_mailstack_logo),
+                contentDescription = "Mailstack logo",
+                // The logo file is a square with the circular mark
+                // inscribed and black corners; Crop fills the circle
+                // with the mark and pushes the corners out.
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize(),
             )
         }
     }
@@ -920,8 +988,8 @@ private fun DrawScope.drawConduitScene(
         )
     }
 
-    // Mailstack node: illustration + progress ring.
-    drawMailstackNode(msCenter, logoR, progressClamped)
+    // Mailstack node: progress ring only (the logo is an Image above).
+    drawMailstackProgressRing(msCenter, logoR, progressClamped)
 
     // Envelopes in flight along the same arc.
     val alive = envelopes.filter { env ->
@@ -966,105 +1034,14 @@ private fun DrawScope.drawHalo(center: Offset, radius: Float, color: Color, peak
 }
 
 /**
- * The Mailstack node, to the reference screenshots: the illustration —
- * white envelope (blue flap, red + green dots, grey text lines, blue
- * "send" triangle) + a white checklist badge — on a pale diagonal disc
- * (blue bottom-left -> mint top-right) — plus the progress ring: a 4dp
- * #9CCAFF arc starting at the top, sweeping clockwise by
- * progress x 360 deg.
+ * The Mailstack progress ring (2026-10-17): the node itself is now the
+ * REAL app logo (an Image composable in the conduit, user-supplied), so
+ * the Canvas draws ONLY the ring — a 4dp #9CCAFF arc starting at the
+ * top, sweeping clockwise by progress x 360 deg. The old Canvas-drawn
+ * illustration (envelope + badge) is gone; the user asked for the real
+ * logo, not the illustration.
  */
-private fun DrawScope.drawMailstackNode(center: Offset, radius: Float, progress: Float) {
-    // Disc: pale diagonal gradient.
-    drawCircle(
-        brush = Brush.linearGradient(
-            colors = listOf(Color(0xFFD9EAF6), Color(0xFFDDEBD9)),
-            start = Offset(center.x - radius, center.y + radius),
-            end = Offset(center.x + radius, center.y - radius),
-        ),
-        radius = radius,
-        center = center,
-    )
-
-    // Envelope: white card, slightly left of centre.
-    val ew = 34.dp.toPx()
-    val eh = 24.dp.toPx()
-    val ex = center.x - ew / 2f - 2.dp.toPx()
-    val ey = center.y - eh / 2f + 1.dp.toPx()
-    drawRoundRect(
-        color = Color.White,
-        topLeft = Offset(ex, ey),
-        size = Size(ew, eh),
-        cornerRadius = CornerRadius(3.dp.toPx()),
-    )
-    // Flap: blue triangle at the envelope's top.
-    val flapPath = Path().apply {
-        moveTo(ex, ey)
-        lineTo(ex + ew, ey)
-        lineTo(ex + ew / 2f, ey + eh * 0.38f)
-        close()
-    }
-    drawPath(flapPath, color = Color(0xFF4285F4))
-    // Red + green dots, grey text lines.
-    drawCircle(
-        color = Color(0xFFEA4335),
-        radius = 2.5.dp.toPx(),
-        center = Offset(ex + ew * 0.16f, ey + eh * 0.58f),
-    )
-    drawCircle(
-        color = Color(0xFF34A853),
-        radius = 2.5.dp.toPx(),
-        center = Offset(ex + ew * 0.16f, ey + eh * 0.78f),
-    )
-    drawLine(
-        color = Color(0xFF9AA0A6),
-        start = Offset(ex + ew * 0.32f, ey + eh * 0.58f),
-        end = Offset(ex + ew * 0.84f, ey + eh * 0.58f),
-        strokeWidth = 2.dp.toPx(),
-        cap = StrokeCap.Round,
-    )
-    drawLine(
-        color = Color(0xFF9AA0A6),
-        start = Offset(ex + ew * 0.32f, ey + eh * 0.78f),
-        end = Offset(ex + ew * 0.84f, ey + eh * 0.78f),
-        strokeWidth = 2.dp.toPx(),
-        cap = StrokeCap.Round,
-    )
-    // Blue "send" triangle on the envelope's left edge.
-    val arrowPath = Path().apply {
-        moveTo(ex - 3.dp.toPx(), ey + eh * 0.5f)
-        lineTo(ex + 4.dp.toPx(), ey + eh * 0.32f)
-        lineTo(ex + 4.dp.toPx(), ey + eh * 0.68f)
-        close()
-    }
-    drawPath(arrowPath, color = Color(0xFF4285F4))
-
-    // Badge: white disc bottom-right, mini checklist (dots + lines).
-    val badgeCenter = Offset(center.x + radius * 0.45f, center.y + radius * 0.45f)
-    val badgeR = radius * 0.34f
-    drawCircle(color = Color.White, radius = badgeR, center = badgeCenter)
-    drawCircle(
-        color = Color(0xFFDADCE0),
-        radius = badgeR,
-        center = badgeCenter,
-        style = Stroke(width = 1.dp.toPx()),
-    )
-    val badgeDots = listOf(Color(0xFFEA4335), Color(0xFF34A853), Color(0xFF4285F4))
-    for (i in 0..2) {
-        val dy = badgeCenter.y + (i - 1) * badgeR * 0.5f
-        drawCircle(
-            color = badgeDots[i],
-            radius = 1.6.dp.toPx(),
-            center = Offset(badgeCenter.x - badgeR * 0.45f, dy),
-        )
-        drawLine(
-            color = Color(0xFF5F6368),
-            start = Offset(badgeCenter.x - badgeR * 0.15f, dy),
-            end = Offset(badgeCenter.x + badgeR * 0.5f, dy),
-            strokeWidth = 1.4.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
-    }
-
+private fun DrawScope.drawMailstackProgressRing(center: Offset, radius: Float, progress: Float) {
     // Progress ring: starts at the top, sweeps clockwise by progress x 360 deg.
     val sweep = 360f * progress
     if (sweep > 0f) {

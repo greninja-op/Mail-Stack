@@ -83,8 +83,14 @@ sealed class SyncApiException(message: String, cause: Throwable? = null) :
     /** 401/invalid_grant — NOT retried; user must reconnect (Phase 3). */
     class AuthExpired : SyncApiException("Gmail authorization expired")
 
-    /** 403 insufficient permissions — NOT retried. */
-    class PermissionDenied : SyncApiException("Gmail permission denied")
+    /**
+     * 403 insufficient permissions — NOT retried. [detail] carries the
+     * Gmail API's reason/message (e.g. insufficientPermissions,
+     * accessNotConfigured) so the UI can tell the user WHY instead of
+     * the opaque "permission wasn't granted".
+     */
+    class PermissionDenied(val detail: String? = null) :
+        SyncApiException("Gmail permission denied${detail?.let { ": $it" } ?: ""}")
 
     /** 400 malformed request — NOT retried; a bug, not a blip. */
     class InvalidRequest(message: String) : SyncApiException(message)
@@ -134,6 +140,18 @@ interface GmailSyncApi {
 
     /** Current server history id, used to seed incremental sync after initial sync. */
     suspend fun latestHistoryCursor(accountId: AccountId): String
+
+    /**
+     * Total messages in the mailbox (Gmail profile `messagesTotal`), for a
+     * FIXED progress denominator (2026-10-17). The list API's
+     * `resultSizeEstimate` is approximate and the old code revised the total
+     * upward mid-sync, which made the progress bar fall BACKWARDS (e.g.
+     * 81% -> 60%) while mail was still arriving. A fixed total fetched
+     * once before the sync starts makes progress monotonic: processed only
+     * grows, the denominator never changes. Returns null when unavailable
+     * (caller falls back to the first page's estimate).
+     */
+    suspend fun mailboxTotal(accountId: AccountId): Int?
 }
 
 /**
@@ -166,4 +184,6 @@ class DeferredGmailSyncApi : GmailSyncApi {
     ): MessagePage = fail()
 
     override suspend fun latestHistoryCursor(accountId: AccountId): String = fail()
+
+    override suspend fun mailboxTotal(accountId: AccountId): Int? = fail()
 }

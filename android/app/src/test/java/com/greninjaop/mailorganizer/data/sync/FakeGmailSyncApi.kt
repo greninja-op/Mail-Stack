@@ -121,6 +121,20 @@ class FakeGmailSyncApi : GmailSyncApi {
     override suspend fun latestHistoryCursor(accountId: AccountId): String =
         historyCursor[accountId.value]
             ?: throw SyncApiException.InvalidRequest("no history cursor for ${accountId.value}")
+
+    /**
+     * Mailbox total fake (2026-10-17): scripted per account; null (unset)
+     * means "unavailable", so the coordinator falls back to the first
+     * page's estimate — the same fallback the real client uses.
+     */
+    var mailboxTotals = ConcurrentHashMap<String, Int>()
+
+    fun scriptMailboxTotal(accountId: String, total: Int) {
+        mailboxTotals[accountId] = total
+    }
+
+    override suspend fun mailboxTotal(accountId: AccountId): Int? =
+        mailboxTotals[accountId.value]
 }
 
 /** Builds a synthetic remote message for tests. */

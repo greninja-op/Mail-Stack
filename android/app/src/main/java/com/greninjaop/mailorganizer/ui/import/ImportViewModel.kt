@@ -197,7 +197,12 @@ class ImportViewModel(
         // the user stays in the Import flow.
         is MoError.Authentication -> "Sign-in didn't stick. Tap Try again to retry the import."
         is MoError.RateLimited -> "Gmail is rate-limiting right now. Please try again in a bit."
-        is MoError.PermissionDenied -> "Gmail permission wasn't granted. Tap Try again to retry the import."
+        is MoError.PermissionDenied ->
+            // Show Gmail's own reason (e.g. insufficientPermissions /
+            // accessNotConfigured) — retry can never fix a grant/config
+            // refusal, and the old generic text sent the user in circles.
+            error.detail?.let { "$it Tap Try again to retry the import." }
+                ?: "Gmail permission wasn't granted. Tap Try again to retry the import."
         is MoError.Api -> "Gmail API error${error.code?.let { " ($it)" } ?: ""}. Please try again."
         is MoError.Database -> "Import failed (${error.cause?.javaClass?.simpleName ?: "storage error"}). Please try again."
         is MoError.Unexpected -> "Import failed (${error.cause?.javaClass?.simpleName ?: "unexpected error"}). Please try again."

@@ -181,6 +181,25 @@ class HttpGmailSyncApi(
             )
         }
 
+    /**
+     * Mailbox total from the Gmail profile (same GET as
+     * [latestHistoryCursor]). Best-effort: null on any failure — the caller
+     * falls back to the first page's estimate. Never throws for a missing
+     * field (a profile without messagesTotal is not a sync failure).
+     */
+    override suspend fun mailboxTotal(accountId: AccountId): Int? =
+        withContext(Dispatchers.IO) {
+            try {
+                val token = requireToken(accountId)
+                val json = get(token, "$apiBase/gmail/v1/users/me/profile", emptyMap())
+                    ?: return@withContext null
+                json.long("messagesTotal")?.toInt()
+            } catch (t: Throwable) {
+                MoLogger.w("HttpGmailSyncApi", "mailboxTotal unavailable (${t.javaClass.simpleName})")
+                null
+            }
+        }
+
     private suspend fun requireToken(accountId: AccountId): String =
         authRepository.getValidAccessToken(accountId)
             ?: throw SyncApiException.NotConfigured()
@@ -244,8 +263,14 @@ class HttpGmailSyncApi(
         url: String,
     ): Nothing {
         val trimmed = body.take(500)
-        val reason = JsonParser.parse(trimmed)?.obj("error")?.string("reason").orEmpty()
-        val message = JsonParser.parse(trimmed)?.obj("error")?.string("message").orEmpty()
+        val errorObj = JsonParser.parse(trimmed)?.obj("error")
+        // Gmail's reason lives in error.errors[0].reason, NOT error.reason
+        // (2026-10-17 fix: the old code read error.reason, which is always
+        // absent, so every 403 — including rate limits — was misclassified
+        // as PermissionDenied and the real reason was lost).
+        val reason = errorObj?.array("errors")?.firstOrNull()?.string("reason").orEmpty()
+        val message = errorObj?.string("message").orEmpty()
+            .ifEmpty { errorObj?.array("errors")?.firstOrNull()?.string("message").orEmpty() }
         MoLogger.w(TAG, "Gmail API HTTP $code reason=$reason url=${url.substringBefore("?")}")
         throw when {
             code == 401 -> SyncApiException.AuthExpired()
@@ -256,9 +281,33 @@ class HttpGmailSyncApi(
                 SyncApiException.RateLimited(null)
             code == 403 && reason.contains("UserRateLimitExceeded", ignoreCase = true) ->
                 SyncApiException.RateLimited(null)
-            code == 403 -> SyncApiException.PermissionDenied()
+            code == 403 -> SyncApiException.PermissionDenied(
+                detail = permissionDeniedDetail(reason, message),
+            )
             code in 500..599 -> SyncApiException.ServerError(code)
             else -> SyncApiException.InvalidRequest("Gmail API HTTP $code".take(120))
+        }
+    }
+
+    /**
+     * Human-readable 403 detail, so the Import error tells the user WHY
+     * Gmail refused instead of the opaque "permission wasn't granted"
+     * (which retry can never fix). The reason decides the remedy:
+     * insufficientPermissions = the grant lacks gmail.readonly (re-grant);
+     * accessNotConfigured = the Gmail API isn't enabled for the project
+     * (Cloud Console); anything else = Gmail's own message.
+     */
+    private fun permissionDeniedDetail(reason: String, message: String): String {
+        val cleanMessage = message.take(140).ifEmpty { "Gmail refused the request" }
+        return when {
+            reason.equals("insufficientPermissions", ignoreCase = true) ->
+                "Gmail says the sign-in didn't grant gmail.readonly " +
+                    "(reason: insufficientPermissions). Sign in again to grant it."
+            reason.equals("accessNotConfigured", ignoreCase = true) ->
+                "Gmail API is not enabled for this project " +
+                    "(reason: accessNotConfigured). Enable the Gmail API in Google Cloud Console."
+            reason.isNotEmpty() -> "$cleanMessage (reason: $reason)"
+            else -> cleanMessage
         }
     }
 

@@ -215,10 +215,25 @@ class SyncCoordinator(
         var processed = 0
         var inserted = 0
         var updated = 0
-        // Honest progress total (2026-10-12): captured from the first page's
-        // resultSizeEstimate, bounded by maxMessagesPerRun since a run stops
-        // there and resumes next time.
+        // FIXED progress total (2026-10-17): fetched ONCE from the Gmail
+        // profile (`messagesTotal`) before the first page, then NEVER
+        // changed. The old code set the total from the first page's
+        // `resultSizeEstimate` and revised it UPWARD mid-sync
+        // (processed + pageSize) whenever processed passed it — which made
+        // the progress bar fall BACKWARDS (81% -> 60% -> up) while mail
+        // was still arriving. A fixed denominator means progress is
+        // monotonic: processed only grows, the total never moves. If the
+        // profile total is unavailable, fall back to the first page's
+        // estimate — and STILL never revise it (a stale 99% cap in the
+        // UI is honest; a backwards bar is not).
         var totalEstimate: Int? = null
+        try {
+            totalEstimate = api.mailboxTotal(accountId)
+                ?.let { minOf(it, config.maxMessagesPerRun) }
+        } catch (t: Throwable) {
+            MoLogger.w(TAG, "mailboxTotal failed (${t.javaClass.simpleName}); using page estimate")
+            totalEstimate = null
+        }
         do {
             _progress.value = SyncProgress.Running(SyncStage.FETCHING, processed, totalEstimate)
             val page = retryPolicy.withRetries {
@@ -233,15 +248,9 @@ class SyncCoordinator(
             inserted += pageInserted
             updated += pageUpdated
             processed += page.messages.size
-            // Gmail's resultSizeEstimate is approximate and can
-            // UNDERestimate: when processed passes it, revise the
-            // estimate upward (assume at least one more page) so the
-            // displayed fraction keeps moving and never pins at 100%
-            // while mail is still arriving (2026-10-17 fix — the bar
-            // sat at 100% while the sync fetched 600+ mails).
-            if (totalEstimate != null && processed >= totalEstimate) {
-                totalEstimate = processed + config.pageSize
-            }
+            // NO upward revision here (see the fixed-total comment above):
+            // processed may pass a stale estimate; the UI caps the
+            // fraction at 99% while Running, and Done is 100%.
             pageToken = page.nextPageToken
             // Cursor advances only after the page is safely committed.
             syncState.updateCursor(accountId.value, SyncCursor.Page(pageToken).encode())
@@ -402,7 +411,7 @@ class SyncCoordinator(
         is SyncApiException.AuthExpired ->
             MoError.Authentication("Gmail authorization has expired. Reconnect your account.")
         is SyncApiException.PermissionDenied ->
-            MoError.PermissionDenied("gmail")
+            MoError.PermissionDenied("gmail", detail)
         is SyncApiException.InvalidRequest ->
             MoError.Api(null, "Invalid sync request.")
         is SyncApiException.HistoryInvalid ->

@@ -58,6 +58,7 @@ class IntegrationAdaptersTest {
             pageSize: Int,
         ): MessagePage = throw UnsupportedOperationException()
         override suspend fun latestHistoryCursor(accountId: AccountId): String = "cursor-1"
+        override suspend fun mailboxTotal(accountId: AccountId): Int? = null
     }
 
     @Test
