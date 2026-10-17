@@ -58,6 +58,7 @@ import com.greninjaop.mailorganizer.ui.navigation.AppDestinations
 import androidx.compose.foundation.layout.WindowInsets
 import com.greninjaop.mailorganizer.ui.theme.MoCard
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+import com.greninjaop.mailorganizer.ui.theme.isMoDarkTheme
 
 /** Factory for the Phase 11 Categories destination. */
 class CategoriesViewModelFactory(
@@ -208,17 +209,24 @@ private fun CategoryGroupList(
                     }
                 },
                 leadingContent = {
+                    // Semantic accent (2026-10-17): the circle is tinted
+                    // with the group's accent and the icon is the accent
+                    // itself — warning amber, shopping orange, bell sky
+                    // blue, work royal blue, mail brand violet. The icon
+                    // + label still carry the meaning; color only
+                    // reinforces it.
+                    val accent = if (isMoDarkTheme()) group.accentDark else group.accentLight
                     Box(
                         modifier = Modifier
                             .size(MoSpacing.xxxl)
                             .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                            .background(accent.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
                         Icon(
                             imageVector = group.icon,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            tint = accent,
                         )
                     }
                 },
