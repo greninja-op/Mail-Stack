@@ -6,3 +6,11 @@ shared/.gradle/
 iOS/*.xcodeproj/
 iOS/*.xcworkspace/
 iOS/DerivedData/
+
+# Android tablet local
+AndroidTablet/local.properties
+AndroidTablet/.gradle/
+AndroidTablet/build/
+AndroidTablet/app/build/
+AndroidTablet/.idea/
+AndroidTablet/**/build/
