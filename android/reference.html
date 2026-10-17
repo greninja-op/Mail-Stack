@@ -1341,6 +1341,135 @@
   </table>
 </section>
 
+<section id='messagereveal'>
+  <h2>12 &nbsp; Message Reveal — Expanding a Mail, Smoothly</h2>
+  <p>Tap a message in a thread and its body <b>reveals</b> — it does not pop. The card grows
+  downwards from the header over <b>350 ms</b> while the body fades in over the first
+  <b>200 ms</b>, and the chevron rotates <b>0° → 180°</b> over <b>300 ms</b> on the same
+  easing. Collapse is a touch faster: height back over <b>300 ms</b>, content fading out
+  over <b>150 ms</b> so it never looks squashed. Before this, the body appeared with a bare
+  conditional — an instant flash, no motion at all. The reveal is a Material 3 standard
+  expand: height + fade, <b>FastOutSlowIn</b> easing (fast start, gentle settle).
+  <b>Try it:</b> tap the message header below — open, close, open again. Watch the chevron:
+  one arrow, rotating, never swapping.</p>
+
+  <style>
+    .mr-stage{max-width:560px;margin:14px auto;background:#12100F;border-radius:16px;padding:14px}
+    .mr-card{background:#211E1C;border-radius:12px;overflow:hidden}
+    .mr-head{display:flex;align-items:center;gap:10px;padding:12px 14px;cursor:pointer;user-select:none}
+    .mr-ava{width:40px;height:40px;border-radius:50%;background:#fff;color:#C00000;font-weight:700;display:flex;align-items:center;justify-content:center;font-size:20px;flex:none}
+    .mr-meta{flex:1;min-width:0}
+    .mr-meta b{color:#fff;font-size:15px;display:block}
+    .mr-meta span{color:#B9B3C9;font-size:13px}
+    .mr-time{color:#B9B3C9;font-size:12px}
+    .mr-chev{color:#fff;font-size:18px;transition:transform 300ms cubic-bezier(0.4,0,0.2,1);display:inline-block}
+    .mr-open .mr-chev{transform:rotate(180deg)}
+    .mr-body-wrap{display:grid;grid-template-rows:0fr;transition:grid-template-rows 300ms cubic-bezier(0.4,0,0.2,1)}
+    .mr-open .mr-body-wrap{grid-template-rows:1fr;transition:grid-template-rows 350ms cubic-bezier(0.4,0,0.2,1)}
+    .mr-body-inner{overflow:hidden}
+    .mr-body{opacity:0;transition:opacity 150ms;color:#E8E3EC;font-size:15px;line-height:1.55;padding:0 14px 14px}
+    .mr-open .mr-body{opacity:1;transition:opacity 200ms}
+    .mr-snippet{color:#B9B3C9;font-size:13px;padding:0 14px 12px}
+    .mr-open .mr-snippet{display:none}
+  </style>
+  <div class='mr-stage'>
+    <div class='mr-card' id='mrCard'>
+      <div class='mr-head' id='mrHead'>
+        <span class='mr-ava'>A</span>
+        <div class='mr-meta'><b>Adobe</b><span>to me ▾</span></div>
+        <span class='mr-time'>1h</span>
+        <span class='mr-chev'>∨</span>
+      </div>
+      <div class='mr-snippet'>Your All Apps plan renews on 20 October. Here is w…</div>
+      <div class='mr-body-wrap'><div class='mr-body-inner'><div class='mr-body'>
+        Hi Alex,<br><br>
+        Your Adobe Creative Cloud All Apps plan renews on 20 October 2026.<br><br>
+        Plan: Creative Cloud All Apps (100 GB storage)<br>
+        Amount: Rs. 4,230.30 per month<br>
+        Payment method: Visa ending in 4242<br><br>
+        You will keep access to Photoshop, Illustrator, Premiere Pro, Acrobat Pro and 20+ other apps.
+      </div></div></div>
+    </div>
+  </div>
+  <script>
+    (function(){var card=document.getElementById('mrCard');var head=document.getElementById('mrHead');if(card&&head){head.addEventListener('click',function(){card.classList.toggle('mr-open');});}})();
+  </script>
+  <p class='demo-caption'>Tap the header — the card grows down over 350 ms while the body fades in over 200 ms, and the chevron rotates 180° over 300 ms. Tap again — it shrinks back over 300 ms, the text fading out in 150 ms. No flash, no snap, no icon swap.</p>
+
+  <h3>What you are looking at — annotated</h3>
+  <div class='fig'>
+    <svg viewBox='0 0 640 340' role='img' aria-label='Annotated diagram of the message reveal animation'>
+      <defs><marker id='ah12' markerWidth='8' markerHeight='8' refX='6' refY='3' orient='auto'><path d='M0,0 L7,3 L0,6 Z' fill='#C00000'/></marker></defs>
+      <!-- collapsed card -->
+      <rect x='20' y='20' width='280' height='64' rx='12' fill='#211E1C'/>
+      <circle cx='52' cy='52' r='16' fill='#fff'/><text x='52' y='59' font-size='16' fill='#C00000' text-anchor='middle' font-weight='700'>A</text>
+      <text x='80' y='48' font-size='14' fill='#fff' font-weight='700'>Adobe</text>
+      <text x='80' y='66' font-size='11' fill='#B9B3C9'>to me ▾</text>
+      <text x='272' y='52' font-size='16' fill='#fff' text-anchor='middle'>∨</text>
+      <text x='320' y='40' font-family='Caveat' font-size='23' fill='#222'>collapsed: header only</text>
+      <text x='320' y='64' font-family='Caveat' font-size='23' fill='#222'>+ one-line snippet</text>
+      <!-- arrow down: reveal -->
+      <path d='M160 96 L 160 132' fill='none' stroke='#C00000' stroke-width='2' marker-end='url(#ah12)'/>
+      <text x='172' y='118' font-family='Caveat' font-size='23' fill='#C00000'>tap → reveal: 350 ms</text>
+      <!-- expanded card -->
+      <rect x='20' y='140' width='280' height='170' rx='12' fill='#211E1C'/>
+      <circle cx='52' cy='172' r='16' fill='#fff'/><text x='52' y='179' font-size='16' fill='#C00000' text-anchor='middle' font-weight='700'>A</text>
+      <text x='80' y='168' font-size='14' fill='#fff' font-weight='700'>Adobe</text>
+      <text x='80' y='186' font-size='11' fill='#B9B3C9'>to me ▾</text>
+      <text x='272' y='172' font-size='16' fill='#fff' text-anchor='middle'>∧</text>
+      <text x='52' y='218' font-size='12' fill='#E8E3EC'>Hi Alex,</text>
+      <text x='52' y='240' font-size='12' fill='#E8E3EC'>Your Adobe Creative Cloud…</text>
+      <text x='52' y='262' font-size='12' fill='#E8E3EC'>Plan: Creative Cloud All Apps…</text>
+      <text x='52' y='284' font-size='12' fill='#E8E3EC'>Amount: Rs. 4,230.30 per month</text>
+      <!-- height annotation -->
+      <path d='M312 140 L 312 310' fill='none' stroke='#C00000' stroke-width='1.5' stroke-dasharray='6 4'/>
+      <text x='320' y='180' font-family='Caveat' font-size='23' fill='#C00000'>← height grows from the top</text>
+      <text x='320' y='204' font-family='Caveat' font-size='23' fill='#C00000'>(expandVertically, Top)</text>
+      <text x='320' y='236' font-family='Caveat' font-size='23' fill='#222'>body fades in over the</text>
+      <text x='320' y='260' font-family='Caveat' font-size='23' fill='#222'>first 200 ms — text never</text>
+      <text x='320' y='284' font-family='Caveat' font-size='23' fill='#222'>looks stretched</text>
+      <!-- chevron note -->
+      <text x='20' y='330' font-family='Caveat' font-size='23' fill='#222'>Chevron: ONE arrow, rotating 0° → 180° over 300 ms — never two icons swapping.</text>
+    </svg>
+  </div>
+
+  <h3>Frame by frame — zoomed in</h3>
+  <p class='sub' style='margin-bottom:6px'>One tap to open, one tap to close. The height moves; the text fades; the chevron turns.</p>
+  <div class='frames'>
+    <div class='frame'><div class='stage'><div style='position:absolute;left:6px;right:6px;top:6px;height:22px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;right:10px;top:8px;font-size:10px'>∨</div></div><div class='cap'>1 · collapsed — header + snippet</div></div>
+    <div class='frame-sep'>→</div>
+    <div class='frame'><div class='stage'><div style='position:absolute;left:6px;right:6px;top:6px;height:22px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;left:6px;right:6px;top:28px;height:18px;background:var(--surface);border-radius:6px;opacity:.35'></div><div style='position:absolute;right:10px;top:8px;font-size:10px;transform:rotate(45deg)'>∨</div></div><div class='cap'>2 · opening — growing, fading in</div></div>
+    <div class='frame-sep'>→</div>
+    <div class='frame'><div class='stage'><div style='position:absolute;left:6px;right:6px;top:6px;height:22px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;left:6px;right:6px;top:28px;bottom:6px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;right:10px;top:8px;font-size:10px;transform:rotate(180deg)'>∨</div></div><div class='cap'>3 · open — full body, chevron up</div></div>
+    <div class='frame-sep'>→</div>
+    <div class='frame'><div class='stage'><div style='position:absolute;left:6px;right:6px;top:6px;height:22px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;left:6px;right:6px;top:28px;height:18px;background:var(--surface);border-radius:6px;opacity:.35'></div><div style='position:absolute;right:10px;top:8px;font-size:10px;transform:rotate(135deg)'>∨</div></div><div class='cap'>4 · closing — shrinking, fading out</div></div>
+    <div class='frame-sep'>→</div>
+    <div class='frame'><div class='stage'><div style='position:absolute;left:6px;right:6px;top:6px;height:22px;background:var(--surface);border-radius:6px'></div><div style='position:absolute;right:10px;top:8px;font-size:10px'>∨</div></div><div class='cap'>5 · collapsed again</div></div>
+  </div>
+
+  <h3>How it works — step by step <span class='hand pen-blue'>(scribbled notes)</span></h3>
+  <div class='notebook'>
+    <div class='step'><div class='no'>1</div><p class='hand'>Tap the header (or the chevron) and the card grows DOWN from the header line — the header itself never moves. The growth is the animation: height 0 → full over 350 ms, FastOutSlowIn (fast start, gentle settle). <span class='arrow'>← the header is the anchor!</span></p></div>
+    <div class='step'><div class='no'>2</div><p class='hand'>While the height grows, the body fades in over the first 200 ms. That is what keeps the text from looking stretched — a height-only reveal smears the text; the fade hides the stretch. <span class='arrow'>← fade hides the stretch!</span></p></div>
+    <div class='step'><div class='no'>3</div><p class='hand'>The chevron is ONE arrow rotating 0° → 180° over 300 ms on the same easing. Before, two icons swapped in a flash — the eye read it as a blink. Rotation reads as motion. <span class='arrow'>← rotate, never swap!</span></p></div>
+    <div class='step'><div class='no'>4</div><p class='hand'>Tap again and it collapses: height back over 300 ms, content fading out in 150 ms. The fade leaves FIRST, so the shrinking text never looks squashed. Collapse is a touch faster than expand — exits are always a little quicker than entrances.</p></div>
+    <div class='step'><div class='no'>5</div><p class='hand'>The “to me ▾” header-details disclosure (From / To / Date) uses the SAME enter/exit, so every reveal inside a message feels like one motion, not two different ones.</p></div>
+    <div class='step'><div class='no'>6</div><p class='hand'>Before this fix the body appeared with a bare conditional — zero milliseconds, an instant flash. The user called it “just really fast, not a flash” — it was not an animation at all. 350 ms is the sweet spot: slow enough to SEE the reveal, fast enough to never feel like waiting.</p></div>
+  </div>
+
+  <h3>Exact specs (for the agent)</h3>
+  <table>
+    <tr><th>What</th><th>Spec</th></tr>
+    <tr><td>Expand</td><td class='spec'>AnimatedVisibility enter = expandVertically(expandFrom = Top, tween 350 ms, FastOutSlowInEasing) + fadeIn(tween 200 ms). Height grows from the header line; content fades in over the first 200 ms.</td></tr>
+    <tr><td>Collapse</td><td class='spec'>AnimatedVisibility exit = shrinkVertically(shrinkTowards = Top, tween 300 ms, FastOutSlowInEasing) + fadeOut(tween 150 ms). Content leaves first so the shrinking text never looks squashed.</td></tr>
+    <tr><td>Chevron</td><td class='spec'>ONE KeyboardArrowDown icon, animateFloatAsState 0° → 180° (expanded), tween 300 ms, FastOutSlowInEasing, Modifier.rotate. Never two icons swapping. Same for the “to me ▾” details chevron (0° → 180° on showDetails).</td></tr>
+    <tr><td>Header details</td><td class='spec'>the From / To / Cc / Date block (HeaderDetails) uses the same MessageRevealEnter / MessageRevealExit, so both reveals in a message share one motion.</td></tr>
+    <tr><td>Easing</td><td class='spec'>FastOutSlowInEasing everywhere (Material 3 standard easing). CSS demo equivalent: cubic-bezier(0.4, 0, 0.2, 1).</td></tr>
+    <tr><td>Before</td><td class='spec'>bare `if (expanded) { MessageBody(...) }` — 0 ms, instant flash, icon swap. The fix replaces the conditional with AnimatedVisibility and the icon swap with rotation.</td></tr>
+    <tr><td>Where</td><td class='spec'>ui/mail/MessageCard.kt (MessageRevealEnter / MessageRevealExit / MESSAGE_CHEVRON_DURATION_MS, MessageCard → AnimatedVisibility, MessageHeader chevrons, MessageBody HeaderDetails). The ThreadSummaryCard's own AnimatedVisibility (AI summary) is untouched — it already animated with defaults.</td></tr>
+  </table>
+</section>
+
 <footer>
   Mailstack · Animation &amp; Design Reference · <code>reference.html</code> · Keep the Design Reference
   section updated as components change. Never remove an animation section.

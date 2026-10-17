@@ -1,5 +1,13 @@
 package com.greninjaop.mailorganizer.ui.mail
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -17,7 +25,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
@@ -34,6 +41,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -48,6 +56,30 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+/**
+ * Message reveal animation (2026-10-17): expanding a message used to be a
+ * bare `if (expanded)` — the body snapped in instantly, a flash, not a
+ * reveal. The reveal is now a smooth height + fade, Material 3 standard:
+ * the height grows from the top over 350 ms (FastOutSlowIn — fast start,
+ * gentle settle), while the content fades in over the first 200 ms so the
+ * text never looks stretched. Collapse is a touch faster (300 ms height,
+ * 150 ms fade-out — the content leaves first so it never looks squashed).
+ * The chevron rotates 0° → 180° over 300 ms on the same easing instead of
+ * swapping icons. The "to me ▾" header-details disclosure uses the same
+ * enter/exit, so every reveal in the thread feels like one motion.
+ */
+private val MessageRevealEnter =
+    expandVertically(
+        expandFrom = Alignment.Top,
+        animationSpec = tween(durationMillis = 350, easing = FastOutSlowInEasing),
+    ) + fadeIn(animationSpec = tween(durationMillis = 200))
+private val MessageRevealExit =
+    shrinkVertically(
+        shrinkTowards = Alignment.Top,
+        animationSpec = tween(durationMillis = 300, easing = FastOutSlowInEasing),
+    ) + fadeOut(animationSpec = tween(durationMillis = 150))
+private const val MESSAGE_CHEVRON_DURATION_MS = 300
 
 /**
  * Conversation message as a Gmail-style card (2026-10-12).
@@ -115,7 +147,11 @@ fun MessageCard(
                 onToggleExpanded = onToggleExpanded,
                 onWriteAction = onWriteAction,
             )
-            if (expanded) {
+            AnimatedVisibility(
+                visible = expanded,
+                enter = MessageRevealEnter,
+                exit = MessageRevealExit,
+            ) {
                 MessageBody(
                     message = message,
                     showDetails = showDetails,
@@ -153,6 +189,18 @@ private fun MessageHeader(
     val sender = remember(message.fromName, message.fromAddress) {
         MailFormatting.senderDisplay(message.fromName, message.fromAddress)
     }
+    // Chevron rotation (2026-10-17): one arrow that rotates 0° → 180° on
+    // the reveal easing, instead of swapping Down/Up icons in a flash.
+    val detailsChevronRotation by animateFloatAsState(
+        targetValue = if (showDetails) 180f else 0f,
+        animationSpec = tween(durationMillis = MESSAGE_CHEVRON_DURATION_MS, easing = FastOutSlowInEasing),
+        label = "message-details-chevron",
+    )
+    val expandChevronRotation by animateFloatAsState(
+        targetValue = if (expanded) 180f else 0f,
+        animationSpec = tween(durationMillis = MESSAGE_CHEVRON_DURATION_MS, easing = FastOutSlowInEasing),
+        label = "message-expand-chevron",
+    )
     Row(
         modifier = modifier
             .fillMaxWidth()
@@ -225,11 +273,10 @@ private fun MessageHeader(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Icon(
-                    imageVector = if (showDetails) Icons.Filled.KeyboardArrowUp
-                    else Icons.Filled.KeyboardArrowDown,
+                    imageVector = Icons.Filled.KeyboardArrowDown,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(MoSpacing.lg),
+                    modifier = Modifier.size(MoSpacing.lg).rotate(detailsChevronRotation),
                 )
                 if (message.attachments.isNotEmpty()) {
                     Spacer(Modifier.width(MoSpacing.xs))
@@ -264,8 +311,9 @@ private fun MessageHeader(
         }
         IconButton(onClick = onToggleExpanded) {
             Icon(
-                imageVector = if (expanded) Icons.Filled.KeyboardArrowUp else Icons.Filled.KeyboardArrowDown,
+                imageVector = Icons.Filled.KeyboardArrowDown,
                 contentDescription = if (expanded) "Collapse message" else "Expand message",
+                modifier = Modifier.rotate(expandChevronRotation),
             )
         }
         // Phase 22: overflow menu with Gmail write actions. Only for synced
@@ -372,8 +420,13 @@ private fun MessageBody(
                     .semantics { contentDescription = "Correct category or priority" },
             )
         }
-        // Full headers, disclosed from the header's "to me ▾" line (§21).
-        if (showDetails) {
+        // Full headers, disclosed from the header's "to me ▾" line (§21) —
+        // same reveal motion as the body (see MessageRevealEnter/Exit).
+        AnimatedVisibility(
+            visible = showDetails,
+            enter = MessageRevealEnter,
+            exit = MessageRevealExit,
+        ) {
             HeaderDetails(message)
         }
 

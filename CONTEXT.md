@@ -877,3 +877,15 @@ Fix: the supplied images (both JPEGs on black backgrounds) were processed — bl
 - Compile green; tests 978 run / 969 pass / 9 failures — all 9 the known Robolectric env failure (978 = 977 + the new mapping test).
 - Repo storage (binary-assets skill): the raw PNGs are NOT pushed (the API corrupts raw binaries). The repo holds base64 split parts (`drawable-nodpi/ic_*.png.b64.part01…`) + `README-integration-logos.md` with the reassembly command and hashes; the raw PNGs live in the build working tree and the APK. Parts reassembly verified locally (hashes match). Pushed + byte-verified (code, test, CONTEXT, parts, README).
 - No APK for this fix (user did not ask for one) — it rides the next APK.
+
+## CORRECTION (2026-10-17) — integration logo parts MOVED out of res/drawable-nodpi
+
+The previous entry said the base64 parts live at `drawable-nodpi/ic_*.png.b64.part01…`. That broke the build: AAPT rejects any file under `res/` whose name does not end with `.xml` or `.png` (`mergeDebugResources FAILED`). The parts + README were deleted from `res/drawable-nodpi/` in the repo (6 `delete_file` commits) and moved to `android/design-reference/integration-logos/` (same filenames + README, whose reassembly command now writes to the res path). The raw PNGs still live only in the build working tree + APK. Nothing else about the logo fix changed.
+
+## 2026-10-17 — Message reveal: expanding a mail now animates (350 ms), was an instant flash (in main, NOT in an APK yet)
+
+User report (thread screenshots): revealing a mail's contents "is just really fast, not a flash" — it should be a smooth, slower reveal.
+Root cause: `MessageCard` showed the body with a bare `if (expanded)` — 0 ms, no animation at all — and swapped the Down/Up chevron icons instantly.
+Fix (`ui/mail/MessageCard.kt`): the body is now wrapped in `AnimatedVisibility` with `MessageRevealEnter` = `expandVertically(Top, 350 ms, FastOutSlowInEasing) + fadeIn(200 ms)` and `MessageRevealExit` = `shrinkVertically(Top, 300 ms, FastOutSlowInEasing) + fadeOut(150 ms)` — height grows from the header while the content fades in (so text never looks stretched); collapse fades out first (so it never looks squashed). Both chevrons (main expand + "to me ▾" details) are now ONE `KeyboardArrowDown` rotating 0° → 180° over 300 ms (`animateFloatAsState`, same easing) instead of swapping icons. The header-details block (From/To/Date) uses the same enter/exit. Strict M3: standard expand + fade + FastOutSlowIn. `reference.html` §12 added (live demo + annotated diagram + zoomed frames + handwritten notes + exact specs) per the standing animation rule.
+- Compile green; tests 978 run / 969 pass / 9 failures — all 9 the known Robolectric env failure. No new tests: the animation is composition wiring; the specs are named constants in MessageCard.kt.
+- Pushed + byte-verified (MessageCard.kt, reference.html, CONTEXT, relocated logo parts + README). No APK for this fix (user did not ask for one) — it rides the next APK.
