@@ -108,49 +108,6 @@ class IntegrationManager(
     }
 
     /**
-     * User-initiated connect. Emits [IntegrationEvent.Connected] only on
-     * real success. Failures are returned as [MoResult.Failure] — never
-     * a fake success — and emitted as [IntegrationEvent.IntegrationFailed].
-     */
-    suspend fun connect(id: IntegrationId, accountId: String?): MoResult<Unit> =
-        withContext(dispatchers.io) {
-            val adapter = adapter(id)
-                ?: return@withContext MoResult.Failure(
-                    com.greninjaop.mailorganizer.MoError.InvalidConfiguration(
-                        "Unknown integration: ${id.value}",
-                    ),
-                )
-            when (val result = runCatching { adapter.connect() }.getOrElse { error ->
-                MoResult.Failure(
-                    com.greninjaop.mailorganizer.MoError.Unexpected(error),
-                )
-            }) {
-                is MoResult.Success -> {
-                    if (accountId != null) {
-                        _events.tryEmit(IntegrationEvent.Connected(id, accountId))
-                    } else {
-                        _events.tryEmit(
-                            IntegrationEvent.StatusChanged(id, null, IntegrationStatus.CONNECTED),
-                        )
-                    }
-                    persistSnapshot(id, accountId)
-                    result
-                }
-                is MoResult.Failure -> {
-                    _events.tryEmit(
-                        IntegrationEvent.IntegrationFailed(
-                            id,
-                            com.greninjaop.mailorganizer.core.integrations.IntegrationError.Unknown(
-                                result.error.toString(),
-                            ),
-                        ),
-                    )
-                    result
-                }
-            }
-        }
-
-    /**
      * User-initiated disconnect (phase §18). Idempotent and safe: clears
      * integration metadata only — never mail, classifications, rules,
      * action history, or other integrations' data.

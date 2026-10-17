@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.data.integrations
 
-import android.content.Intent
 import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.AccountId
@@ -135,7 +134,8 @@ class RealCalendarIntegrationAdapter(
                 )
                 CalendarApiError.INSUFFICIENT_SCOPE -> snapshotFor(
                     accountId, IntegrationStatus.PERMISSION_REQUIRED,
-                    "Calendar permission needed. Grant access to continue.",
+                    "Calendar permission isn't granted yet. Sign in again " +
+                        "to grant it — your mail keeps working.",
                 )
                 CalendarApiError.NETWORK -> snapshotFor(
                     accountId, IntegrationStatus.OFFLINE,
@@ -165,31 +165,6 @@ class RealCalendarIntegrationAdapter(
         requiredPermissions = requiredPermissions,
         lastCheckedEpochMs = clock(),
     )
-
-    override suspend fun connect(): MoResult<Unit> {
-        // Calendar shares the Google account; granting the calendar scope
-        // is an incremental OAuth step launched from the UI via
-        // [incrementalAuthIntent]. This adapter cannot launch UI itself,
-        // so connect() honestly reports that instead of faking success.
-        return MoResult.Failure(
-            MoError.Integration(
-                integration = id.value,
-                message = "Calendar connects through your Google account. " +
-                    "Grant the Calendar permission to finish setup.",
-            ),
-        )
-    }
-
-    /**
-     * Incremental-authorization path (Phase 15 §6, §8): the UI launches
-     * this intent to add ONLY the calendar scope to an already-connected
-     * account. Never requested during the initial Phase 3 sign-in.
-     */
-    fun incrementalAuthIntent(accountId: AccountId): Intent =
-        authRepository.createIncrementalAuthIntent(
-            accountId,
-            listOf(GoogleAuthRepository.SCOPE_CALENDAR_EVENTS),
-        )
 
     override suspend fun disconnect(accountId: String?): MoResult<Unit> {
         // Idempotent; clears only this integration's process-local

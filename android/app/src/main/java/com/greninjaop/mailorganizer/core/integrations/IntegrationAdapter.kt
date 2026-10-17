@@ -15,9 +15,11 @@ import com.greninjaop.mailorganizer.MoResult
  * - [snapshot] / [refresh] are total and never throw: failures are
  *   represented as snapshots with [IntegrationStatus.ERROR]/[IntegrationStatus.OFFLINE],
  *   never as crashes.
- * - [connect] performs the user-initiated connection flow's local part.
- *   For integrations whose build phase is deferred it returns a failure
- *   with [IntegrationError.NotBuilt] — never a fake success.
+ * - There is NO per-integration connect (2026-10-17): integrations do
+ *   not sign in by themselves — sign-in lives in the Accounts screen
+ *   and covers Gmail + Calendar + Tasks in one trip. An integration is
+ *   usable when the account is signed in; enabling one never launches
+ *   its own OAuth flow.
  * - [disconnect] is idempotent and safe: it clears integration metadata
  *   only. It never deletes mail, classifications, rules, action history,
  *   or other integrations' data (phase §18).
@@ -39,13 +41,6 @@ interface IntegrationAdapter {
      * scope. Total: never throws.
      */
     suspend fun snapshot(accountId: String?): IntegrationSnapshot
-
-    /**
-     * User-initiated connect. Returns failure (never fake success) when
-     * the integration cannot actually connect — e.g. deferred build phase
-     * or missing OAuth (Phase 3 deferred).
-     */
-    suspend fun connect(): MoResult<Unit>
 
     /**
      * User-initiated disconnect. Idempotent; clears integration metadata

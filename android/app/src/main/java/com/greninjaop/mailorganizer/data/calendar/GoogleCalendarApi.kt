@@ -472,7 +472,7 @@ enum class CalendarApiError {
     /** 401 — token expired/invalid/revoked. Caller must mark auth error. */
     AUTH,
 
-    /** 403 — calendar scope missing or insufficient. Prompt incremental auth. */
+    /** 403 — calendar scope missing or insufficient. Prompt sign-in again. */
     INSUFFICIENT_SCOPE,
 
     /** 403 with another reason. */

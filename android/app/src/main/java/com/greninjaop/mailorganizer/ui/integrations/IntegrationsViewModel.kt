@@ -110,28 +110,6 @@ class IntegrationsViewModel(
         return manager.snapshot(id, accountId)
     }
 
-    /**
-     * User tapped Connect. For deferred integrations (Calendar/Tasks) and
-     * Gmail (OAuth deferred) this honestly reports why connection isn't
-     * possible — never a fake flow (phase §16).
-     */
-    fun onConnect(id: IntegrationId) {
-        viewModelScope.launch(dispatchers.io) {
-            val accountId = activeAccount.value?.accountId
-            when (val result = manager.connect(id, accountId)) {
-                is MoResult.Success ->
-                    _events.emit(IntegrationsEvent.Message("Connected."))
-                is MoResult.Failure ->
-                    _events.emit(
-                        IntegrationsEvent.Message(
-                            result.error.messageOf(),
-                        ),
-                    )
-            }
-            refreshTick.value = refreshTick.value + 1
-        }
-    }
-
     /** User tapped Disconnect: confirm first when the integration is connected. */
     fun onDisconnectTapped(id: IntegrationId) {
         viewModelScope.launch(dispatchers.io) {

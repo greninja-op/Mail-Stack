@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.data.integrations
 
-import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.integrations.IntegrationAdapter
 import com.greninjaop.mailorganizer.core.integrations.IntegrationCapability
@@ -52,14 +51,6 @@ abstract class DeferredIntegrationAdapter(
             declaredCapabilities = declaredCapabilities,
             requiredPermissions = requiredPermissions,
             lastCheckedEpochMs = clock(),
-        )
-
-    override suspend fun connect(): MoResult<Unit> =
-        MoResult.Failure(
-            MoError.Integration(
-                integration = id.value,
-                message = unavailableReason(),
-            ),
         )
 
     override suspend fun disconnect(accountId: String?): MoResult<Unit> =

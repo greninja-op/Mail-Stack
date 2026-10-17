@@ -1,12 +1,10 @@
 package com.greninjaop.mailorganizer.data.tasks
 
-import android.content.Intent
 import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.auth.AuthRepository
-import com.greninjaop.mailorganizer.data.auth.GoogleAuthRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
@@ -203,28 +201,12 @@ class TasksRepository(
         store?.clearAccount(accountId.value)
     }
 
-    // ---------- Incremental authorization (phase §37) ----------
-
-    /**
-     * Intent that adds the Tasks scope to an already-connected account
-     * without disturbing Gmail/Calendar grants. The UI starts this
-     * intent when the adapter reports PERMISSION_REQUIRED; the normal
-     * OAuth redirect flow completes it. Never called during the initial
-     * Phase 3 sign-in (least privilege — the tasks scope is requested
-     * only here, on demand).
-     */
-    fun incrementalAuthIntent(accountId: AccountId): Intent =
-        auth.createIncrementalAuthIntent(
-            accountId,
-            listOf(GoogleAuthRepository.SCOPE_TASKS),
-        )
-
     // ---------- Internals ----------
 
     /**
      * Fetches a valid token for [accountId] (refreshing when needed via
      * the auth layer) and runs [block]. Null token → honest auth error;
-     * the caller (UI) then routes to reconnect / incremental auth.
+     * the caller (UI) then routes to reconnect.
      */
     private suspend fun <T> withToken(
         accountId: AccountId,

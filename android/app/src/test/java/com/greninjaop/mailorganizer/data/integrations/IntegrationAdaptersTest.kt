@@ -81,17 +81,6 @@ class IntegrationAdaptersTest {
     }
 
     @Test
-    fun `gmail connect fails honestly directing to Accounts screen`() = runTest(testDispatcher) {
-        val adapter = GmailIntegrationAdapter(DeferredGmailSyncApi(), FakeAccountRepository())
-        val result = adapter.connect()
-        assertTrue(result is MoResult.Failure)
-        val message = (result as MoResult.Failure).error.let {
-            (it as MoError.InvalidConfiguration).message
-        }
-        assertTrue(message.contains("Accounts", ignoreCase = true))
-    }
-
-    @Test
     fun `gmail disconnect is a safe idempotent success`() = runTest(testDispatcher) {
         val adapter = GmailIntegrationAdapter(DeferredGmailSyncApi(), FakeAccountRepository())
         assertTrue(adapter.disconnect("a1") is MoResult.Success)
@@ -148,17 +137,6 @@ class IntegrationAdaptersTest {
         assertTrue(snapshot.statusReason.contains("Phase 16"))
         assertTrue(snapshot.usableCapabilities.isEmpty())
         assertEquals(IntegrationId.TASKS, snapshot.id)
-    }
-
-    @Test
-    fun `deferred connect never fakes success`() = runTest(testDispatcher) {
-        listOf(CalendarIntegrationAdapter(), TasksIntegrationAdapter()).forEach { adapter ->
-            val result = adapter.connect()
-            assertTrue("${adapter.id} connect must fail", result is MoResult.Failure)
-            val error = (result as MoResult.Failure).error
-            assertTrue(error is MoError.Integration)
-            assertTrue((error as MoError.Integration).message.contains("isn't available yet"))
-        }
     }
 
     @Test

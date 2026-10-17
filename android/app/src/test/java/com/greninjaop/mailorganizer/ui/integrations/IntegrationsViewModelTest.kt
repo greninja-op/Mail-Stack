@@ -133,22 +133,6 @@ class IntegrationsViewModelTest {
     }
 
     @Test
-    fun `calendar connect emits honest not-available message`() = runTest(testDispatcher) {
-        seedAccount()
-        val vm = viewModel()
-        vm.events.test {
-            vm.onConnect(IntegrationId.CALENDAR)
-            val event = awaitItem()
-            assertTrue(event is IntegrationsEvent.Message)
-            assertTrue(
-                "was: ${(event as IntegrationsEvent.Message).text}",
-                event.text.contains("Phase 15"),
-            )
-            cancelAndIgnoreRemainingEvents()
-        }
-    }
-
-    @Test
     fun `snapshotFor returns null for unknown id`() = runTest(testDispatcher) {
         seedAccount()
         val vm = viewModel()

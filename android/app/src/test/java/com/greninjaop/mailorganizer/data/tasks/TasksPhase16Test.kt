@@ -787,12 +787,6 @@ class TasksPhase16Test {
     }
 
     @Test
-    fun `adapter connect never fakes success`() = runBlocking {
-        val adapter = adapterFor(null, mapOf("google_a" to "tok"))
-        assertTrue(adapter.connect() is MoResult.Failure)
-    }
-
-    @Test
     fun `adapter disconnect clears only that account`() = runBlocking {
         val dir = Files.createTempDirectory("tasks-test").toFile()
         val adapter = adapterFor(null, mapOf("google_a" to "tok"), dir)
@@ -870,7 +864,6 @@ class TasksPhase16Test {
         )
 
         override suspend fun snapshot(accountId: String?): IntegrationSnapshot = snap(accountId)
-        override suspend fun connect(): MoResult<Unit> = MoResult.Success(Unit)
         override suspend fun disconnect(accountId: String?): MoResult<Unit> = MoResult.Success(Unit)
         override suspend fun refresh(accountId: String?): IntegrationSnapshot = snap(accountId)
     }

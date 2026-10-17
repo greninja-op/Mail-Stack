@@ -42,12 +42,16 @@ import java.security.MessageDigest
  *       →  Gmail profile smoke test  →  tokens stored encrypted
  * ```
  *
- * Phase 3 requests the least-privilege base scopes only:
+ * Phase 3 requests the sign-in scopes:
  * - https://www.googleapis.com/auth/gmail.readonly
+ * - https://www.googleapis.com/auth/calendar.events
+ * - https://www.googleapis.com/auth/tasks
  * - openid, email, profile
  *
- * Write/integration scopes (gmail.modify, calendar, tasks) are requested
- * incrementally by their own phases via [createIncrementalAuthIntent].
+ * One sign-in covers Gmail + Calendar + Tasks (2026-10-17: the
+ * per-integration sign-in trips were removed). Only gmail.modify
+ * (Gmail write) is still requested incrementally, when the user
+ * performs a write action, via [createIncrementalAuthIntent].
  *
  * Tokens live ONLY in [SecureTokenStorage] (EncryptedSharedPreferences).
  * Raw tokens are never logged, never stored in Room, never exposed to UI.
@@ -514,17 +518,29 @@ class GoogleAuthRepository(
         const val REDIRECT_SCHEME = "com.greninjaop.mailorganizer"
 
         /**
-         * Phase 3 least-privilege scopes (Phase 3 §12): read-only Gmail.
-         * Write/integration scopes arrive incrementally in their phases.
+         * Sign-in scopes (2026-10-17): ONE sign-in covers Gmail +
+         * Calendar + Tasks. The integration scopes used to arrive
+         * incrementally (a separate per-integration sign-in trip to
+         * Chrome for each of Calendar/Tasks) — that separate trip is
+         * what looped the user back to Chrome again and again: the main
+         * sign-in never granted the integration scopes, so the
+         * integrations could never become Connected no matter how many
+         * times the user signed in. Per-integration sign-in is removed;
+         * installing an integration now just uses the account sign-in.
+         * Only gmail.modify stays incremental (Gmail write, granted
+         * when the user performs a write action, behind its
+         * confirmation gate — not an integration sign-in).
          */
         val BASE_SCOPES: List<String> = listOf(
             "https://www.googleapis.com/auth/gmail.readonly",
+            SCOPE_CALENDAR_EVENTS,
+            SCOPE_TASKS,
             "openid",
             "email",
             "profile",
         )
 
-        /** Incremental scopes for later phases (never requested in Phase 3). */
+        /** Incremental scope for Gmail write only (never requested up front). */
         const val SCOPE_GMAIL_MODIFY = "https://www.googleapis.com/auth/gmail.modify"
         const val SCOPE_CALENDAR_EVENTS = "https://www.googleapis.com/auth/calendar.events"
         const val SCOPE_TASKS = "https://www.googleapis.com/auth/tasks"

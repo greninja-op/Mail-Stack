@@ -52,9 +52,10 @@ interface AuthRepository {
      * Google redirects back to the app and the Activity forwards the
      * redirect via [handleOAuthResult].
      *
-     * @param additionalScopes Scopes beyond the Phase 3 base set. Used by
-     * later phases (Calendar, Tasks, Gmail write) for incremental
-     * authorization — never requested all-at-once up front.
+     * @param additionalScopes Scopes beyond the sign-in base set
+     * (Gmail + Calendar + Tasks). Used by Gmail write for its
+     * incremental gmail.modify grant — never requested all-at-once
+     * up front.
      */
     fun createOAuthIntent(
         additionalScopes: List<String> = emptyList(),

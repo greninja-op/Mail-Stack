@@ -51,7 +51,6 @@ class IntegrationManagerTest {
         override val displayName: String = "Fake",
         var status: IntegrationStatus = IntegrationStatus.DISCONNECTED,
         var reason: String = "fake",
-        var connectResult: MoResult<Unit> = MoResult.Success(Unit),
         var failSnapshotWith: Throwable? = null,
     ) : IntegrationAdapter {
         override val provider: String = "FakeProvider"
@@ -75,7 +74,6 @@ class IntegrationManagerTest {
             )
         }
 
-        override suspend fun connect(): MoResult<Unit> = connectResult
         override suspend fun disconnect(accountId: String?): MoResult<Unit> =
             MoResult.Success(Unit)
         override suspend fun refresh(accountId: String?): IntegrationSnapshot =
@@ -154,30 +152,6 @@ class IntegrationManagerTest {
     }
 
     @Test
-    fun `connect failure emits IntegrationFailed and never Connected`() = runTest(testDispatcher) {
-        val adapter = FakeAdapter(
-            IntegrationId.CALENDAR,
-            connectResult = MoResult.Failure(
-                com.greninjaop.mailorganizer.MoError.Integration("calendar", "not built"),
-            ),
-        )
-        val (manager, _) = manager(listOf(adapter))
-        val collected = mutableListOf<IntegrationEvent>()
-        // NOTE: launch on the test scope (not backgroundScope): backgroundScope
-        // launches don't get scheduled on the test dispatcher in a way that
-        // SharedFlow collection can observe (verified empirically). The job
-        // is cancelled before the test ends so runTest doesn't hang.
-        val job = launch { manager.events.collect { collected.add(it) } }
-        runCurrent() // let the collector subscribe before connect() emits
-        val result = manager.connect(IntegrationId.CALENDAR, "a1")
-        assertTrue(result is MoResult.Failure)
-        testDispatcher.scheduler.advanceUntilIdle()
-        assertTrue(collected.none { it is IntegrationEvent.Connected })
-        assertTrue(collected.any { it is IntegrationEvent.IntegrationFailed })
-        job.cancelAndJoin()
-    }
-
-    @Test
     fun `disconnect clears only that integration and account`() = runTest(testDispatcher) {
         val states = FakeStates()
         states.upsert(
@@ -218,13 +192,6 @@ class IntegrationManagerTest {
         val snapshots = manager.snapshots("a1")
         assertEquals(IntegrationStatus.ERROR, snapshots[0].status)
         assertTrue(snapshots[0].statusReason.contains("boom"))
-    }
-
-    @Test
-    fun `connect to unknown integration fails honestly`() = runTest(testDispatcher) {
-        val (manager, _) = manager(emptyList())
-        val result = manager.connect(IntegrationId("nope"), "a1")
-        assertTrue(result is MoResult.Failure)
     }
 
     @Test

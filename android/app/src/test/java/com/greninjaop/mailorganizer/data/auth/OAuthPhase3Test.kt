@@ -110,13 +110,17 @@ class OAuthPhase3Test {
     }
 
     @Test
-    fun `phase 3 base scopes are read-only`() {
+    fun `sign-in scopes cover Gmail plus Calendar and Tasks, never Gmail write`() {
         val scopes = GoogleAuthRepository.BASE_SCOPES
         assertTrue(scopes.contains("https://www.googleapis.com/auth/gmail.readonly"))
-        // Write / integration scopes must NOT be in the Phase 3 base set.
+        // One sign-in covers the integrations (2026-10-17): the
+        // per-integration sign-in trips were removed, so Calendar and
+        // Tasks scopes ride the account sign-in.
+        assertTrue(scopes.contains("https://www.googleapis.com/auth/calendar.events"))
+        assertTrue(scopes.contains("https://www.googleapis.com/auth/tasks"))
+        // Gmail write stays incremental: granted only when the user
+        // performs a write action, behind its confirmation gate.
         assertTrue(scopes.none { it.contains("gmail.modify") })
-        assertTrue(scopes.none { it.contains("calendar") })
-        assertTrue(scopes.none { it.contains("tasks") })
     }
 
     // ---------- Account id derivation ----------

@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.data.integrations
 
-import android.content.Intent
 import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.AccountId
@@ -41,7 +40,7 @@ import kotlinx.coroutines.withContext
  * Honesty (phase §29): [IntegrationStatus.CONNECTED] is reported ONLY
  * when a lightweight API probe proves a usable token *and* the tasks
  * scope exist. A mere local token is not enough — the scope may be
- * missing (incremental auth), revoked, or expired.
+ * missing (sign-in predates the scope), revoked, or expired.
  */
 class RealTasksIntegrationAdapter(
     private val authRepository: AuthRepository,
@@ -111,38 +110,6 @@ class RealTasksIntegrationAdapter(
         }
 
     /**
-     * The Tasks "connection" is incremental authorization on the shared
-     * Google account — it needs the UI to start an OAuth intent
-     * ([incrementalAuthIntent]), so this local part honestly reports
-     * that instead of faking a connection.
-     */
-    override suspend fun connect(): MoResult<Unit> =
-        MoResult.Failure(
-            MoError.Integration(
-                integration = id.value,
-                message = "Grant Tasks access from your Google account settings — " +
-                    "Mailstack will ask for just the Tasks permission.",
-            ),
-        )
-
-    /**
-     * Intent that adds the Tasks scope to an already-connected account
-     * (incremental authorization, phase §37). Returns null when there is
-     * no connected account to upgrade. The UI starts the returned intent;
-     * the normal OAuth redirect completes it. Gmail/Calendar grants are
-     * preserved; denying Tasks leaves them working.
-     */
-    fun incrementalAuthIntent(accountId: String?): Intent? {
-        if (accountId.isNullOrBlank()) return null
-        return try {
-            tasksRepository.incrementalAuthIntent(AccountId(accountId))
-        } catch (t: Throwable) {
-            MoLogger.w(TAG, "incrementalAuthIntent failed: ${t.javaClass.simpleName}")
-            null
-        }
-    }
-
-    /**
      * Idempotent disconnect (phase §18): clears this account's local
      * Tasks metadata (selected list, execution records) only. Never
      * touches mail, actions, or other integrations. The Google grant
@@ -172,8 +139,8 @@ class RealTasksIntegrationAdapter(
      * - no usable Google auth → AUTH_REQUIRED
      * - probe 200 → CONNECTED (token + tasks scope proven)
      * - probe 401 → AUTH_REQUIRED (expired/revoked; refresh already tried)
-     * - probe 403/insufficient scope → PERMISSION_REQUIRED (incremental
-     *   auth fixes it; Gmail/Calendar keep working)
+     * - probe 403/insufficient scope → PERMISSION_REQUIRED (sign in
+     *   again to grant the scope; Gmail/Calendar keep working)
      * - network failure → OFFLINE (not a disconnect)
      * - anything else → ERROR
      */
@@ -200,8 +167,8 @@ class RealTasksIntegrationAdapter(
                 is MoError.Authentication -> IntegrationStatus.AUTH_REQUIRED to
                     "Your Google authorization expired or was revoked. Reconnect to continue."
                 is MoError.PermissionDenied -> IntegrationStatus.PERMISSION_REQUIRED to
-                    "The Tasks permission isn't granted yet. Grant it to create tasks — " +
-                        "your mail and calendar keep working."
+                    "The Tasks permission isn't granted yet. Sign in again " +
+                        "to grant it — your mail and calendar keep working."
                 is MoError.Network -> IntegrationStatus.OFFLINE to
                     "You're offline. Google Tasks will work when you're back online."
                 is MoError.RateLimited -> IntegrationStatus.ERROR to

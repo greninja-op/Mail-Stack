@@ -540,7 +540,6 @@ fun IntegrationDetailScreen(
             item {
                 DetailActions(
                     snapshot = snapshot,
-                    onConnect = { viewModel.onConnect(snapshot.id) },
                     onDisconnect = { viewModel.onDisconnectTapped(snapshot.id) },
                 )
                 Spacer(Modifier.height(MoSpacing.lg))
@@ -669,7 +668,6 @@ private fun IntegrationCapability.displayName(): String = when (this) {
 @Composable
 private fun DetailActions(
     snapshot: IntegrationSnapshot,
-    onConnect: () -> Unit,
     onDisconnect: () -> Unit,
 ) {
     Column(
@@ -696,10 +694,12 @@ private fun DetailActions(
                 ) { Text("Disconnect") }
             }
             else -> {
-                Button(
-                    onClick = onConnect,
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Connect") }
+                // No Connect button (2026-10-17): integrations do not sign
+                // in by themselves — sign-in lives in the Accounts screen
+                // and covers Gmail + Calendar + Tasks in one trip. A
+                // permission/expired state means the account sign-in
+                // needs to be redone (sign in again), not a separate
+                // per-integration trip to Chrome.
                 if (snapshot.status == IntegrationStatus.AUTH_REQUIRED ||
                     snapshot.status == IntegrationStatus.DISCONNECTED
                 ) {

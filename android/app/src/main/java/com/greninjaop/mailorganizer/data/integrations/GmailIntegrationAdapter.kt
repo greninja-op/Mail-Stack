@@ -1,6 +1,5 @@
 package com.greninjaop.mailorganizer.data.integrations
 
-import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.MoResult
 import com.greninjaop.mailorganizer.core.integrations.IntegrationAdapter
 import com.greninjaop.mailorganizer.core.integrations.IntegrationCapability
@@ -97,14 +96,6 @@ class GmailIntegrationAdapter(
             lastCheckedEpochMs = clock(),
         )
     }
-
-    override suspend fun connect(): MoResult<Unit> =
-        MoResult.Failure(
-            MoError.InvalidConfiguration(
-                "Google sign-in is handled in the Accounts screen, not here. " +
-                    "Nothing was connected.",
-            ),
-        )
 
     /**
      * Idempotent safe disconnect (phase §18): with no live connection
