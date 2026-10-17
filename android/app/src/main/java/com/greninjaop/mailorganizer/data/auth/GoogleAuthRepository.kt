@@ -2,6 +2,7 @@ package com.greninjaop.mailorganizer.data.auth
 
 import android.content.Intent
 import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.local.AccountRecord
@@ -186,7 +187,20 @@ class GoogleAuthRepository(
             .toString()
         // Never log the URL: it carries the PKCE challenge/state.
         MoLogger.i(TAG, "OAuth authorization started (scopes=${scopes.size})")
-        return Intent(Intent.ACTION_VIEW, Uri.parse(authUrl)).apply {
+        // Chrome Custom Tab (2026-10-17 fix for the Connect → Chrome
+        // loop): a plain ACTION_VIEW opens full Chrome in its own task,
+        // where Chrome can refuse to hand the custom-scheme return back
+        // to the app (the return is an automatic step with no fresh tap
+        // driving it), leaving the user stuck in Chrome — and with
+        // prompt=consent every retry forces the full consent screen
+        // again, so it reads as an endless Chrome loop. A Custom Tab is
+        // the trusted context Google/AppAuth recommend: Chrome hands
+        // the return back, and the flow stays in the app's task so the
+        // OS is less likely to kill the app mid-sign-in. A browser
+        // without Custom Tabs support ignores the extras and opens a
+        // normal tab, so this degrades gracefully to the old behaviour.
+        return CustomTabsIntent.Builder().build().intent.apply {
+            data = Uri.parse(authUrl)
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
     }

@@ -1153,7 +1153,14 @@ private fun PrimaryContent(barsOffset: Float, content: @Composable () -> Unit) {
             .fillMaxSize()
             .padding(
                 top = (statusBar + 64.dp) * barsOffset,
-                bottom = (navBar + 80.dp) * barsOffset,
+                // 2026-10-17: the system navigation-bar inset is ALWAYS
+                // reserved — the OS bar never hides. Only the 80dp app
+                // bar collapses with the scroll-hide animation. The old
+                // `(navBar + 80.dp) * barsOffset` zeroed the system
+                // inset too when the bars hid, so the last mail row
+                // slid under the system navigation buttons and could
+                // not be tapped.
+                bottom = navBar + 80.dp * barsOffset,
             ),
     ) { content() }
 }

@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 29
+        versionCode = 30
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -123,7 +123,7 @@ android {
         //        "Action required" chip removed from the Mail list
         //        (Actions tab covers it; list + fade lifted to the
         //        search box).
-        versionName = "1.0.28"
+        versionName = "1.0.29"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -208,10 +208,11 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
 
     // Phase 3: Google OAuth & Gmail Connection
-    // OAuth2 via system browser (official Google-supported flow).
+    // OAuth2 via Chrome Custom Tab (official Google-supported flow).
     // Tokens secured with EncryptedSharedPreferences.
     // Gmail API accessed via direct HTTPS (no heavy Google client libs).
     implementation(libs.androidx.security.crypto)
+    implementation(libs.androidx.browser)
 
     // Compose (versions managed by the Compose BOM)
     val bom = libs.compose.bom

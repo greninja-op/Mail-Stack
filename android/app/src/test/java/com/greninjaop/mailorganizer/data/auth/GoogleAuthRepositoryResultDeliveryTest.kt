@@ -3,6 +3,7 @@ package com.greninjaop.mailorganizer.data.auth
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import androidx.browser.customtabs.CustomTabsIntent
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.greninjaop.mailorganizer.data.local.AppDatabase
@@ -13,6 +14,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -65,6 +67,23 @@ class GoogleAuthRepositoryResultDeliveryTest {
         Intent.ACTION_VIEW,
         Uri.parse("com.greninjaop.mailorganizer:/oauth2redirect?state=s1&code=c1"),
     )
+
+    @Test
+    fun `createOAuthIntent returns a custom tab intent`() {
+        // 2026-10-17 fix for the Connect → Chrome loop: the sign-in
+        // page must open in a Chrome Custom Tab (trusted context —
+        // Chrome hands the custom-scheme return back to the app), not
+        // a plain ACTION_VIEW into full Chrome (where Chrome can refuse
+        // the return and strand the user in the browser).
+        val intent = repo.createOAuthIntent()
+        assertTrue(intent.hasExtra(CustomTabsIntent.EXTRA_SESSION))
+        val data = intent.data
+        assertNotNull(data)
+        assertEquals("https", data!!.scheme)
+        assertEquals("accounts.google.com", data.authority)
+        assertEquals("/o/oauth2/v2/auth", data.path)
+        assertEquals("test-client-id", data.getQueryParameter("client_id"))
+    }
 
     @Test
     fun `late subscriber receives replayed oauth result`() = runBlocking {
