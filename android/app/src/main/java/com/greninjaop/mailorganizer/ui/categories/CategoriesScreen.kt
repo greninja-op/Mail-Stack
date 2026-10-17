@@ -191,54 +191,69 @@ private fun CategoryGroupList(
                     },
                 onClick = { expandedGroups[group.id] = !expanded },
             ) {
-            ListItem(
-                colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                headlineContent = { Text(group.title) },
-                supportingContent = {
-                    Column {
-                        Text(
-                            text = "$total messages",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = group.subtitle,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-                leadingContent = {
-                    // Semantic accent (2026-10-17): the circle is tinted
-                    // with the group's accent and the icon is the accent
-                    // itself — warning amber, shopping orange, bell sky
-                    // blue, work royal blue, mail brand violet. The icon
-                    // + label still carry the meaning; color only
-                    // reinforces it.
-                    val accent = if (isMoDarkTheme()) group.accentDark else group.accentLight
-                    Box(
-                        modifier = Modifier
-                            .size(MoSpacing.xxxl)
-                            .clip(CircleShape)
-                            .background(accent.copy(alpha = 0.14f)),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = group.icon,
-                            contentDescription = null,
-                            tint = accent,
-                        )
-                    }
-                },
-                trailingContent = {
+            // Header row (2026-10-17 fix): a plain Row with
+            // CenterVertically + symmetric padding — NOT a Material
+            // ListItem. ListItem top-aligns its leading/trailing for
+            // multi-line content and pads asymmetrically, which left
+            // the icon + text pinned to the top and a large empty
+            // gap at the card's bottom. The Row centres the icon,
+            // the text block and the arrow vertically (a horizontal
+            // line through the card's centre passes through all three),
+            // and the symmetric 8dp vertical padding makes the top
+            // space equal the bottom space — the card hugs its
+            // content, no dead space at the bottom.
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        horizontal = MoSpacing.md,
+                        vertical = MoSpacing.xs,
+                    ),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                // Semantic accent (2026-10-17): the circle is tinted
+                // with the group's accent and the icon is the accent
+                // itself — warning amber, shopping orange, bell sky
+                // blue, work royal blue, mail brand violet.
+                val accent = if (isMoDarkTheme()) group.accentDark else group.accentLight
+                Box(
+                    modifier = Modifier
+                        .size(MoSpacing.xxxl)
+                        .clip(CircleShape)
+                        .background(accent.copy(alpha = 0.14f)),
+                    contentAlignment = Alignment.Center,
+                ) {
                     Icon(
-                        imageVector = if (expanded) Icons.Filled.KeyboardArrowUp
-                        else Icons.Filled.KeyboardArrowDown,
-                        contentDescription = if (expanded) "Collapse" else "Expand",
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        imageVector = group.icon,
+                        contentDescription = null,
+                        tint = accent,
                     )
-                },
-            )
+                }
+                Spacer(modifier = Modifier.width(MoSpacing.md))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = group.title,
+                        style = MaterialTheme.typography.titleMedium,
+                    )
+                    Text(
+                        text = "$total messages",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Text(
+                        text = group.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Spacer(modifier = Modifier.width(MoSpacing.md))
+                Icon(
+                    imageVector = if (expanded) Icons.Filled.KeyboardArrowUp
+                    else Icons.Filled.KeyboardArrowDown,
+                    contentDescription = if (expanded) "Collapse" else "Expand",
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
             // Inline expansion, animated: member categories as full-width
             // sub-rows inside the same card (no inset, no separate cards).
             AnimatedVisibility(visible = expanded) {
