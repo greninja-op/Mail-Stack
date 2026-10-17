@@ -918,3 +918,16 @@ User on 1.0.32: consent screen showed Calendar + Tasks scopes ("that all works")
 
 Built from main at the Custom-Tab revert + this CONTEXT entry. Debug build, signed with the stable debug keystore (cert SHA-1 07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05, verified via apksigner). 17,453,546 bytes, SHA-256 4524c50c3349bb6952182d53e3ef34ce24f38dc9062203cd1a84c47220b346d1. File: `~/workspace/Mailstack-1.0.33.apk`.
 Contains: sign-in opens in the plain browser instead of the in-app Chrome tab + everything in 1.0.32 (one sign-in grants Gmail + Calendar + Tasks; per-integration sign-in removed). Import animation still the 1cf0a71 build — the Gemini-prompt refine (05aaf6e5) is still REFERENCE-ONLY. Version bump + CONTEXT.md pushed + byte-verified. On-device confirmation pending.
+
+## 2026-10-17 — Full codebase audit + test pass (fresh clone was unbuildable)
+
+User asked to study CONTEXT.md and test the whole codebase for errors. Ran on a clean cloud image (no hatch local-m2 / no prebuilt SDK).
+
+Bugs found + fixed:
+1. **Build break (High):** adaptive launcher XMLs referenced `@mipmap/ic_launcher_foreground` PNGs that were never in the repo (local-only binary rule). Fresh clone → `processDebugResources` FAILED. Fix: point both adaptive icons at the existing vector `@drawable/ic_launcher_foreground`.
+2. **Missing drawables (High):** `drawable-nodpi/` was empty in git — company logos, import logos, Calendar/Tasks icons all missing → Kotlin would not compile (`R.drawable.company_*` / `ic_gmail_logo` / etc.). Fix: reassemble import + integration logos from `design-reference/*-logos/*.b64.part*`; restore company logos from ICONS-ASSETS (+ favicon/mono fallbacks for the 6 names not in that repo). PNGs are committed via git (MCP API binary corruption does not apply to git push).
+3. **Stale seeder tests (Medium):** `SampleMailboxSeederTest` still expected 7 threads / 11 messages / 1 starred after the 2026-10-13 demo-inbox expansion (32 / 37 / 2). Updated expectations + isolation counts (Alex 31 threads, Priya 2 msgs).
+4. **Stale sync progress test (Medium):** still asserted mid-sync upward estimate revision; production switched to fixed `mailboxTotal` to stop the backwards progress bar. Rewrote into two tests (fixed mailbox total; stale page estimate never revised).
+5. **Stale OAuth Custom-Tab test (Medium):** still required `CustomTabsIntent.EXTRA_SESSION` after the 1.0.33 plain-browser revert. Updated to assert `ACTION_VIEW`. Also: Robolectric has no AndroidKeyStore — `SecureTokenStorage` now accepts an optional `prefsOverride` for unit tests (production path unchanged).
+
+Verification: `:app:compileDebugKotlin` + `:app:testDebugUnitTest` + `:app:assembleDebug` BUILD SUCCESSFUL. **1030/1030 unit tests pass, 0 failures.** App version in tree remains 1.0.39 (versionCode 40) — no APK bump (audit only).

@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- LOCAL-ONLY (2026-10-12): references PNGs that cannot be pushed through the
-     GitHub MCP API (binary corruption). The repo keeps the vector fallback.
-     Foreground = circular crop of logo/logo.png, full-bleed, no padding. -->
+<!-- Uses the vector drawable/ic_launcher_foreground so a fresh clone builds
+     without local-only mipmap PNGs. Delivered APKs may still ship circular
+     logo PNGs generated from logo/logo.png at release time. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@color/ic_launcher_background" />
-    <foreground android:drawable="@mipmap/ic_launcher_foreground" />
-    <monochrome android:drawable="@mipmap/ic_launcher_foreground" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_foreground" />
 </adaptive-icon>

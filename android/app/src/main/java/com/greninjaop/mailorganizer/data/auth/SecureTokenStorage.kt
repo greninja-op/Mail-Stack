@@ -20,9 +20,19 @@ import com.greninjaop.mailorganizer.core.MoLogger
  * The [AuthRepository] implementation uses this; no other code
  * should access tokens directly.
  */
-class SecureTokenStorage(context: Context) {
+class SecureTokenStorage(
+    context: Context,
+    /**
+     * Test-only override. Production always passes null so tokens live in
+     * EncryptedSharedPreferences (AndroidKeyStore). Robolectric does not
+     * provide AndroidKeyStore, so unit tests inject a plain
+     * SharedPreferences to exercise auth delivery without the keystore.
+     */
+    prefsOverride: SharedPreferences? = null,
+) {
 
     private val prefs: SharedPreferences by lazy {
+        if (prefsOverride != null) return@lazy prefsOverride
         try {
             val masterKey = MasterKey.Builder(context, MasterKey.DEFAULT_MASTER_KEY_ALIAS)
                 .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
