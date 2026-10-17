@@ -34,7 +34,7 @@ android {
         applicationId = "com.greninjaop.mailorganizer"
         minSdk = 26
         targetSdk = 35
-        versionCode = 37
+        versionCode = 38
         // Phase 29: Production version. Semantic versioning starts at 1.0.0.
         // 1.0.1: disconnect-crash fix + always-visible Connect button.
         // 1.0.2: circular no-padding launcher icon.
@@ -123,7 +123,7 @@ android {
         //        "Action required" chip removed from the Mail list
         //        (Actions tab covers it; list + fade lifted to the
         //        search box).
-        versionName = "1.0.36"
+        versionName = "1.0.37"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

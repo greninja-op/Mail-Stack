@@ -196,7 +196,13 @@ class ImportViewModel(
         // reported. An auth failure here retries in place (Try again);
         // the user stays in the Import flow.
         is MoError.Authentication -> "Sign-in didn't stick. Tap Try again to retry the import."
-        is MoError.RateLimited -> "Gmail is rate-limiting right now. Please try again in a bit."
+        is MoError.RateLimited ->
+            // Name it precisely: this is Gmail's per-second "too many
+            // requests too fast" throttle, NOT a daily quota. It clears
+            // once the request rate drops — so the fix is to WAIT a
+            // minute and tap Try again ONCE, not to hammer it (each tap
+            // restarts the sync and re-trips the throttle).
+            "Gmail is throttling requests (too many too fast — not a daily limit). Wait a minute, then tap Try again once."
         is MoError.PermissionDenied ->
             // Show Gmail's own reason (e.g. insufficientPermissions /
             // accessNotConfigured) — retry can never fix a grant/config

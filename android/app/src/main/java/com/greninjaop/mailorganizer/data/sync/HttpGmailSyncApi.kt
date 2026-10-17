@@ -345,8 +345,16 @@ class HttpGmailSyncApi(
     companion object {
         private const val TAG = "HttpGmailSyncApi"
         private const val MAX_PAGE_SIZE = 25
-        /** Bounded parallelism for per-message metadata fetches. */
-        private const val FETCH_CONCURRENCY = 8
+        /**
+         * Bounded parallelism for per-message metadata fetches
+         * (2026-10-17: lowered 8 -> 4). Gmail throttles per-user request
+         * rate (userRateLimitExceeded); 8 parallel fetches plus repeated
+         * manual "Try again" taps hit that throttle. 4 is still fast
+         * (the 500-message first sync stays well under ~2 minutes) and
+         * halves the peak request rate, so the import stops tripping
+         * Gmail's per-second throttle.
+         */
+        private const val FETCH_CONCURRENCY = 4
 
         /**
          * Maps a Gmail `messages.get` metadata response to [RemoteMessage].
