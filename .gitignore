@@ -1,0 +1,8 @@
+
+# KMP shared
+shared/build/
+shared/.gradle/
+# Xcode generated
+iOS/*.xcodeproj/
+iOS/*.xcworkspace/
+iOS/DerivedData/

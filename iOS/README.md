@@ -1,33 +1,28 @@
-# Mailstack — iOS (iPhone)
+# Mailstack — iOS (iPhone only)
 
-This directory holds **all iOS / iPhone–specific** planning, source, assets, tests, and configuration for Mailstack.
+Implementation root for the iPhone app. Sibling platform folders must not be created or modified from this workstream.
 
-## Platform isolation (permanent)
+## Layout
 
-- Target: **iOS / iPhone only**.
-- Everything iOS-specific lives under this `iOS/` folder.
-- Do **not** put iOS files in `iPadOS/`, `AndroidTablet/`, `macOS/`, `Windows/`, `Linux/`, or `android/`.
-- Do **not** create or modify those sibling platform trees while executing the iOS plan.
-- Shared Kotlin Multiplatform (KMP) code, when it exists, stays shared — do not fork it into an iOS-only copy.
-- Execution plan documents remain under `execution plan/iOS/` (read-only plan). Implementation artifacts go here.
+```
+iOS/
+  CONTEXT.md          ← iOS-only continuity + skipped items (not root CONTEXT.md)
+  project.yml         ← XcodeGen (generate .xcodeproj on Mac)
+  Mailstack/          ← SwiftUI app sources
+  MailstackTests/     ← Unit tests
+  docs/               ← Phase notes
+```
 
-## Status
+Shared KMP contracts (portable): `../shared/` (JVM target validated on Linux).
 
-See [`docs/development-status.md`](docs/development-status.md).
+## Mac build
 
-## Phase 0 (complete)
+```bash
+brew install xcodegen   # if needed
+cd iOS && xcodegen generate
+open Mailstack.xcodeproj
+```
 
-Architecture audit, folder boundary, and readiness report:
+## Linux / Cloud Agent
 
-- [`docs/phase-00-architecture-audit.md`](docs/phase-00-architecture-audit.md)
-- [`docs/kmp-integration-map.md`](docs/kmp-integration-map.md)
-- [`docs/editor-rules.md`](docs/editor-rules.md)
-
-## Next
-
-**Phase 1** — iOS Application Shell & KMP Integration  
-Plan: `execution plan/iOS/phase-01-ios-application-shell-kmp-integration.md`
-
-## Honest environment note
-
-This Cloud Agent sandbox is **Linux** and has **no Xcode / iPhone Simulator**. Phase 0 is documentation and boundary only. Simulator/device builds require a macOS host with Xcode (Phase 1+).
+Cannot run Simulator. Skips are recorded in `CONTEXT.md` in this folder.
