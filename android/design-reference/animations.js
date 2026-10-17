@@ -318,20 +318,25 @@
   var tfContinueBtn = document.getElementById("tfContinueBtn");
   var tfTitle = document.getElementById("tfTitle");
   var tfPct = document.getElementById("tfPct");
-  var tfFill = document.getElementById("tfFill");
+  var tfPulse = document.getElementById("tfPulse");
   var tfRing = document.getElementById("tfRing");
   var tfArc = document.getElementById("tfArc");
   var tfEnvLayer = document.getElementById("tfEnvLayer");
   var tfRow1 = document.getElementById("tfRow1");
   var tfRow2 = document.getElementById("tfRow2");
   var tfBottom = document.getElementById("tfBottom");
-  if (tfWrap && tfCard1 && tfCard2 && tfImportBtn && tfContinueBtn && tfTitle && tfPct && tfFill && tfRing && tfArc && tfEnvLayer) {
-    var tfRunning = false, tfRaf = null, tfStart = 0, tfLastSpawn = 0, tfDone = false, tfEnvSeq = 0;
+  if (tfWrap && tfCard1 && tfCard2 && tfImportBtn && tfContinueBtn && tfTitle && tfPct && tfPulse && tfRing && tfArc && tfEnvLayer) {
+    var tfRunning = false, tfRaf = null, tfStart = 0, tfLastSpawn = 0, tfDone = false, tfEnvSeq = 0, tfConnected = false, tfPulseStart = 0;
     var TF_DURATION = 7000; // demo: full import in 7s
     var tfArcLen = tfArc.getTotalLength();
     var tfRingLen = 2 * Math.PI * 33;
-    tfFill.style.strokeDasharray = String(tfArcLen);
-    tfFill.style.strokeDashoffset = String(tfArcLen);
+    // The line draws in fast (400 ms) once Card 2 appears; the pulse and
+    // the envelopes start only after it is connected. The arc NEVER shows
+    // progress — only the ring around the Mailstack node is the progress bar.
+    tfArc.style.strokeDasharray = String(tfArcLen);
+    tfArc.style.strokeDashoffset = String(tfArcLen);
+    tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
+    tfPulse.style.strokeDashoffset = "0";
     tfRing.style.strokeDasharray = String(tfRingLen);
     tfRing.style.strokeDashoffset = String(tfRingLen);
     function tfSetHeight() {
@@ -373,11 +378,27 @@
       if (!tfStart) tfStart = ts;
       var p = Math.min(1, (ts - tfStart) / TF_DURATION);
       tfPct.textContent = Math.round(p * 100) + "%";
-      tfFill.style.strokeDashoffset = String(tfArcLen * (1 - p));
       tfRing.style.strokeDashoffset = String(tfRingLen * (1 - p));
-      if (p >= 0.3) tfShowRow(tfRow1);
-      if (p >= 0.6) tfShowRow(tfRow2);
-      if (ts - tfLastSpawn > 450) { tfLastSpawn = ts; tfSpawnEnvelope(); }
+      // Line connects fast (first 400 ms); then the pulse + envelopes start.
+      var connectP = Math.min(1, (ts - tfStart) / 400);
+      tfArc.style.strokeDashoffset = String(tfArcLen * (1 - connectP));
+      if (connectP >= 1 && !tfConnected) { tfConnected = true; tfPulseStart = ts; }
+      if (tfConnected) {
+        var pel = (ts - tfPulseStart) / 1000;
+        var cyc = pel % 1.6;
+        if (cyc <= 1.2) {
+          var head = cyc / 1.2;
+          var tail = Math.max(0, head - 0.35);
+          var seg = (head - tail) * tfArcLen;
+          tfPulse.style.strokeDasharray = String(seg) + " " + String(tfArcLen - seg);
+          tfPulse.style.strokeDashoffset = String(-tail * tfArcLen);
+        } else {
+          tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
+        }
+      }
+      if (p >= 0.10) tfShowRow(tfRow1);
+      if (p >= 0.25) tfShowRow(tfRow2);
+      if (tfConnected && ts - tfLastSpawn > 450) { tfLastSpawn = ts; tfSpawnEnvelope(); }
       if (p >= 1) {
         tfTitle.textContent = "Mailbox Organized";
         tfContinueBtn.classList.remove("tf-btn-dim");
@@ -385,6 +406,9 @@
         tfDone = true;
         tfRunning = false;
         tfRaf = null;
+        // Transfer done — nothing is moving any more, so the pulse stops
+        // and the arc rests as a steady line.
+        tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
         return;
       }
       tfRaf = requestAnimationFrame(tfTick);
@@ -393,14 +417,16 @@
       tfWrap.classList.remove("morph", "gone");
       tfTitle.textContent = "Importing Mails";
       tfPct.textContent = "0%";
-      tfFill.style.strokeDashoffset = String(tfArcLen);
+      tfArc.style.strokeDashoffset = String(tfArcLen);
+      tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
+      tfPulse.style.strokeDashoffset = "0";
       tfRing.style.strokeDashoffset = String(tfRingLen);
       tfContinueBtn.classList.add("tf-btn-dim");
       tfContinueBtn.disabled = true;
       [tfRow1, tfRow2].forEach(function (r) { if (r) r.classList.remove("visible", "show"); });
       tfBottom.classList.remove("rows-shown");
       tfEnvLayer.innerHTML = "";
-      tfStart = 0; tfLastSpawn = 0; tfDone = false; tfRunning = false;
+      tfStart = 0; tfLastSpawn = 0; tfDone = false; tfRunning = false; tfConnected = false; tfPulseStart = 0;
       tfSetHeight();
     }
     tfImportBtn.addEventListener("click", function () {
@@ -410,8 +436,6 @@
       tfRunning = true;
       tfStart = 0;
       tfLastSpawn = performance.now();
-      tfSpawnEnvelope();
-      tfSpawnEnvelope();
       tfRaf = requestAnimationFrame(tfTick);
     });
     function tfDismiss() {
