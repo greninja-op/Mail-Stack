@@ -687,9 +687,13 @@
   <p>Pull down from the top of the mail list and a pill appears — a filling arc + a label.
   Pull a little: <b>“Pull to refresh”</b>. Pull past the threshold: the arc fills completely
   and the label flips to <b>“Release to refresh”</b>. Let go and the whole mailbox reloads.
-  The pull is damped — the list travels a fraction of your finger's distance — so it feels
-  smooth and easy, never stiff. There is no reload button in the top bar any more: this
-  gesture <i>is</i> the reload. <b>Try it:</b> drag the list below down and let go.</p>
+  The pull is deliberately <b>hard</b> — the list travels at <b>half</b> your finger's distance
+  and must reach <b>96 dp</b> of travel (<b>192 dp</b> of finger) before the release arms a
+  refresh — so you <i>feel</i> yourself pulling to refresh, like Instagram, and a normal
+  scroll-to-top swipe never fires it on its own. Pull again within 30 s of a finished sync
+  and it finishes at once (“Already up to date”) — there is nothing new to fetch. There is
+  no reload button in the top bar any more: this gesture <i>is</i> the reload.
+  <b>Try it:</b> drag the list below down and let go — a short tug won't reach it.</p>
 
   <div class='ptr-stage'>
     <div class='hide-topbar'>
@@ -725,7 +729,7 @@
       <span class='hide-tab'><svg viewBox='0 0 24 24' fill='currentColor'><path d='M12 2a10 10 0 1 0 0 20 10 10 0 1 0 0-20zm-1.2 14.2-4-4 1.4-1.4 2.6 2.6 6-6 1.4 1.4z'/></svg>Actions</span>
     </div>
   </div>
-  <p class='demo-caption'>Drag the list down — the pill fades in and the arc fills. Past the threshold it says “Release to refresh”. Let go and it reloads (spinner), then settles back. Note the top bar: no reload button, just the account DP.</p>
+  <p class='demo-caption'>Drag the list down — the pill fades in and the arc fills. Past the threshold it says “Release to refresh”. Let go and it reloads (spinner), then settles back. You have to pull a long way — a short tug, or a scroll-to-top swipe, never reaches the threshold. Note the top bar: no reload button, just the account DP.</p>
 
   <h3>What you are looking at — annotated</h3>
   <div class='fig'>
@@ -745,11 +749,12 @@
       <text x='148' y='96' font-size='12' fill='#222'>Pull to refresh</text>
       <!-- threshold -->
       <line x1='20' y1='128' x2='320' y2='128' stroke='#C00000' stroke-width='1.5' stroke-dasharray='6 4'/>
-      <text x='332' y='133' font-family='Caveat' font-size='23' fill='#C00000'>← threshold: the release line</text>
+      <text x='332' y='133' font-family='Caveat' font-size='23' fill='#C00000'>← threshold: 96 dp of list travel</text>
+      <text x='332' y='156' font-family='Caveat' font-size='23' fill='#C00000'>(192 dp of finger — a real pull)</text>
       <!-- drag arrow -->
       <path d='M170 160 L 170 220' fill='none' stroke='#C00000' stroke-width='2' marker-end='url(#ah7)'/>
       <text x='182' y='195' font-family='Caveat' font-size='23' fill='#222'>drag down —</text>
-      <text x='182' y='218' font-family='Caveat' font-size='23' fill='#222'>list follows, damped</text>
+      <text x='182' y='218' font-family='Caveat' font-size='23' fill='#222'>list follows at half speed</text>
       <!-- rows -->
       <g><circle cx='60' cy='160' r='13' fill='#5238E8'/><rect x='86' y='152' width='110' height='9' rx='4' fill='#CBC5DE'/><rect x='86' y='165' width='170' height='7' rx='3' fill='#E7E0F6'/></g>
       <g><circle cx='60' cy='210' r='13' fill='#1E7A55'/><rect x='86' y='202' width='90' height='9' rx='4' fill='#CBC5DE'/><rect x='86' y='215' width='150' height='7' rx='3' fill='#E7E0F6'/></g>
@@ -757,7 +762,7 @@
       <g><rect x='360' y='150' width='210' height='30' rx='15' fill='#E7E0F6' stroke='#CBC5DE'/><circle cx='382' cy='165' r='8' fill='none' stroke='#CBC5DE' stroke-width='2.5'/><circle cx='382' cy='165' r='8' fill='none' stroke='#5238E8' stroke-width='2.5' stroke-dasharray='25 25' transform='rotate(-90 382 165)'/><text x='400' y='170' font-size='13' fill='#222'>Pull to refresh (arc half)</text></g>
       <g><rect x='360' y='192' width='210' height='30' rx='15' fill='#E7E0F6' stroke='#CBC5DE'/><circle cx='382' cy='207' r='8' fill='none' stroke='#5238E8' stroke-width='2.5'/><text x='400' y='212' font-size='13' fill='#222'>Release to refresh (arc full)</text></g>
       <g><rect x='360' y='234' width='210' height='30' rx='15' fill='#E7E0F6' stroke='#CBC5DE'/><circle cx='382' cy='249' r='8' fill='none' stroke='#5238E8' stroke-width='2.5' stroke-dasharray='12 38'/><text x='400' y='254' font-size='13' fill='#222'>Refreshing… (spinner)</text></g>
-      <text x='20' y='308' font-family='Caveat' font-size='23' fill='#222'>Release BEFORE the line → nothing happens, list springs back. Release PAST it → full reload.</text>
+      <text x='20' y='308' font-family='Caveat' font-size='23' fill='#222'>Release BEFORE the line → nothing happens, list springs back. Release PAST it → full reload. A scroll-to-top swipe never reaches the line.</text>
     </svg>
   </div>
 
@@ -781,22 +786,24 @@
     <div class='step'><div class='no'>2</div><p class='hand'>The pill fades in as you pull — alpha follows the pull — so it is invisible at rest and fully visible at the threshold. The arc fills with the pull: empty → full circle. <span class='arrow'>← the pill IS the signal!</span></p></div>
     <div class='step'><div class='no'>3</div><p class='hand'>Past the threshold the label flips to “Release to refresh”. That flip is the whole point — you can <u>feel</u> when you have pulled far enough. Nothing reloads until you let go.</p></div>
     <div class='step'><div class='no'>4</div><p class='hand'>Let go past the threshold → the whole mailbox reloads (full sync). The pill shows a spinner + “Refreshing…” until the sync finishes, then the list settles back to rest.</p></div>
-    <div class='step'><div class='no'>5</div><p class='hand'>Let go <u>before</u> the threshold → nothing happens. The list springs back. No accidental reloads from a short tug.</p></div>
-    <div class='step'><div class='no'>6</div><p class='hand'>The pull is damped — the list moves slower than your finger — so it feels smooth and easy, never stiff. And the top bar has no reload button any more: this gesture <u>is</u> the reload. The avatar next to the search pill is your account's DP (unified inbox: the default account's DP) — tap it for Accounts.</p></div>
+    <div class='step'><div class='no'>5</div><p class='hand'>Let go <u>before</u> the threshold → nothing happens. The list springs back. No accidental reloads from a short tug — a normal scroll-to-top swipe never reaches the threshold, because the pull is too hard for that.</p></div>
+    <div class='step'><div class='no'>6</div><p class='hand'>The pull is HARD on purpose — the list travels at HALF your finger's speed (drag rate 0.5) and must reach 96 dp of travel (192 dp of finger) before the release arms a refresh. It takes real effort — you <u>feel</u> yourself pulling to refresh, like Instagram. Never stiff, never free. And the top bar has no reload button any more: this gesture <u>is</u> the reload. The avatar next to the search pill is your account's DP (unified inbox: the default account's DP) — tap it for Accounts.</p></div>
+    <div class='step'><div class='no'>7</div><p class='hand'>If you pull again within 30 s of a manual refresh that finished a full successful sync, it finishes at once — “Already up to date”, no spinner, no engine run. There is nothing new to fetch, so it is fast. Only a FULL success counts: a failed or partial sync never blocks a retry from running a real sync. <span class='arrow'>← nothing to refresh → fast!</span></p></div>
   </div>
 
   <h3>Exact specs (for the agent)</h3>
   <table>
     <tr><th>What</th><th>Spec</th></tr>
-    <tr><td>Trigger</td><td class='spec'>pull down with the list at scroll position 0. Active in every mailbox state (list, empty, error, skeleton) — one hoisted PullToRefreshBox over the whole mailbox.</td></tr>
-    <tr><td>Threshold</td><td class='spec'>list travel 56 dp (Material3 PullToRefreshState default). Release at or past it → reload. Release before it → the list springs back, no reload.</td></tr>
-    <tr><td>Feel</td><td class='spec'>damped drag — the list travels a fraction of the finger's distance (Material3 pull-to-refresh damping). Smooth and easy, never stiff. No spring, no overshoot on the snap-back.</td></tr>
+    <tr><td>Trigger</td><td class='spec'>pull down with the list at scroll position 0. Active in every mailbox state (list, empty, error, skeleton) — one hoisted pull-to-refresh over the whole mailbox.</td></tr>
+    <tr><td>Threshold</td><td class='spec'>list travel 96 dp (custom — Material3's PullToRefreshBox fixed it at 56 dp with a 1:1 drag, so a scroll-to-top swipe fired a refresh on its own). Release at or past it → reload. Release before it → the list springs back, no reload. Finger travel to trigger = 96 / 0.5 = 192 dp.</td></tr>
+    <tr><td>Feel</td><td class='spec'>hard, deliberate drag — the list travels at HALF the finger's distance (drag rate 0.5), so you feel the effort, like Instagram. A fast scroll-to-top swipe is too short to reach the threshold. No spring, no overshoot on the snap-back. Scrolling back up while pulled shrinks the pull first; the list only scrolls once the pull is back to 0.</td></tr>
     <tr><td>Indicator</td><td class='spec'>pill, 50% rounded (full pill), surfaceContainerHigh, 4 dp shadow. 20 dp arc (2 dp stroke) + labelMedium text. Arc fills 0 → 100% with the pull. Alpha follows the pull (0 at rest, 1 at threshold).</td></tr>
     <tr><td>Labels</td><td class='spec'>“Pull to refresh” (below threshold) → “Release to refresh” (at/past threshold) → “Refreshing…” + indeterminate spinner (while the sync runs).</td></tr>
-    <tr><td>Reload</td><td class='spec'>release past the threshold calls the same refresh the old reload button called (full mailbox sync via the ViewModel). While syncing, the pill shows the spinner; when the sync finishes, the list settles back.</td></tr>
+    <tr><td>Reload</td><td class='spec'>release past the threshold calls the same refresh the old reload button called (full mailbox sync via the ViewModel). While syncing, the pill shows the spinner and the pull holds at the threshold; when the sync finishes, the list settles back. If the refresh is a fast no-op (offline / demo / within the 30 s cooldown — the ViewModel returns false), the pull springs back at once instead of hanging at the threshold.</td></tr>
+    <tr><td>Cooldown (fast when nothing to refresh)</td><td class='spec'>30 s after a manual refresh completes a full successful sync, a pull finishes immediately with “Already up to date.” — no spinner, no engine run. Only a full success counts: a failed or partial sync never blocks a retry from running a real sync. (MailViewModel.MANUAL_REFRESH_COOLDOWN_MS = 30_000, in-memory.)</td></tr>
     <tr><td>Demo accounts</td><td class='spec'>demo accounts (seeded fixtures, id <code>fixture-*</code>, + Add-Local test accounts, id <code>local-*</code>) are NEVER synced: they were never connected to Gmail, hold no tokens, and have no remote mail. The scheduler, the background worker, and the ViewModel all exclude them — a refresh touches only real connected accounts, and when nothing is syncable the refresh finishes immediately with the same "Gmail isn't connected yet…" guidance the old not-configured failure gave, instead of spinning. Demo accounts were "stale forever", so excluding them also stops a sync attempt on every app start / resume / connectivity recovery.</td></tr>
     <tr><td>Top bar</td><td class='spec'>no reload button on Mail — the gesture is the reload. The account avatar is the DP (default account's DP in the unified inbox) and opens Accounts.</td></tr>
-    <tr><td>Where</td><td class='spec'>the mailbox list (Mail tab), all states. Implemented in MailContent (MailScreen.kt) + InstagramPullIndicator.</td></tr>
+    <tr><td>Where</td><td class='spec'>the mailbox list (Mail tab), all states. Implemented in InstagramPullToRefresh + InstagramPullIndicator (MailScreen.kt) + MailViewModel.refresh (cooldown, returns whether a sync started).</td></tr>
   </table>
 </section>
 

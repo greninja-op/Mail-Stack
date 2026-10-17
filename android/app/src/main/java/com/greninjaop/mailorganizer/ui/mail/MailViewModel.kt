@@ -104,6 +104,14 @@ class MailViewModel(
         private const val GMAIL_LABEL_SPAM = "SPAM"
 
         /**
+         * Manual-refresh cooldown (2026-10-17): a pull within this long
+         * after a manual refresh completed a full successful sync
+         * finishes immediately ("Already up to date") — there is
+         * nothing new to fetch, so no spinner, no engine run.
+         */
+        internal const val MANUAL_REFRESH_COOLDOWN_MS = 30_000L
+
+        /**
          * Startup classification guards: the background pass waits for
          * seeding, then for an account, but never blocks the UI — both
          * waits are bounded.
@@ -116,6 +124,13 @@ class MailViewModel(
     private val filterText = MutableStateFlow("")
     private val pageLimit = MutableStateFlow(PAGE_SIZE)
     private val syncUi = MutableStateFlow<SyncUiState>(SyncUiState.Idle)
+
+    /**
+     * When the last manual refresh completed a full successful sync
+     * (epoch ms, in-memory only). Used by [refresh]'s cooldown fast
+     * path: a pull right after a sync finishes immediately.
+     */
+    private var lastManualSyncCompletedAtMs: Long = 0L
 
     /**
      * Selected company filter (Phase 8). Scoped to the current category:
@@ -688,12 +703,12 @@ class MailViewModel(
      * with Phase 3 deferred, this surfaces "not connected" instead of
      * pretending to sync.
      */
-    fun refresh() {
+    fun refresh(): Boolean {
         if (state.value.isOffline) {
             syncUi.value = SyncUiState.Result("You're offline — showing synced mail.")
-            return
+            return false
         }
-        if (syncUi.value is SyncUiState.Syncing) return
+        if (syncUi.value is SyncUiState.Syncing) return false
         val selection = activeSelection.value
         val isUnified = activeAccountPreferences != null && selection is com.greninjaop.mailorganizer.data.prefs.AccountSelection.Unified
 
@@ -712,7 +727,7 @@ class MailViewModel(
                     if (anyEnabled) "Gmail isn't connected yet — sync will work once you connect an account."
                     else "No accounts connected.",
                 )
-                return
+                return false
             }
         } else {
             val current = activeAccount.value
@@ -720,8 +735,21 @@ class MailViewModel(
                 syncUi.value = SyncUiState.Result(
                     "Gmail isn't connected yet — sync will work once you connect an account.",
                 )
-                return
+                return false
             }
+        }
+
+        // Fast path (2026-10-17): a manual refresh that just completed
+        // means there is nothing new to fetch — finish immediately with
+        // "Already up to date", no spinner, no engine run. This is the
+        // "if there isn't something to refresh, make it fast" case: the
+        // user pulled twice in a row, or the pull fired right after a
+        // sync. Returns false so the pull indicator snaps back at once
+        // instead of hanging at the threshold waiting for a sync that
+        // will never start.
+        if (isWithinRefreshCooldown(lastManualSyncCompletedAtMs, clock())) {
+            syncUi.value = SyncUiState.Result("Already up to date.")
+            return false
         }
 
         viewModelScope.launch(dispatchers.io) {
@@ -739,6 +767,10 @@ class MailViewModel(
                     else -> "$succeeded of $total accounts synced."
                 }
                 syncUi.value = SyncUiState.Result(msg)
+                // Only a FULL success counts as "just synced" for the
+                // cooldown — a failed or partial sync must not block a
+                // retry from running a real sync.
+                if (succeeded == total) lastManualSyncCompletedAtMs = clock()
             } else {
                 val account = activeAccount.value ?: return@launch
                 val outcome = syncCoordinator.syncNow(
@@ -753,8 +785,10 @@ class MailViewModel(
                         SyncOutcome.Cancelled -> "Sync cancelled."
                     },
                 )
+                if (outcome is SyncOutcome.Success) lastManualSyncCompletedAtMs = clock()
             }
         }
+        return true
     }
 
     private suspend fun syncAllAccountsManually(): Map<String, SyncOutcome> {
@@ -943,6 +977,21 @@ data class MailScreenState(
     /** Phase 19: per-account sync status. */
     val accountSyncStatus: AccountSyncStatus = AccountSyncStatus.NeverSynced,
 )
+
+/**
+ * Manual-refresh cooldown check (2026-10-17, pure, unit-tested).
+ *
+ * True when a manual refresh completed a full successful sync within
+ * [cooldownMs] of [nowMs] — there is nothing new to fetch, so the
+ * refresh finishes immediately. [lastCompletedAtMs] == 0 means no
+ * manual sync has ever completed (never in cooldown).
+ */
+internal fun isWithinRefreshCooldown(
+    lastCompletedAtMs: Long,
+    nowMs: Long,
+    cooldownMs: Long = MailViewModel.MANUAL_REFRESH_COOLDOWN_MS,
+): Boolean =
+    lastCompletedAtMs > 0 && nowMs - lastCompletedAtMs < cooldownMs
 
 /** Sync affordance state: idle, honestly-staged progress, or a result message. */
 sealed interface SyncUiState {

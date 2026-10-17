@@ -1,6 +1,10 @@
 package com.greninjaop.mailorganizer.ui.mail
 
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -8,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -29,26 +34,177 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.pulltorefresh.PullToRefreshBox
-import androidx.compose.material3.pulltorefresh.PullToRefreshState
-import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 import com.greninjaop.mailorganizer.ui.components.MailListSkeleton
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.edgeFade
 import com.greninjaop.mailorganizer.ui.theme.MoSpacing
+
+/**
+ * Drag rate for the pull-to-refresh (2026-10-17): the list and the
+ * indicator travel this fraction of the finger's distance. 0.5 means
+ * a 192 dp finger pull moves the list 96 dp — the pull feels like
+ * deliberate effort (Instagram-like), not a free scroll.
+ */
+internal const val PULL_DRAG_RATE = 0.5f
+
+/**
+ * Pull-to-refresh release threshold (2026-10-17): the list travel,
+ * in dp, that must be reached before releasing arms a refresh.
+ * Finger travel to trigger = threshold / [PULL_DRAG_RATE] = 192 dp.
+ */
+internal const val PULL_THRESHOLD_DP = 96
+
+/**
+ * Applies one pull drag delta to the current pull offset (px).
+ * Positive [fingerDeltaPx] = pulling down (grows the pull, damped);
+ * negative = scrolling back up (shrinks the pull, damped). The offset
+ * never goes below 0. Pure, unit-tested.
+ */
+internal fun applyPullDrag(
+    currentOffsetPx: Float,
+    fingerDeltaPx: Float,
+    dragRate: Float = PULL_DRAG_RATE,
+): Float = (currentOffsetPx + fingerDeltaPx * dragRate).coerceAtLeast(0f)
+
+/**
+ * True when the pull offset has reached the release threshold — the
+ * release arms a refresh. Pure, unit-tested.
+ */
+internal fun isPullPastThreshold(offsetPx: Float, thresholdPx: Float): Boolean =
+    offsetPx >= thresholdPx
+
+/**
+ * Instagram-style pull-to-refresh container (2026-10-17), custom-built
+ * to replace Material3's PullToRefreshBox.
+ *
+ * Why custom: M3's box fixes the threshold at 56 dp and drags 1:1, so
+ * a normal scroll-to-top swipe (a fast ~100 dp finger flick) sailed
+ * past the threshold and refreshed on its own. This version takes
+ * real effort: [PULL_DRAG_RATE] damping + a [PULL_THRESHOLD_DP] list
+ * travel threshold (~192 dp of finger) — a scroll-to-top swipe never
+ * gets there.
+ *
+ * Behaviour:
+ * - Pull-down overscroll (the list is at the top) grows the pull,
+ *   damped; the content translates down by the pull and the pill
+ *   fades in with the pull.
+ * - Scrolling back up while pulled shrinks the pull first (the list
+ *   only scrolls once the pull is back to 0).
+ * - Release past the threshold: if [onRefresh] starts a sync, the
+ *   pull settles at the threshold and holds while the sync runs,
+ *   then springs back when it finishes. If [onRefresh] was a fast
+ *   no-op (offline / demo / cooldown — it returns false), the pull
+ *   springs back at once instead of hanging at the threshold.
+ * - Release before the threshold: the pull springs back, no reload.
+ * - While a sync runs, the pull is pinned (the list drag-scrolls
+ *   normally underneath the held indicator).
+ *
+ * @param onRefresh starts a refresh; returns true when a sync was
+ * actually started, false for a fast no-op.
+ */
+@Composable
+private fun InstagramPullToRefresh(
+    isRefreshing: Boolean,
+    onRefresh: () -> Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable () -> Unit,
+) {
+    val density = LocalDensity.current
+    val thresholdPx = with(density) { PULL_THRESHOLD_DP.dp.toPx() }
+    val pullOffset = remember { Animatable(0f) }
+    val scope = rememberCoroutineScope()
+    val refreshingState = rememberUpdatedState(isRefreshing)
+    // When the sync finishes, settle the pull back to rest.
+    var wasRefreshing by remember { mutableStateOf(false) }
+    LaunchedEffect(isRefreshing) {
+        if (wasRefreshing && !isRefreshing) {
+            pullOffset.animateTo(0f, tween(durationMillis = 250, easing = FastOutSlowInEasing))
+        }
+        wasRefreshing = isRefreshing
+    }
+    val connection = remember(thresholdPx) {
+        object : NestedScrollConnection {
+            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
+                // Scrolling back up while pulled: shrink the pull first.
+                if (available.y >= 0f || refreshingState.value) return Offset.Zero
+                val pull = pullOffset.value
+                if (pull <= 0f) return Offset.Zero
+                val consume = minOf(-available.y, pull / PULL_DRAG_RATE)
+                scope.launch { pullOffset.snapTo((pull - consume * PULL_DRAG_RATE).coerceAtLeast(0f)) }
+                return Offset(0f, -consume)
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource,
+            ): Offset {
+                // Leftover downward scroll (the list is at the top):
+                // grow the pull, damped. Consume it so the list stays put.
+                if (available.y <= 0f || refreshingState.value) return Offset.Zero
+                scope.launch { pullOffset.snapTo(applyPullDrag(pullOffset.value, available.y)) }
+                return Offset(0f, available.y)
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                val pull = pullOffset.value
+                if (pull <= 0f) return Velocity.Zero
+                if (isPullPastThreshold(pull, thresholdPx) && !refreshingState.value) {
+                    // Released past the threshold: start the refresh
+                    // (the sync starts at once, no settle delay), then
+                    // settle. A fast no-op (onRefresh false) springs
+                    // back at once instead of hanging at the threshold.
+                    val started = onRefresh()
+                    if (started) {
+                        pullOffset.animateTo(thresholdPx, tween(durationMillis = 150, easing = FastOutSlowInEasing))
+                    } else {
+                        pullOffset.animateTo(0f, tween(durationMillis = 250, easing = FastOutSlowInEasing))
+                    }
+                } else if (!refreshingState.value) {
+                    // Released short: spring back, no reload.
+                    pullOffset.animateTo(0f, tween(durationMillis = 250, easing = FastOutSlowInEasing))
+                }
+                return available
+            }
+        }
+    }
+    Box(modifier = modifier.nestedScroll(connection)) {
+        Box(
+            modifier = Modifier.offset { IntOffset(0, pullOffset.value.roundToInt()) },
+        ) { content() }
+        InstagramPullIndicator(
+            fraction = (pullOffset.value / thresholdPx).coerceIn(0f, 1f),
+            isRefreshing = isRefreshing,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+    }
+}
 
 /**
  * Core inbox screen (Phase 6).
@@ -196,22 +352,25 @@ private fun OfflineBanner() {
 private fun MailContent(
     state: MailScreenState,
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
-    onRetry: () -> Unit,
+    onRetry: () -> Boolean,
     onLoadMore: () -> Unit,
     isLoadingMore: Boolean = false,
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
 ) {
-        // Instagram-style pull-to-refresh (2026-10-16): one hoisted
-        // PullToRefreshBox over the whole mailbox — every state
-        // (list, empty, error, skeleton) can pull, so the top-bar
-        // reload button is gone (see MoPrimaryTopBar). The indicator
-        // is custom: a pill with a filling arc + "Pull to refresh" /
-        // "Release to refresh" / "Refreshing…" — the threshold is
-        // the signal, not a bare spinner.
+        // Instagram-style pull-to-refresh (2026-10-16, hardened 2026-10-17):
+        // a custom pull (InstagramPullToRefresh) over the whole mailbox —
+        // every state (list, empty, error, skeleton) can pull, so the
+        // top-bar reload button is gone (see MoPrimaryTopBar). The
+        // indicator is custom: a pill with a filling arc + "Pull to
+        // refresh" / "Release to refresh" / "Refreshing…" — the
+        // threshold is the signal, not a bare spinner. The pull is
+        // deliberately HARD: the list travels at half the finger's
+        // speed and must reach 96 dp of travel before the release
+        // arms a refresh (~192 dp of finger) — a scroll-to-top swipe
+        // never gets there, so it never refreshes on its own.
         val isRefreshing = state.syncUi is SyncUiState.Syncing
-        val pullState = rememberPullToRefreshState()
         // Skeleton only on the true first load (2026-10-16 fix): the
         // skeleton shows when content is Loading (nothing cached yet).
         // Once the mailbox is loaded, the ViewModel caches it, so tab
@@ -219,18 +378,10 @@ private fun MailContent(
         // flash on every Mail entry. (The old 300ms defer protected the
         // bubble animation, but the skeleton flash on every tab switch
         // was worse; the cached list composes fast enough.)
-        PullToRefreshBox(
+        InstagramPullToRefresh(
             isRefreshing = isRefreshing,
             onRefresh = onRetry,
-            state = pullState,
             modifier = modifier.fillMaxSize(),
-            indicator = {
-                InstagramPullIndicator(
-                    state = pullState,
-                    isRefreshing = isRefreshing,
-                    modifier = Modifier.align(Alignment.TopCenter),
-                )
-            },
         ) {
             Column(modifier = Modifier.fillMaxSize()) {
                 header()
@@ -353,7 +504,7 @@ private fun MailContent(
                                 message = "Connect a Gmail account to see your mail here. " +
                                     "Tap Sync now to fetch your messages.",
                                 actionLabel = "Sync now",
-                                onAction = onRetry,
+                                onAction = { onRetry() },
                                 modifier = Modifier.weight(1f),
                             )
                             EmptyKind.NO_FILTER_RESULTS -> MoEmptyState(
@@ -393,7 +544,7 @@ private fun MailContent(
                     }
                     is MailboxContent.Error -> MoErrorState(
                         message = content.message,
-                        onRetry = onRetry,
+                        onRetry = { onRetry() },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -405,19 +556,18 @@ private fun MailContent(
  * Instagram-style pull-to-refresh indicator (2026-10-16): a pill
  * with a filling arc + a threshold label, instead of Material's
  * bare spinner. "Pull to refresh" while the drag is below the
- * threshold; "Release to refresh" once past it (distanceFraction
- * >= 1 — the release is the trigger); a spinner + "Refreshing…"
- * while the sync runs. Fades in with the pull (alpha follows the
- * fraction) so it is invisible at rest. Placed by the
- * PullToRefreshBox's indicator slot, centered at the top.
+ * threshold; "Release to refresh" once past it (fraction >= 1 —
+ * the release is the trigger); a spinner + "Refreshing…" while
+ * the sync runs. Fades in with the pull (alpha follows the
+ * fraction) so it is invisible at rest. Placed at the top of the
+ * pull-to-refresh container, centered.
  */
 @Composable
 private fun InstagramPullIndicator(
-    state: PullToRefreshState,
+    fraction: Float,
     isRefreshing: Boolean,
     modifier: Modifier = Modifier,
 ) {
-    val fraction = state.distanceFraction
     val alpha = if (isRefreshing) 1f else fraction.coerceIn(0f, 1f)
     Surface(
         modifier = modifier

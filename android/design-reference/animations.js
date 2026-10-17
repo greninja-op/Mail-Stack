@@ -152,8 +152,8 @@
   var ptrArcSvg = document.getElementById("ptrArcSvg");
   var ptrLabel = document.getElementById("ptrLabel");
   if (ptrViewport && ptrList && ptrPill && ptrArc && ptrArcSvg && ptrLabel) {
-    var PTR_THRESHOLD = 64;   // px of list travel = the release threshold
-    var PTR_DAMP = 0.5;       // list travels half the finger — the smooth, easy pull
+    var PTR_THRESHOLD = 96;   // px of list travel = the release threshold (finger travel = 96 / 0.5 = 192 px — a deliberate pull)
+    var PTR_DAMP = 0.5;       // list travels half the finger — the hard, deliberate pull
     var PTR_CIRC = 56.5;      // arc circumference (r = 9)
     var ptrStartY = 0, ptrPulling = false, ptrRefreshing = false, ptrProgress = 0;
     function ptrRender(progress, label) {

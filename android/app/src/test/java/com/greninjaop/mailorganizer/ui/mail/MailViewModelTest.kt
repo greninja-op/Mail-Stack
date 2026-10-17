@@ -439,8 +439,7 @@ class MailViewModelTest {
     }
 
     @Test
-    fun `refresh while offline surfaces honest offline notice`() = runTest(testDispatcher) {
-        val vm = viewModel(seed = true, online = false)
+    fun `refresh while offline surfaces honest offline notice`() = runTest(testDispatcher) {        val vm = viewModel(seed = true, online = false)
         advanceUntilIdle()
 
         vm.state.test {
@@ -456,6 +455,15 @@ class MailViewModelTest {
                 (s.syncUi as SyncUiState.Result).message,
             )
         }
+    }
+
+    @Test
+    fun `refresh cooldown - a pull right after a sync is already up to date`() {
+        // 30s cooldown: within it, the refresh is a fast no-op.
+        assertTrue(isWithinRefreshCooldown(lastCompletedAtMs = 1_000L, nowMs = 1_000L + 29_999L))
+        assertFalse(isWithinRefreshCooldown(lastCompletedAtMs = 1_000L, nowMs = 1_000L + 30_000L))
+        // Never synced (0) is never in cooldown — the first refresh must run.
+        assertFalse(isWithinRefreshCooldown(lastCompletedAtMs = 0L, nowMs = 1_000L))
     }
 
     // ---------- Infinite scroll (2026-10-16, Gmail parity) ----------
