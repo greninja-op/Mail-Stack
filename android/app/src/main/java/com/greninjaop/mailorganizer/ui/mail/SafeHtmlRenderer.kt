@@ -134,15 +134,21 @@ object SafeHtmlRenderer {
     // ------------------------------------------------------------------
 
     private fun parse(html: String): List<BodyBlock> {
+        // Defense in depth: the sanitizer already strips declarations
+        // (DOCTYPE, <?...?>, CDATA), but this layer trusts nothing — a
+        // `<!DOCTYPE ...>` that survived would leak through as visible
+        // text (the tag regex only matches names starting with a letter,
+        // so `<!DOCTYPE` is never a "tag"). Strip them here too.
+        val clean = DECLARATIONS.replace(html, "")
         val f = Frame()
         var pos = 0
-        while (pos < html.length) {
-            val m = tagRegex.find(html, pos)
+        while (pos < clean.length) {
+            val m = tagRegex.find(clean, pos)
             if (m == null) {
-                emitText(f, html.substring(pos))
+                emitText(f, clean.substring(pos))
                 break
             }
-            if (m.range.first > pos) emitText(f, html.substring(pos, m.range.first))
+            if (m.range.first > pos) emitText(f, clean.substring(pos, m.range.first))
             handleTag(f, m.groupValues[1] == "/", m.groupValues[2].lowercase(), m.groupValues[3])
             pos = m.range.last + 1
         }
@@ -271,41 +277,10 @@ object SafeHtmlRenderer {
         return null
     }
 
-    private val namedEntities = mapOf(
-        "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"",
-        "apos" to "'", "#39" to "'", "nbsp" to " ",
+    private val DECLARATIONS = Regex(
+        "<!DOCTYPE[^>]*>|<\\?.*?\\?>|<!\\[CDATA\\[.*?\\]\\]>",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
     )
 
-    private fun decodeEntities(s: String): String {
-        if (!s.contains('&')) return s
-        val out = StringBuilder(s.length)
-        var i = 0
-        while (i < s.length) {
-            val c = s[i]
-            if (c == '&') {
-                val semi = s.indexOf(';', i + 1).takeIf { it in (i + 1)..(i + 12) }
-                if (semi != null) {
-                    val name = s.substring(i + 1, semi)
-                    val decoded = namedEntities[name]
-                        ?: if (name.startsWith("#x") || name.startsWith("#X")) {
-                            name.substring(2).toIntOrNull(16)?.let { code ->
-                                if (code in 0x20..0x10FFFF) code.toChar().toString() else null
-                            }
-                        } else if (name.startsWith("#")) {
-                            name.substring(1).toIntOrNull()?.let { code ->
-                                if (code in 0x20..0x10FFFF) code.toChar().toString() else null
-                            }
-                        } else null
-                    if (decoded != null) {
-                        out.append(decoded)
-                        i = semi + 1
-                        continue
-                    }
-                }
-            }
-            out.append(c)
-            i++
-        }
-        return out.toString()
-    }
+    private fun decodeEntities(s: String): String = HtmlSanitizer.decodeEntities(s)
 }

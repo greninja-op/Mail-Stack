@@ -105,19 +105,16 @@ fun SafeHtmlText(
                         modifier = Modifier.padding(vertical = MoSpacing.xs),
                     )
                 is BodyBlock.ImagePlaceholder ->
-                    // Text-only placeholder: the bundled core icon set has no
-                    // image glyph, and remote images are never fetched (§25).
-                    Text(
-                        text = block.alt.ifBlank { "Image not loaded" },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier
-                            .padding(vertical = MoSpacing.xs)
-                            .semantics {
-                                contentDescription =
-                                    "Image not loaded${if (block.alt.isNotBlank()) ": ${block.alt}" else ""}"
-                            },
-                    )
+                    // No per-image line (2026-10-17 fix): remote images
+                    // are never fetched (privacy — a fetch tells the
+                    // sender the mail was opened), and a mail full of
+                    // tracking/pixel images rendered as a repeated
+                    // "Image not loaded" line per image (seen in Reddit
+                    // digests). Images are simply skipped; the body
+                    // reads cleanly. The renderer still emits the
+                    // placeholder block (tests + model), the UI just
+                    // does not draw a line for it.
+                    Unit
             }
         }
     }

@@ -1,6 +1,7 @@
 package com.greninjaop.mailorganizer.ui.mail
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -93,6 +94,23 @@ class SafeHtmlRendererTest {
     fun `entities decoded`() {
         val blocks = SafeHtmlRenderer.render("<p>a &amp; b &lt;c&gt; &#65; &#x42;</p>")
         assertEquals("a & b <c> A B", paragraphText(blocks))
+    }
+
+    @Test
+    fun `doctype never renders as text and bull zwnj decode`() {
+        val html = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" " +
+            "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">" +
+            "<p>u/x &bull; 4h ago</p><p>&zwnj; &zwnj; &zwnj;</p>"
+        val blocks = SafeHtmlRenderer.render(html)
+        val text = blocks.joinToString(" ") {
+            when (it) {
+                is BodyBlock.Paragraph -> it.runs.joinToString("") { r -> r.text }
+                else -> ""
+            }
+        }
+        assertFalse(text.contains("DOCTYPE"))
+        assertTrue(text.contains("u/x • 4h ago"))
+        assertFalse(text.contains("zwnj"))
     }
 
     @Test

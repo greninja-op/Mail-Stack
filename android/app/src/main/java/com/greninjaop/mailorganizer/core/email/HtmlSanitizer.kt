@@ -46,6 +46,15 @@ object HtmlSanitizer {
         RegexOption.IGNORE_CASE,
     )
     private val comments = Regex("<!--.*?-->", RegexOption.DOT_MATCHES_ALL)
+    // Declarations that are not content and must never render as text:
+    // `<!DOCTYPE html ...>` (its tag name starts with `!`, so the
+    // renderer's tag regex never matched it and it leaked through as a
+    // visible "<!DOCTYPE html ...>" paragraph — seen in a Reddit digest),
+    // `<?xml ...?>` processing instructions, and `<![CDATA[...]]>`.
+    private val declarations = Regex(
+        "<!DOCTYPE[^>]*>|<\\?.*?\\?>|<!\\[CDATA\\[.*?\\]\\]>",
+        setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL),
+    )
     // Event handlers: onload="…", onclick='…', onerror=… (unquoted).
     private val eventHandlers = Regex(
         "\\s+on[a-z]+\\s*=\\s*(\"[^\"]*\"|'[^']*'|[^\\s>]+)",
@@ -89,6 +98,7 @@ object HtmlSanitizer {
 
     private fun stripDangerous(html: String): String {
         var out = comments.replace(html, "")
+        out = declarations.replace(out, "")
         out = dangerousElements.replace(out, "")
         out = voidElements.replace(out, "")
         out = unclosedExecutable.replace(out, "")
@@ -103,16 +113,6 @@ object HtmlSanitizer {
         RegexOption.IGNORE_CASE,
     )
     private val anyTag = Regex("<[^>]+>")
-    private val entityMap = mapOf(
-        "&amp;" to "&",
-        "&lt;" to "<",
-        "&gt;" to ">",
-        "&quot;" to "\"",
-        "&#39;" to "'",
-        "&apos;" to "'",
-        "&nbsp;" to " ",
-    )
-    private val numericEntity = Regex("&#(x?[0-9a-fA-F]+);")
 
     /**
      * Best-effort HTML→text conversion. Script/style/iframe content is dropped
@@ -137,29 +137,92 @@ object HtmlSanitizer {
         }
     }
 
-    private fun decodeEntities(text: String): String {
-        var out = text
-        for ((entity, char) in entityMap) out = out.replace(entity, char)
-        out = numericEntity.replace(out) { match ->
-            val num = match.groupValues[1]
-            try {
-                val codePoint = if (num.startsWith("x", ignoreCase = true)) {
-                    num.substring(1).toInt(16)
-                } else {
-                    num.toInt(10)
+    /**
+     * Decodes HTML entities in [text]. Single-pass (no double-decoding:
+     * `&amp;bull;` stays `&bull;`, it does not become `•`).
+     *
+     * Covers the named entities that actually appear in mail
+     * (`&bull;` → `•`, `&mdash;`, quotes, currency, accented letters…).
+     * Numeric entities (`&#233;`, `&#xE9;`) decode via code point.
+     * `&zwnj;` / `&zwj;` decode to nothing, and literal zero-width
+     * characters (U+200B/U+200C/U+200D/U+FEFF) are stripped — senders
+     * (e.g. Reddit digests) pad with hundreds of them, and they must
+     * never render as a wall of literal `&zwnj;` text. Unknown or
+     * invalid entities are left as-is (never lose user text).
+     *
+     * Shared by [htmlToText] and the rich renderer (SafeHtmlRenderer),
+     * so both paths decode identically.
+     */
+    fun decodeEntities(text: String): String {
+        if (!text.contains('&') && !ZERO_WIDTH_CHARS.containsMatchIn(text)) return text
+        val out = StringBuilder(text.length)
+        var i = 0
+        while (i < text.length) {
+            val c = text[i]
+            if (c == '&') {
+                val semi = text.indexOf(';', i + 1).takeIf { it in (i + 1)..(i + 12) }
+                if (semi != null) {
+                    val name = text.substring(i + 1, semi)
+                    val decoded = NAMED_ENTITIES[name]
+                        ?: decodeNumericEntity(name)
+                    if (decoded != null) {
+                        out.append(decoded)
+                        i = semi + 1
+                        continue
+                    }
                 }
-                // Reject surrogates / out-of-range silently.
-                if (codePoint in 1..0x10FFFF &&
-                    codePoint !in 0xD800..0xDFFF
-                ) {
-                    String(Character.toChars(codePoint))
-                } else {
-                    ""
-                }
-            } catch (_: Exception) {
-                ""
             }
+            out.append(c)
+            i++
         }
-        return out
+        // Strip zero-width characters (invisible padding/tracking).
+        return ZERO_WIDTH_CHARS.replace(out.toString(), "")
     }
+
+    private fun decodeNumericEntity(name: String): String? {
+        val num = when {
+            name.startsWith("#x", ignoreCase = true) -> name.substring(2).toIntOrNull(16)
+            name.startsWith("#") -> name.substring(1).toIntOrNull()
+            else -> return null
+        } ?: return null
+        // Reject surrogates / out-of-range / control chars silently.
+        if (num !in 0x20..0x10FFFF || num in 0xD800..0xDFFF) return null
+        return String(Character.toChars(num))
+    }
+
+    private val ZERO_WIDTH_CHARS = Regex("[\\u200B\\u200C\\u200D\\uFEFF]")
+
+    private val NAMED_ENTITIES = mapOf(
+        "amp" to "&", "lt" to "<", "gt" to ">", "quot" to "\"", "apos" to "'",
+        "nbsp" to " ", "bull" to "•",
+        // Zero-width joiners: decode to nothing (stripped).
+        "zwnj" to "", "zwj" to "", "lrm" to "", "rlm" to "",
+        "copy" to "©", "reg" to "®", "trade" to "™",
+        "mdash" to "—", "ndash" to "–", "hellip" to "…",
+        "lsquo" to "‘", "rsquo" to "’", "sbquo" to "‚",
+        "ldquo" to "“", "rdquo" to "”", "bdquo" to "„",
+        "laquo" to "«", "raquo" to "»", "lsaquo" to "‹", "rsaquo" to "›",
+        "dagger" to "†", "Dagger" to "‡", "permil" to "‰",
+        "prime" to "′", "Prime" to "″",
+        "times" to "×", "divide" to "÷", "plusmn" to "±", "deg" to "°",
+        "euro" to "€", "pound" to "£", "yen" to "¥", "cent" to "¢",
+        "sect" to "§", "para" to "¶", "middot" to "·",
+        "iexcl" to "¡", "iquest" to "¿", "szlig" to "ß",
+        "agrave" to "à", "aacute" to "á", "acirc" to "â", "atilde" to "ã",
+        "auml" to "ä", "aring" to "å", "aelig" to "æ", "ccedil" to "ç",
+        "egrave" to "è", "eacute" to "é", "ecirc" to "ê", "euml" to "ë",
+        "igrave" to "ì", "iacute" to "í", "icirc" to "î", "iuml" to "ï",
+        "ntilde" to "ñ", "ograve" to "ò", "oacute" to "ó", "ocirc" to "ô",
+        "otilde" to "õ", "ouml" to "ö", "oslash" to "ø",
+        "ugrave" to "ù", "uacute" to "ú", "ucirc" to "û", "uuml" to "ü",
+        "yacute" to "ý", "yuml" to "ÿ",
+        "Agrave" to "À", "Aacute" to "Á", "Acirc" to "Â", "Atilde" to "Ã",
+        "Auml" to "Ä", "Aring" to "Å", "AElig" to "Æ", "Ccedil" to "Ç",
+        "Egrave" to "È", "Eacute" to "É", "Ecirc" to "Ê", "Euml" to "Ë",
+        "Igrave" to "Ì", "Iacute" to "Í", "Icirc" to "Î", "Iuml" to "Ï",
+        "Ntilde" to "Ñ", "Ograve" to "Ò", "Oacute" to "Ó", "Ocirc" to "Ô",
+        "Otilde" to "Õ", "Ouml" to "Ö", "Oslash" to "Ø",
+        "Ugrave" to "Ù", "Uacute" to "Ú", "Ucirc" to "Û", "Uuml" to "Ü",
+        "Yacute" to "Ý",
+    )
 }

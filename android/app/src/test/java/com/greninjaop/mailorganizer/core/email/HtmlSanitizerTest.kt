@@ -101,6 +101,32 @@ class HtmlSanitizerTest {
     }
 
     @Test
+    fun `htmlToText decodes bull and strips zwnj wall`() {
+        // Reddit digests pad with hundreds of &zwnj; and use &bull; as a
+        // separator — both used to leak through as literal text.
+        assertEquals("a • b", HtmlSanitizer.htmlToText("a &bull; b"))
+        val zwnjWall = (1..50).joinToString(" ") { "&zwnj;" }
+        assertEquals("", HtmlSanitizer.htmlToText("<p>$zwnjWall</p>"))
+        assertEquals("a b", HtmlSanitizer.htmlToText("a &zwnj; b"))
+    }
+
+    @Test
+    fun `entities are not double-decoded`() {
+        assertEquals("&bull;", HtmlSanitizer.htmlToText("&amp;bull;"))
+    }
+
+    @Test
+    fun `sanitize strips doctype and processing instructions`() {
+        val html = "<!DOCTYPE html PUBLIC \"-//W3C//DTD XHTML 1.0 Transitional//EN\" " +
+            "\"http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd\">" +
+            "<?xml version=\"1.0\"?><p>Hi</p>"
+        val out = HtmlSanitizer.sanitize(html)
+        assertFalse(out.contains("DOCTYPE"))
+        assertFalse(out.contains("xml version"))
+        assertTrue(out.contains("Hi"))
+    }
+
+    @Test
     fun `htmlToText collapses whitespace`() {
         assertEquals("a b", HtmlSanitizer.htmlToText("<p>  a   \n  b </p>"))
     }
