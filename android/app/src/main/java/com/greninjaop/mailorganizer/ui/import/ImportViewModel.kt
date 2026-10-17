@@ -196,13 +196,16 @@ class ImportViewModel(
         // reported. An auth failure here retries in place (Try again);
         // the user stays in the Import flow.
         is MoError.Authentication -> "Sign-in didn't stick. Tap Try again to retry the import."
-        is MoError.RateLimited ->
-            // Name it precisely: this is Gmail's per-second "too many
-            // requests too fast" throttle, NOT a daily quota. It clears
-            // once the request rate drops — so the fix is to WAIT a
-            // minute and tap Try again ONCE, not to hammer it (each tap
-            // restarts the sync and re-trips the throttle).
+        is MoError.RateLimited -> if (error.daily) {
+            // Daily project quota — waiting a minute won't help; it
+            // resets at midnight Pacific. Say so, so the user stops
+            // hammering "Try again" (which only adds requests).
+            "Gmail's daily quota for this app is used up. It resets at midnight (Pacific Time). Please try again tomorrow."
+        } else {
+            // Per-second "too many requests too fast" throttle — clears
+            // once the request rate drops. Wait a minute, tap once.
             "Gmail is throttling requests (too many too fast — not a daily limit). Wait a minute, then tap Try again once."
+        }
         is MoError.PermissionDenied ->
             // Show Gmail's own reason (e.g. insufficientPermissions /
             // accessNotConfigured) — retry can never fix a grant/config

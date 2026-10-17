@@ -43,8 +43,15 @@ class SyncRetryPolicy(
             is SyncApiException.ServerError,
             -> RetryDecision.RetryAfter(backoffDelayMs(attempt))
             is SyncApiException.RateLimited -> {
-                val hintedMs = error.retryAfterSeconds?.let { (it * 1_000L).coerceAtMost(maxDelayMs) }
-                RetryDecision.RetryAfter(hintedMs ?: backoffDelayMs(attempt))
+                // Daily quota: retrying is futile (it resets at midnight,
+                // not in seconds) and only adds requests. Fail fast so
+                // the UI can tell the user to try tomorrow.
+                if (error.daily) {
+                    RetryDecision.DoNotRetry
+                } else {
+                    val hintedMs = error.retryAfterSeconds?.let { (it * 1_000L).coerceAtMost(maxDelayMs) }
+                    RetryDecision.RetryAfter(hintedMs ?: backoffDelayMs(attempt))
+                }
             }
             // Auth, permission, malformed requests, invalid history, and the
             // not-configured stand-in must never be blindly retried.

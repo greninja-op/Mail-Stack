@@ -296,7 +296,7 @@ class HttpGmailSyncApi(
             // Daily quota (Gmail returns this, not UserRateLimitExceeded,
             // when the project's daily quota is exhausted).
             code == 403 && reason.equals("dailyLimitExceeded", ignoreCase = true) ->
-                SyncApiException.RateLimited(null)
+                SyncApiException.RateLimited(null, daily = true)
             code == 403 -> SyncApiException.PermissionDenied(
                 detail = permissionDeniedDetail(reason, message),
             )

@@ -407,7 +407,7 @@ class SyncCoordinator(
         is SyncApiException.NetworkError -> MoError.Network("Couldn't sync right now.", cause)
         is SyncApiException.ServerError -> MoError.Api(code, "Gmail API error $code.")
         is SyncApiException.RateLimited ->
-            MoError.RateLimited(retryAfterSeconds)
+            MoError.RateLimited(retryAfterSeconds, daily)
         is SyncApiException.AuthExpired ->
             MoError.Authentication("Gmail authorization has expired. Reconnect your account.")
         is SyncApiException.PermissionDenied ->

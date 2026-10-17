@@ -78,7 +78,19 @@ sealed class SyncApiException(message: String, cause: Throwable? = null) :
     class ServerError(val code: Int) : SyncApiException("Gmail API error $code")
 
     /** 429/403 rateLimitExceeded — retryable, honor [retryAfterSeconds]. */
-    class RateLimited(val retryAfterSeconds: Long?) : SyncApiException("Gmail rate limit hit")
+    /**
+     * Rate limit hit. [daily] distinguishes Gmail's DAILY project quota
+     * (`dailyLimitExceeded` — resets at midnight Pacific, waiting a
+     * minute won't help) from the per-second throttle
+     * (`userRateLimitExceeded` / `rateLimitExceeded` — clears once the
+     * request rate drops). The Import error must name the right one:
+     * 1.0.37 told the user "not a daily limit" for BOTH, which is wrong
+     * when it IS the daily quota.
+     */
+    class RateLimited(
+        val retryAfterSeconds: Long?,
+        val daily: Boolean = false,
+    ) : SyncApiException("Gmail rate limit hit")
 
     /** 401/invalid_grant — NOT retried; user must reconnect (Phase 3). */
     class AuthExpired : SyncApiException("Gmail authorization expired")

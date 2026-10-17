@@ -46,8 +46,12 @@ sealed interface MoError {
     /** Remote API returned an error payload. */
     data class Api(val code: Int?, val message: String) : MoError
 
-    /** Rate-limited by the remote API; honor [retryAfterSeconds] when present. */
-    data class RateLimited(val retryAfterSeconds: Long?) : MoError
+    /**
+     * Rate-limited by the remote API; honor [retryAfterSeconds] when
+     * present. [daily] = the DAILY quota (resets at midnight Pacific),
+     * not the per-second throttle.
+     */
+    data class RateLimited(val retryAfterSeconds: Long?, val daily: Boolean = false) : MoError
 
     /** Local parsing/normalization failure. */
     data class Parsing(val message: String) : MoError
