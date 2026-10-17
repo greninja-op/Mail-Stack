@@ -308,3 +308,115 @@
     wsBack.addEventListener("click", function () { wsStage.classList.remove("ws-open"); });
   }
 })();
+
+  /* ---------- Import transfer demo (see §11): morph + conduit + rows ---------- */
+  var tfWrap = document.getElementById("tfCardWrap");
+  var tfCard1 = document.getElementById("tfCard1");
+  var tfCard2 = document.getElementById("tfCard2");
+  var tfImportBtn = document.getElementById("tfImportBtn");
+  var tfBackBtn = document.getElementById("tfBackBtn");
+  var tfContinueBtn = document.getElementById("tfContinueBtn");
+  var tfTitle = document.getElementById("tfTitle");
+  var tfPct = document.getElementById("tfPct");
+  var tfFill = document.getElementById("tfFill");
+  var tfStream = document.getElementById("tfStream");
+  var tfTube = document.getElementById("tfTube");
+  var tfEnvLayer = document.getElementById("tfEnvLayer");
+  var tfRow1 = document.getElementById("tfRow1");
+  var tfRow2 = document.getElementById("tfRow2");
+  var tfBottom = document.getElementById("tfBottom");
+  if (tfWrap && tfCard1 && tfCard2 && tfImportBtn && tfContinueBtn && tfTitle && tfPct && tfFill && tfTube && tfEnvLayer) {
+    var tfRunning = false, tfRaf = null, tfStart = 0, tfLastSpawn = 0, tfDone = false;
+    var TF_DURATION = 7000; // demo: full import in 7s
+    var tfTubeLen = tfTube.getTotalLength();
+    tfFill.style.strokeDasharray = String(tfTubeLen);
+    tfFill.style.strokeDashoffset = String(tfTubeLen);
+    function tfSetHeight() {
+      var active = tfWrap.classList.contains("morph") ? tfCard2 : tfCard1;
+      tfWrap.style.height = active.offsetHeight + "px";
+    }
+    function tfShowRow(row) {
+      if (row.classList.contains("visible")) return;
+      row.classList.add("visible");
+      void row.offsetWidth;
+      row.classList.add("show");
+      tfBottom.classList.add("rows-shown");
+    }
+    function tfSpawnEnvelope() {
+      var el = document.createElement("div");
+      el.className = "tf-env";
+      el.innerHTML = "<svg viewBox='0 0 40 28'><rect x='0' y='0' width='40' height='28' rx='6' fill='#fff'/><polyline points='3,4 20,16 37,4' fill='none' stroke='#9CCAFF' stroke-width='2.5'/></svg>";
+      tfEnvLayer.appendChild(el);
+      var born = performance.now();
+      (function fly() {
+        var t = Math.min(1, (performance.now() - born) / 1500);
+        var pt = tfTube.getPointAtLength(t * tfTubeLen);
+        var pt2 = tfTube.getPointAtLength(Math.min(1, t + 0.01) * tfTubeLen);
+        var svg = document.getElementById("tfConduit").getBoundingClientRect();
+        var sx = svg.width / 360, sy = svg.height / 120;
+        var ang = Math.atan2((pt2.y - pt.y) * sy, (pt2.x - pt.x) * sx) * 180 / Math.PI;
+        var alpha = t < 0.08 ? t / 0.08 : (t > 0.85 ? (1 - t) / 0.15 : 1);
+        el.style.left = (pt.x * sx - 20) + "px";
+        el.style.top = (pt.y * sy - 14) + "px";
+        el.style.transform = "rotate(" + ang + "deg)";
+        el.style.opacity = String(alpha);
+        if (t < 1) requestAnimationFrame(fly);
+        else el.remove();
+      })();
+    }
+    function tfTick(ts) {
+      if (!tfStart) tfStart = ts;
+      var p = Math.min(1, (ts - tfStart) / TF_DURATION);
+      tfPct.textContent = Math.round(p * 100) + "%";
+      tfFill.style.strokeDashoffset = String(tfTubeLen * (1 - p));
+      tfStream.style.strokeDashoffset = String(-((ts / 30) % 20));
+      if (p >= 0.3) tfShowRow(tfRow1);
+      if (p >= 0.6) tfShowRow(tfRow2);
+      if (ts - tfLastSpawn > 450) { tfLastSpawn = ts; tfSpawnEnvelope(); }
+      if (p >= 1) {
+        tfTitle.textContent = "Mailbox Organized";
+        tfContinueBtn.classList.remove("tf-btn-dim");
+        tfContinueBtn.disabled = false;
+        tfDone = true;
+        tfRunning = false;
+        tfRaf = null;
+        return;
+      }
+      tfRaf = requestAnimationFrame(tfTick);
+    }
+    function tfReset() {
+      tfWrap.classList.remove("morph", "gone");
+      tfTitle.textContent = "Importing Mails";
+      tfPct.textContent = "0%";
+      tfFill.style.strokeDashoffset = String(tfTubeLen);
+      tfContinueBtn.classList.add("tf-btn-dim");
+      tfContinueBtn.disabled = true;
+      [tfRow1, tfRow2].forEach(function (r) { if (r) r.classList.remove("visible", "show"); });
+      tfBottom.classList.remove("rows-shown");
+      tfEnvLayer.innerHTML = "";
+      tfStart = 0; tfLastSpawn = 0; tfDone = false; tfRunning = false;
+      tfSetHeight();
+    }
+    tfImportBtn.addEventListener("click", function () {
+      if (tfRunning || tfWrap.classList.contains("morph")) return;
+      tfWrap.classList.add("morph");
+      tfSetHeight();
+      tfRunning = true;
+      tfStart = 0;
+      tfLastSpawn = performance.now();
+      tfSpawnEnvelope();
+      tfSpawnEnvelope();
+      tfRaf = requestAnimationFrame(tfTick);
+    });
+    function tfDismiss() {
+      if (tfRaf) cancelAnimationFrame(tfRaf);
+      tfRunning = false;
+      tfWrap.classList.add("gone");
+      setTimeout(tfReset, 900);
+    }
+    tfContinueBtn.addEventListener("click", function () { if (tfDone) tfDismiss(); });
+    if (tfBackBtn) tfBackBtn.addEventListener("click", tfDismiss);
+    window.addEventListener("load", tfSetHeight);
+    window.addEventListener("resize", tfSetHeight);
+    tfSetHeight();
+  }

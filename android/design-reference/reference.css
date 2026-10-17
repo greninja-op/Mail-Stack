@@ -197,3 +197,53 @@
   .sp-setrow{padding:10px 16px}
   .sp-setrow b{display:block;font-size:15px;font-weight:500}
   .sp-setrow em{display:block;font-size:13px;color:var(--muted);font-style:normal}
+
+/* ---- Import transfer demo (see §11) ---- */
+.tf-stage{position:relative;min-height:580px;overflow:hidden;background:#101418;border:1.5px solid var(--outline);border-radius:16px;display:flex;align-items:center;justify-content:center;padding:28px 0}
+.tf-blob{position:absolute;border-radius:50%;filter:blur(40px);opacity:.35;pointer-events:none}
+.tf-blob1{width:220px;height:220px;left:-40px;top:-30px;background:#2A2350}
+.tf-blob2{width:200px;height:200px;right:-30px;bottom:-20px;background:#1B3A5C}
+.tf-cardwrap{position:relative;width:min(430px,92%);transition:height 400ms cubic-bezier(0.4,0,0.2,1);z-index:1}
+.tf-card{position:absolute;top:0;left:0;right:0;background:#1C1F24;border-radius:28px;box-shadow:0 24px 48px rgba(0,0,0,.45);padding:28px 24px;color:#E2E2E6;transition:opacity 380ms cubic-bezier(0.4,0,0.2,1),transform 420ms cubic-bezier(0.4,0,0.2,1)}
+.tf-card2{opacity:0;transform:translateY(11%) scale(.97);pointer-events:none;padding:0}
+.tf-cardwrap.morph .tf-card1{opacity:0;transform:translateY(-8.33%) scale(.98);transition:opacity 200ms,transform 220ms;pointer-events:none}
+.tf-cardwrap.morph .tf-card2{opacity:1;transform:none;pointer-events:auto;transition-delay:60ms}
+.tf-cardwrap.gone .tf-card2{opacity:0;transition:opacity 320ms}
+.tf-c1-title{text-align:center;font-size:23px;font-weight:700;color:#E2E2E6}
+.tf-c1-body{font-size:13.5px;line-height:20px;color:#C4C6D0;margin:16px 0 0}
+.tf-c1-muted{font-size:12px;line-height:17.5px;color:#8E9099;margin:14px 0 0}
+.tf-c1-email{text-align:center;font-size:14px;font-weight:500;color:#8AB4F8;margin:24px 0 20px}
+.tf-btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;height:46px;border-radius:999px;font-family:inherit;font-size:14px;font-weight:700;cursor:pointer;border:0}
+.tf-btn-primary{background:#9CCAFF;color:#003258}
+.tf-btn-outline{background:transparent;color:#E2E2E6;border:1px solid #3C4043;margin-top:12px}
+.tf-btn-dim{opacity:.4;cursor:default}
+.tf-t-top{padding:22px 22px 8px}
+.tf-t-head{display:flex;justify-content:space-between;align-items:center}
+.tf-t-title{font-size:18px;font-weight:700;color:#E2E2E6}
+.tf-t-email{font-size:12px;font-weight:500;color:#8AB4F8;margin-top:2px}
+.tf-t-pct{font-size:22px;font-weight:700;color:#9CCAFF}
+.tf-conduit{position:relative;height:120px;margin-top:4px}
+.tf-conduit-svg{position:absolute;inset:0;width:100%;height:100%}
+.tf-logo{position:absolute;top:50%;width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;transform:translateY(-50%);z-index:2}
+.tf-logo-gmail{left:4px;background:#fff}
+.tf-logo-ms{right:4px;background:#5238E8;color:#fff;font-size:24px;font-weight:700}
+.tf-env-layer{position:absolute;inset:0;pointer-events:none;z-index:1}
+.tf-env{position:absolute;width:40px;height:28px;will-change:left,top,transform}
+.tf-env svg{width:40px;height:28px;display:block}
+.tf-div{border:0;border-top:1px solid rgba(255,255,255,.06);margin:0 22px}
+.tf-t-bottom{padding:16px 22px}
+.tf-t-bottom .tf-btn{margin:0;width:100%}
+.tf-t-bottom.rows-shown .tf-btn{margin-top:18px}
+.tf-rows{}
+.tf-row{display:none;gap:12px;align-items:center;opacity:0;transform:translateY(6px);transition:opacity 300ms,transform 300ms}
+.tf-row.visible{display:flex}
+.tf-row.show{opacity:1;transform:none}
+.tf-row.tf-row2{margin-top:10px}
+.tf-row.tf-row2.show{opacity:.55}
+.tf-ava{width:40px;height:40px;flex:0 0 auto;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+.tf-rowtext{flex:1;min-width:0}
+.tf-rowline{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tf-rowline b{font-size:14px;font-weight:600;color:#E2E2E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tf-rowtime{font-size:12px;font-weight:500;color:#7FCFFF;flex:0 0 auto}
+.tf-rowtext em{display:block;font-style:normal;font-size:13.5px;color:#E2E2E6;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.tf-rowtext em.tf-snip{font-size:12.5px;color:#8E9099;margin-top:1px}

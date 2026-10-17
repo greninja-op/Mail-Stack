@@ -7,7 +7,9 @@ import com.greninjaop.mailorganizer.core.AccountId
 import com.greninjaop.mailorganizer.core.AppDispatchers
 import com.greninjaop.mailorganizer.MoError
 import com.greninjaop.mailorganizer.data.local.AccountRecord
+import com.greninjaop.mailorganizer.data.local.MessageRecord
 import com.greninjaop.mailorganizer.data.repository.AccountRepository
+import com.greninjaop.mailorganizer.data.repository.MailRepository
 import com.greninjaop.mailorganizer.data.sync.SyncCoordinator
 import com.greninjaop.mailorganizer.data.sync.SyncOutcome
 import com.greninjaop.mailorganizer.data.sync.SyncProgress
@@ -17,6 +19,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -31,6 +34,7 @@ import kotlinx.coroutines.withContext
 class ImportViewModel(
     private val accountId: String,
     private val accountRepository: AccountRepository,
+    private val mailRepository: MailRepository,
     private val syncCoordinator: SyncCoordinator,
     private val dispatchers: AppDispatchers,
 ) : ViewModel() {
@@ -44,8 +48,24 @@ class ImportViewModel(
             val progress: Float?,
             val processed: Int,
             val totalEstimate: Int?,
+            /**
+             * The mail that just arrived, in arrival order (2026-10-17,
+             * transfer card "transpiring" rows). Real rows from the
+             * database — never sample data. Empty until the first batch
+             * lands.
+             */
+            val recentMails: List<MessageRecord> = emptyList(),
         ) : ImportUiState
-        data class Done(val account: AccountRecord, val message: String) : ImportUiState
+        data class Done(
+            val account: AccountRecord,
+            val message: String,
+            /**
+             * Last arrived mails, carried over from Importing so the
+             * transfer card keeps its rows when it flips to
+             * "Mailbox Organized" instead of popping empty.
+             */
+            val recentMails: List<MessageRecord> = emptyList(),
+        ) : ImportUiState
         data class Error(val account: AccountRecord, val message: String) : ImportUiState
     }
 
@@ -88,6 +108,21 @@ class ImportViewModel(
         if (_uiState.value is ImportUiState.Importing) return
         _uiState.value = ImportUiState.Importing(acc, "Starting import…", null, 0, null)
         viewModelScope.launch(dispatchers.io) {
+            // Transpiring rows: the mail that just landed, in arrival
+            // order. Collected in the same import coroutine so it stops
+            // when the import finishes. Atomic `update` — the progress
+            // collector below writes the same state concurrently.
+            mailRepository.observeRecentlyInserted(accountId, limit = 2)
+                .onEach { recent ->
+                    _uiState.update { current ->
+                        if (current is ImportUiState.Importing) {
+                            current.copy(recentMails = recent)
+                        } else {
+                            current
+                        }
+                    }
+                }
+                .launchIn(this)
             syncCoordinator.progress
                 .onEach { progress ->
                     if (progress is SyncProgress.Running) {
@@ -96,24 +131,34 @@ class ImportViewModel(
                             (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 1f)
                         } else null
                         withContext(dispatchers.main) {
-                            _uiState.value = ImportUiState.Importing(
-                                account = acc,
-                                stageText = stageText(progress.stage),
-                                progress = pct,
-                                processed = progress.messagesProcessed,
-                                totalEstimate = total,
-                            )
+                            _uiState.update { current ->
+                                if (current is ImportUiState.Importing) {
+                                    current.copy(
+                                        stageText = stageText(progress.stage),
+                                        progress = pct,
+                                        processed = progress.messagesProcessed,
+                                        totalEstimate = total,
+                                    )
+                                } else {
+                                    current
+                                }
+                            }
                         }
                     }
                 }
                 .launchIn(this)
             val outcome = syncCoordinator.syncNow(AccountId(accountId), SyncTrigger.MANUAL)
             withContext(dispatchers.main) {
+                // Carry the last arrived mails into Done so the transfer
+                // card keeps its rows on the "Mailbox Organized" flip.
+                val lastRecent =
+                    (_uiState.value as? ImportUiState.Importing)?.recentMails ?: emptyList()
                 _uiState.value = when (outcome) {
                     is SyncOutcome.Success ->
                         ImportUiState.Done(
                             acc,
                             "Imported ${outcome.summary.messagesProcessed} messages.",
+                            recentMails = lastRecent,
                         )
                     is SyncOutcome.Failed ->
                         ImportUiState.Error(acc, friendlyError(outcome.error))
@@ -148,11 +193,12 @@ class ImportViewModel(
 class ImportViewModelFactory(
     private val accountId: String,
     private val accountRepository: AccountRepository,
+    private val mailRepository: MailRepository,
     private val syncCoordinator: SyncCoordinator,
     private val dispatchers: AppDispatchers,
 ) : ViewModelProvider.Factory {
     @Suppress("UNCHECKED_CAST")
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
-        return ImportViewModel(accountId, accountRepository, syncCoordinator, dispatchers) as T
+        return ImportViewModel(accountId, accountRepository, mailRepository, syncCoordinator, dispatchers) as T
     }
 }

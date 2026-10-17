@@ -46,6 +46,19 @@ interface MessageDao {
     fun observeByAccount(accountId: String, limit: Int): Flow<List<MessageRecord>>
 
     /**
+     * Most recently *inserted* rows for one account (2026-10-17, import
+     * transfer card): `rowid` order is insertion order on a plain Room
+     * table, so this is the mail that just arrived — unlike timestamp
+     * order, which stays frozen on the newest mail while a first sync
+     * backfills older messages. Read-only; no schema change.
+     */
+    @Query(
+        "SELECT * FROM messages WHERE accountId = :accountId " +
+            "ORDER BY rowid DESC LIMIT :limit",
+    )
+    fun observeRecentlyInserted(accountId: String, limit: Int): Flow<List<MessageRecord>>
+
+    /**
      * Unified presentation queries (Phase 18): observes messages across all
      * enabled accounts.
      */

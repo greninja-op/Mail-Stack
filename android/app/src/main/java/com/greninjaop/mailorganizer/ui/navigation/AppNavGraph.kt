@@ -958,6 +958,7 @@ fun AppNavGraph(
                         factory = com.greninjaop.mailorganizer.ui.import.ImportViewModelFactory(
                             accountId = accountId,
                             accountRepository = container.accountRepository,
+                            mailRepository = container.mailRepository,
                             syncCoordinator = container.syncCoordinator,
                             dispatchers = container.dispatchers,
                         ),
@@ -969,7 +970,6 @@ fun AppNavGraph(
                             popUpTo(AppDestinations.IMPORT) { inclusive = true }
                         }
                     },
-                    onBack = { navController.popBackStack() },
                 )
             }
             // Phase 20: Noise, Newsletter & Cleanup destination

@@ -32,6 +32,13 @@ interface MailRepository {
         observeThreads(accountId, limit)
     fun observeUnifiedPrimary(limit: Int = 50): Flow<List<ThreadRecord>> = emptyFlow()
     fun observeMessages(threadId: String, limit: Int = 100): Flow<List<MessageRecord>>
+    /**
+     * Most recently *inserted* messages for one account (2026-10-17,
+     * import transfer card): the mail that just arrived, in arrival order.
+     * Default is [emptyFlow] so fakes need not implement it.
+     */
+    fun observeRecentlyInserted(accountId: String, limit: Int = 2): Flow<List<MessageRecord>> =
+        emptyFlow()
     fun observeUnread(accountId: String, limit: Int = 50): Flow<List<MessageRecord>>
     fun observeUnifiedUnread(limit: Int = 50): Flow<List<MessageRecord>> = emptyFlow()
     fun observeStarred(accountId: String, limit: Int = 50): Flow<List<MessageRecord>>
@@ -252,6 +259,9 @@ class RoomMailRepository(
 
     override fun observeMessages(threadId: String, limit: Int): Flow<List<MessageRecord>> =
         db.messageDao().observeByThread(threadId, limit)
+
+    override fun observeRecentlyInserted(accountId: String, limit: Int): Flow<List<MessageRecord>> =
+        db.messageDao().observeRecentlyInserted(accountId, limit)
 
     override fun observeUnread(accountId: String, limit: Int): Flow<List<MessageRecord>> =
         db.messageDao().observeUnreadByAccount(accountId, limit)
