@@ -318,25 +318,20 @@
   var tfContinueBtn = document.getElementById("tfContinueBtn");
   var tfTitle = document.getElementById("tfTitle");
   var tfPct = document.getElementById("tfPct");
-  var tfPulse = document.getElementById("tfPulse");
   var tfRing = document.getElementById("tfRing");
   var tfArc = document.getElementById("tfArc");
   var tfEnvLayer = document.getElementById("tfEnvLayer");
   var tfRow1 = document.getElementById("tfRow1");
   var tfRow2 = document.getElementById("tfRow2");
   var tfBottom = document.getElementById("tfBottom");
-  if (tfWrap && tfCard1 && tfCard2 && tfImportBtn && tfContinueBtn && tfTitle && tfPct && tfPulse && tfRing && tfArc && tfEnvLayer) {
-    var tfRunning = false, tfRaf = null, tfStart = 0, tfLastSpawn = 0, tfDone = false, tfEnvSeq = 0, tfConnected = false, tfPulseStart = 0;
+  if (tfWrap && tfCard1 && tfCard2 && tfImportBtn && tfContinueBtn && tfTitle && tfPct && tfRing && tfArc && tfEnvLayer) {
+    var tfRunning = false, tfRaf = null, tfStart = 0, tfLastSpawn = 0, tfDone = false, tfEnvSeq = 0;
     var TF_DURATION = 7000; // demo: full import in 7s
     var tfArcLen = tfArc.getTotalLength();
-    var tfRingLen = 2 * Math.PI * 33;
-    // The line draws in fast (400 ms) once Card 2 appears; the pulse and
-    // the envelopes start only after it is connected. The arc NEVER shows
-    // progress — only the ring around the Mailstack node is the progress bar.
-    tfArc.style.strokeDasharray = String(tfArcLen);
-    tfArc.style.strokeDashoffset = String(tfArcLen);
-    tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
-    tfPulse.style.strokeDashoffset = "0";
+    var tfRingLen = 2 * Math.PI * 39;
+    // The conduit is STATIC — it never draws in, never pulses, never shows
+    // progress. Only the ring around the Mailstack node is the progress bar.
+    // Motion: the Gmail glow (CSS), the envelopes, the arrival ripples.
     tfRing.style.strokeDasharray = String(tfRingLen);
     tfRing.style.strokeDashoffset = String(tfRingLen);
     function tfSetHeight() {
@@ -349,6 +344,16 @@
       void row.offsetWidth;
       row.classList.add("show");
       tfBottom.classList.add("rows-shown");
+    }
+    function tfSpawnRipple() {
+      var conduit = document.getElementById("tfConduit");
+      var rect = conduit.getBoundingClientRect();
+      var el = document.createElement("div");
+      el.className = "tf-ripple";
+      el.style.left = (rect.width - 42) + "px";
+      el.style.top = "122px";
+      tfEnvLayer.appendChild(el);
+      setTimeout(function () { el.remove(); }, 750);
     }
     function tfSpawnEnvelope() {
       var el = document.createElement("div");
@@ -363,7 +368,7 @@
         var pt = tfArc.getPointAtLength(t * tfArcLen);
         var pt2 = tfArc.getPointAtLength(Math.min(1, t + 0.01) * tfArcLen);
         var svg = document.getElementById("tfConduit").getBoundingClientRect();
-        var sx = svg.width / 360, sy = svg.height / 120;
+        var sx = svg.width / 360, sy = svg.height / 168;
         var ang = Math.atan2((pt2.y - pt.y) * sy, (pt2.x - pt.x) * sx) * 180 / Math.PI;
         var alpha = t < 0.08 ? t / 0.08 : (t > 0.85 ? (1 - t) / 0.15 : 1);
         el.style.left = (pt.x * sx - 18) + "px";
@@ -371,7 +376,7 @@
         el.style.transform = "rotate(" + ang + "deg)";
         el.style.opacity = String(alpha);
         if (t < 1) requestAnimationFrame(fly);
-        else el.remove();
+        else { el.remove(); tfSpawnRipple(); }
       })();
     }
     function tfTick(ts) {
@@ -379,26 +384,9 @@
       var p = Math.min(1, (ts - tfStart) / TF_DURATION);
       tfPct.textContent = Math.round(p * 100) + "%";
       tfRing.style.strokeDashoffset = String(tfRingLen * (1 - p));
-      // Line connects fast (first 400 ms); then the pulse + envelopes start.
-      var connectP = Math.min(1, (ts - tfStart) / 400);
-      tfArc.style.strokeDashoffset = String(tfArcLen * (1 - connectP));
-      if (connectP >= 1 && !tfConnected) { tfConnected = true; tfPulseStart = ts; }
-      if (tfConnected) {
-        var pel = (ts - tfPulseStart) / 1000;
-        var cyc = pel % 1.6;
-        if (cyc <= 1.2) {
-          var head = cyc / 1.2;
-          var tail = Math.max(0, head - 0.35);
-          var seg = (head - tail) * tfArcLen;
-          tfPulse.style.strokeDasharray = String(seg) + " " + String(tfArcLen - seg);
-          tfPulse.style.strokeDashoffset = String(-tail * tfArcLen);
-        } else {
-          tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
-        }
-      }
       if (p >= 0.10) tfShowRow(tfRow1);
       if (p >= 0.25) tfShowRow(tfRow2);
-      if (tfConnected && ts - tfLastSpawn > 450) { tfLastSpawn = ts; tfSpawnEnvelope(); }
+      if (ts - tfLastSpawn > 450) { tfLastSpawn = ts; tfSpawnEnvelope(); }
       if (p >= 1) {
         tfTitle.textContent = "Mailbox Organized";
         tfContinueBtn.classList.remove("tf-btn-dim");
@@ -406,9 +394,6 @@
         tfDone = true;
         tfRunning = false;
         tfRaf = null;
-        // Transfer done — nothing is moving any more, so the pulse stops
-        // and the arc rests as a steady line.
-        tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
         return;
       }
       tfRaf = requestAnimationFrame(tfTick);
@@ -417,16 +402,13 @@
       tfWrap.classList.remove("morph", "gone");
       tfTitle.textContent = "Importing Mails";
       tfPct.textContent = "0%";
-      tfArc.style.strokeDashoffset = String(tfArcLen);
-      tfPulse.style.strokeDasharray = "0 " + String(tfArcLen);
-      tfPulse.style.strokeDashoffset = "0";
       tfRing.style.strokeDashoffset = String(tfRingLen);
       tfContinueBtn.classList.add("tf-btn-dim");
       tfContinueBtn.disabled = true;
       [tfRow1, tfRow2].forEach(function (r) { if (r) r.classList.remove("visible", "show"); });
       tfBottom.classList.remove("rows-shown");
       tfEnvLayer.innerHTML = "";
-      tfStart = 0; tfLastSpawn = 0; tfDone = false; tfRunning = false; tfConnected = false; tfPulseStart = 0;
+      tfStart = 0; tfLastSpawn = 0; tfDone = false; tfRunning = false;
       tfSetHeight();
     }
     tfImportBtn.addEventListener("click", function () {
