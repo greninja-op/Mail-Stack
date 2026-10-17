@@ -15,3 +15,10 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Dedicated interaction/layout pass across the ENTIRE product. Verify every feature in narrow/medium/wide windows, portrait/landscape, split view, Slide Over, and Stage Manager.
+- Refine column thresholds (content-driven, never device-name checks), selection restoration, pointer hover, keyboard shortcuts, focus traversal, contextual menus, drag/drop where useful, window resize transitions. No feature may depend on fixed device resolution.
+- **Bars:** scroll DOWN hides, scroll UP shows; pure translate, 250ms; entering a tab/column always shows bars. **Settings** slides in from the right (350ms, underlying content slides 1/12 left); closing reverses it.
+- Test rapid resizing during loading/sync/search/detail transitions and accessibility focus stability. The iPhone-like narrow fallback must behave exactly like the iPhone contract (same rows, same groups, same rules).

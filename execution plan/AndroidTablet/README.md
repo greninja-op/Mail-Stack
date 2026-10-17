@@ -97,3 +97,12 @@ Build success alone never means completion.
 30. Production Signing, Play Store Preparation & Final Release Hardening
 
 **STOP AFTER PHASE 30. There is no Phase 31.**
+
+## 2026-10-18 — Plan updated to the current Mailstack UI
+
+This plan was updated to match the CURRENT Mailstack UI as shipped on the Android phone app (1.0.39 + in-main fixes), adapted to the tablet large-screen workspace. The phone app is the reference implementation for the design philosophy.
+
+- `design.md` rewritten as the full current visual & UX contract (brand tokens, dark-mode charcoal, flat rows, card rules, mail-row spec, categories, import flow, scrollbar, motion, copy rules), with tablet layout progression (narrow/medium/wide/very-wide), panes, and pointer/keyboard/mouse input.
+- `editor-rules.md` rewritten with every standing directive earned building the phone app (copy-exact, fix-means-remove, auto-readjust, logos everywhere, no fabrication, no app emojis, OAuth + sync facts, push/continuity rules), adapted to tablet.
+- Each phase carries a "2026-10-18 — Current-design update" section with the post-Phase-30 requirements for that phase. The original phase text is preserved; the update section wins on disagreement.
+- Do NOT execute phases from this update. The user executes the plan separately.

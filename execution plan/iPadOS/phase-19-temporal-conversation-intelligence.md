@@ -15,3 +15,10 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Deadline/date/time extraction + meeting detection through shared intelligence. Timezone/DST handling, ambiguity/UNKNOWN states, quoted/forwarded content handling, recurring dates, waiting-for-reply, conversation state.
+- 14 temporal item types; reference time = message received; ambiguity policy; idempotent; no schema migration for extracted items.
+- **7 conversation states:** NO_ACTION, AWAITING_USER_REPLY, AWAITING_OTHER_PARTY, RECENTLY_REPLIED, STALE_CONVERSATION, RESOLVED, UNKNOWN. Explain what appears to be happening without inventing intent; never equate "no reply" with "user forgot". Negative signals (newsletters, notifications, receipts, spam, no-reply) shield against false "awaiting reply". 3-day follow-up candidates; 7-day stale threshold.
+- Expose in list/detail/inspector context (status badge pills + expandable intelligence card with timeline & reasons) without duplicating engines. Test ambiguous dates, locale/timezone changes, DST boundaries, quoted text, forwarded mail, duplicate threads, edited messages, missing timestamps.

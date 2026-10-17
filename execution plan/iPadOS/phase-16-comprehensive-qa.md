@@ -13,3 +13,9 @@ Implement the iPad search workspace over the common local index. Support sender,
 Inspect actual repository and prior evidence. Implement only this phase. Run targeted unit/integration tests plus iPad Simulator and real iPad validation where available. Test multiple viewport modes, accessibility and relevant failure/recovery paths. Fix, rebuild/reinstall/retest and record exact evidence. Update status/rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Search workspace over the common local index. Sender, subject, body, thread, company, domain, category, priority, action, Gmail labels where available.
+- Structured query all the way down (UI never builds SQL). Every FTS term escaped (injection-proof by construction). Debounce (~300ms). Account-scoped; unified search joins enabled accounts only. Keyboard-friendly: focusable search field, shortcuts, cancellation, pagination.
+- Recent-search behavior with privacy controls; stale-index handling; rich result/detail context (results keep list/detail context on iPad). Test special characters, partial terms, empty queries, huge datasets, deleted messages, stale index, offline search, account switching, and performance. No second search database.

@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 06.**
+
+## 2026-10-18 — Current-design update
+
+- Stable interfaces, coroutine/state collection, lifecycle cancellation, threading, error mapping. Remove accidental tablet-only business logic where proven.
+- Shared use cases carry the current semantics (throttle pacing, cursor resume, logo detection, fixed-denominator progress). Test representative shared use cases in Debug/Release and after activity recreation.
+- Error mapping classifies Gmail failures honestly: per-second throttle vs daily quota vs permission vs auth vs offline — never a generic fallback that hides the reason. Never truncate an error body before JSON parsing.

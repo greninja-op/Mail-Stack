@@ -28,3 +28,10 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 30.** The macOS roadmap ends here; do not create Phase 31.
+
+## 2026-10-18 — Current-design update
+
+- Final audit extends the checklist with the current-design items: company logos in EVERY row area (Mail, Categories, import rows); category groups (one-cavity, vertical centring, semantic accents); scrollbar behavior; import flow (arc-not-progress, ring-only progress, progress never backwards, 99% cap, Done gating, error chrome); throttle handling (pacing, Retry-After, no silent skips); no fabricated counts; no app emojis; dark-mode charcoal (never pure black); HTML rendering (entity decoding, no per-image lines, images never fetched); refresh explicit-only; destination-switch no-reload; Settings footer rule; sidebar stability.
+- Release configuration: bundle identifiers, entitlements, signing, hardened runtime, sandbox permissions, OAuth release configuration, privacy/data disclosures, dependency review, clean release build/archive, notarization + stapling validation where applicable, clean-machine install/smoke test, artifact inspection, versioning, rollback/update documentation.
+- Google OAuth verification: a public app using restricted Gmail scopes (gmail.readonly) needs an independent security assessment before Google verification (Android precedent: ~$500–$1,500/yr, ~4–6 weeks, annual). Testing-mode refresh tokens expire after 7 days. Do not claim verification, approval, or compliance without actual evidence.
+- Declare RELEASE READY only when every blocking gate has evidence. Otherwise RELEASE BLOCKED with blocker, severity, evidence, remediation. Do not publish automatically.

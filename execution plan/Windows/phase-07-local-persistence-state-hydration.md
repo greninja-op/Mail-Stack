@@ -25,3 +25,10 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 07.**
+
+## 2026-10-18 — Current-design update
+
+- Account isolation is a first-class DB boundary (FK-enforced) — never break it.
+- Sync state: cursor-based resume (cursor saved only after a page fully persists); retries resume from the saved cursor. Rows surface the most recently INSERTED mails (insertion order, not modification order).
+- No tokens/passwords in the DB by schema design. FTS/index creation is failure-safe (a missing FTS module must never abort DB creation). Table-existence guards on all index cleanup paths.
+- Demo/seeded accounts never sync. Test fresh databases, migrations, and restart hydration.

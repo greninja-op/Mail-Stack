@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 03.**
+
+## 2026-10-18 — Current-design update
+
+- Shell implements the CURRENT navigation: compact stable sidebar, uniform 40px profile circle everywhere, Gmail-style account switcher, Settings pane (slide-in from the right, 350ms, underlying content shifts 1/12 left where layout supports it), scroll-hide bars (down hides, up shows, 250ms, pure translate), navigation that never reloads the page (no flicker).
+- State restoration preserves selection, context, window state, and multi-window state across resize/restart. Launch/loading/failure states are honest; a blank screen during a long import is a bug (see Phase 11).

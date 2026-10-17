@@ -20,3 +20,12 @@ Deterministic/local/explainable behavior is authoritative before optional AI. Us
 
 ## macOS UX and quality
 Use native resizable desktop windows, split views, menus, shortcuts, pointer/trackpad, context menus, multiple windows/scenes, dark mode, VoiceOver, accessibility text sizing, reduced motion, and responsive layouts. Every feature requires tests beyond compilation: runtime, failure/recovery, security, account isolation, accessibility, data integrity, performance, and release checks as applicable.
+
+## 2026-10-18 addendum — cross-cutting requirements from the Android build
+
+- Company logos in EVERY area where a mail row appears (same pipeline everywhere: bundled → asset catalog → favicon → letter fallback). People keep letter avatars. Never fabricate a logo. Images inside mail bodies are NEVER fetched.
+- Never fabricate unread counts or any data the app does not have. No app-created emojis.
+- Progress from the real sync only, never backwards; Continue gated on Done. The import conduit arc is not a progress bar; only the Mailstack ring is.
+- Per-second Gmail throttle (250 units/user/sec) is the real sync limit, not the daily quota. Pace requests, honor `Retry-After`, never silently skip throttled GETs.
+- One sign-in grants Gmail + Calendar + Tasks; gmail.modify stays incremental and confirmation-gated.
+- A supplied reference/screenshot/logo is the spec to copy exactly — "nothing more, nothing less." "Fix means remove." Removal auto-readjusts everything that depended on the removed element's position.

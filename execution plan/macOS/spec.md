@@ -18,3 +18,7 @@ Official OAuth, least privilege, secure credential storage, no secrets in source
 
 ## Execution
 One phase only: inspect, implement, test, build, run, inspect, fix, rebuild/retest, update status/rules, stop. Never claim unrun evidence and never publish automatically.
+
+## 2026-10-18 addendum — current design authority
+
+The Android app (1.0.39 + in-main fixes) is the reference implementation for the design philosophy. `design.md` (rewritten 2026-10-18) and `editor-rules.md` (rewritten 2026-10-18) carry the current contract; where they disagree with an older phase file, they win. Each phase's "2026-10-18 — Current-design update" section lists the post-Phase-30 requirements for that phase.

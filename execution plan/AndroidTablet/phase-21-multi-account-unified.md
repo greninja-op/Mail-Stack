@@ -23,3 +23,10 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 21.**
+
+## 2026-10-18 — Current-design update
+
+- Unified inbox is presentation-layer only — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only.
+- Every unified row shows the small receiving-account indicator (receiving account, NOT sender). Account switching preserves mailbox context safely; disconnecting an account cascades through that account's boundaries only.
+- Add-account reuses OAuth → sync → recovery + the import flow. One sign-in grants Gmail + Calendar + Tasks for the account. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync.
+- Test cross-account cache, search, notification, rule, company, and action attacks; fail closed.

@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 21. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Unified inbox is presentation-layer only — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only.
+- Every unified row shows the small receiving-account indicator (receiving account, NOT sender). Account switching preserves mailbox context safely; disconnecting an account cascades through that account's boundaries only.
+- One sign-in grants Gmail + Calendar + Tasks for the account. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync.

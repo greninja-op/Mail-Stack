@@ -25,3 +25,10 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 00.**
+
+## 2026-10-18 — Current-design update
+
+- Audit against the CURRENT Android UI (1.0.39 + in-main fixes), not the pre-2026-10-18 plan docs. Record the design delta in `design.md` / `editor-rules.md` as the target the Windows build must match.
+- Classify the Rust desktop core against the current behavior: the shared layer must carry the current sync/classification/search semantics; the Windows work is presentation + platform boundary, not re-derivation of the design.
+- Verify the target can carry: the logo pipeline (bundled → app assets → favicon → letter), the fixed-denominator progress model, the cursor-resume sync model, and the per-second-throttle pacing model.
+- Do not re-derive the design from the old plan docs. Where the old plan and `design.md` (2026-10-18) disagree, `design.md` wins.

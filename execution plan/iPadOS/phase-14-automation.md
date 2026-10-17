@@ -13,3 +13,10 @@ Turn the mailbox into the full iPad workspace. Build adaptive sidebar/category c
 Inspect the actual repository and prior evidence. Implement only this phase. Run targeted automated tests, then iPad Simulator and real iPad validation where available. Test multiple viewport states relevant to the feature and exercise failure/recovery paths. Fix, rebuild/reinstall/retest and record exact evidence. Update status/rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Full iPad workspace: adaptive sidebar/category context + persistent list + selected conversation/detail where width permits. Preserve list context while reading.
+- Thread grouping, conversation navigation, message-level actions already supported by shared contracts, attachment presentation, loading/stale/offline/error states, selection restoration.
+- **Import flow:** when a newly connected account needs non-trivial sync time, show the dedicated import card in the workspace (same visual language as iPhone) — never a blank screen. Conduit arc is NOT progress (pulse travels it); ONLY the Mailstack ring is progress. Real logos as-is. Continue gated on Done. Error keeps card chrome. Card keeps its hardcoded dark palette in both themes.
+- Verify narrow split fallback, landscape/wide layouts, Stage Manager resizing, large Dynamic Type, pointer/keyboard navigation, large threads, and rapid selection changes. Do not implement new backend intelligence in this phase.

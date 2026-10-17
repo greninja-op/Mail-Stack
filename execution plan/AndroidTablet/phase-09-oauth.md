@@ -23,3 +23,11 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 09.**
+
+## 2026-10-18 — Current-design update
+
+- Redirect URI `com.greninjaop.mailorganizer:/oauth2redirect` (RFC 8252 single slash). Manifest scheme-only filter (VIEW + DEFAULT + BROWSABLE), `exported=true`, `MainActivity` singleTask. Handle cold-start redirects (process may be killed while the browser is in front) + warm redirects. Replay + consume-once on the redirect result.
+- **One sign-in grants Gmail + Calendar + Tasks.** Base scopes = gmail.readonly + calendar.events + tasks + openid/email/profile. Auth URL uses `prompt=consent` + `include_granted_scopes=true` + `access_type=offline`. gmail.modify stays incremental, confirmation-gated.
+- Console-side: Custom URI Scheme must be enabled on the OAuth client (Google rejects with Error 400 otherwise). Testing-mode consent → only listed test users; Testing-mode refresh tokens expire after 7 days.
+- Sign-in opens in the plain system browser (trusted context) — never an in-app imitation credential form; the app never sees the password. The old Chrome-loop lesson: a sign-in that strands the user in the browser is a bug, not a user error.
+- Test success, denial, cancellation, invalid callback, expiry, revocation, and second-account connection. No broad sync yet.

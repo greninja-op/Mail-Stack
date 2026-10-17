@@ -28,3 +28,10 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 29.**
+
+## 2026-10-18 — Current-design update
+
+- Adversarial cases: malicious email/HTML/URLs/prompt injection, cross-account attacks, token leakage, destructive actions, automation loops, stale cursors, database corruption, migrations, interrupted writes, offline conflicts, process death, sleep/wake, partial sync, account removal.
+- HTML sanitizer adversarial tests: `<!DOCTYPE>`/processing instructions/CDATA never print as text; entity decoding single-pass (no double-decoding — `&amp;bull;` stays `&bull;`); zero-width characters stripped; images never fetched.
+- AI prompt-injection cases: email content must never authorize an external action or bypass safety. Throttle cases: throttled GETs retried, never silently skipped; throttled pages do not advance the cursor.
+- Migration/recovery: fresh + existing-data paths, interrupted writes, corrupt DB recovery, stale-cursor recovery. Record blockers honestly.

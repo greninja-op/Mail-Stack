@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 00. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Audit against the CURRENT Android UI (1.0.39 + in-main fixes), not the pre-2026-10-18 plan docs. Record the design delta in `design.md` / `editor-rules.md` as the target the Linux build must match.
+- Classify the shared Rust desktop core against the current behavior: the shared layer must carry the current sync/classification/search semantics (fixed-denominator progress, cursor-resume sync, per-second-throttle pacing, logo-pipeline domain detection); the Linux work is presentation + platform boundary, not re-derivation of the design.
+- Verify the Linux target can consume: the logo pipeline (bundled → asset catalog → favicon → letter), the fixed-denominator progress model, the cursor-resume sync model, and the per-second-throttle pacing model.
+- Do not re-derive the design from the old plan docs. Where the old plan and `design.md` (2026-10-18) disagree, `design.md` wins.

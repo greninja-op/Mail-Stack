@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 08.**
+
+## 2026-10-18 — Current-design update
+
+- Android secure credential/token storage via EncryptedSharedPreferences through shared contracts. Pending PKCE flow persisted encrypted. Handle token state, disconnect cleanup (disconnect also clears tokens), and revoked credentials.
+- Secrets never enter logs, ordinary DB, or UI state dumps. Logging sanitizer redacts bearer tokens, raw OAuth tokens, authorization headers, and email addresses (preserve domains).
+- Test duplicate accounts, removal, corrupted secure state, and cross-account access.

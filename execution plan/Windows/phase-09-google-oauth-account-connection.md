@@ -25,3 +25,10 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 09.**
+
+## 2026-10-18 — Current-design update
+
+- **One sign-in grants Gmail + Calendar + Tasks.** Base scopes = gmail.readonly + calendar.events + tasks + openid/email/profile. Auth URL uses `prompt=consent` + `include_granted_scopes=true` + `access_type=offline`. gmail.modify stays incremental, confirmation-gated.
+- PKCE S256 + the appropriate Windows redirect (loopback or registered custom scheme per Google's desktop-app guidance). Pending PKCE flow persisted in secure storage. Replay + consume-once on the redirect result. Handle consent, cancellation, denied scopes, expiration, reauthorization, incremental authorization, account identity, disconnect/revoke, callback errors, debug/release separation.
+- Console-side: the OAuth client must permit the chosen redirect or Google rejects the request with Error 400. Testing-mode consent → only listed test users; Testing-mode refresh tokens expire after 7 days.
+- Sign-in opens in the system browser (trusted context) — never an in-app imitation credential form; the app never sees the password. A sign-in that strands the user in the browser is a bug, not a user error.

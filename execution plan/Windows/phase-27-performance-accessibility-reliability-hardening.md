@@ -25,3 +25,10 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 27.**
+
+## 2026-10-18 — Current-design update
+
+- Harden startup, mailbox rendering, scrolling, indexing, sync concurrency, memory, storage, sleep/wake, power behavior. Accessibility, keyboard navigation, contrast, text sizing, focus order, localization resilience, crash recovery, state restoration.
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports 120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Centralized motion system (Essential / Standard / Expressive / Reduced Motion). Expressive reserved for meaningful moments. Respect reduced-motion + power-saving settings. No animation blocks interaction or sync.
+- Accessibility: Narrator labels/traits/focus order, text scaling including large sizes, high contrast, keyboard-only operation, light/dark mode, varied window sizes.

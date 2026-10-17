@@ -23,3 +23,10 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 01.**
+
+## 2026-10-18 — Current-design update
+
+- Module/Gradle boundaries, application identity, source/resource separation, build variants, manifests, dependencies, emulator/device targets, release/debug separation — same conventions as the phone app.
+- Test builds sign with the STABLE debug keystore (SHA-1 `07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05`) — never change it; the OAuth client is bound to it. Production signing uses a separate release key.
+- Every release increments the version — never reuse a version name. No per-fix test APKs; build a test APK only when the user explicitly asks.
+- Verify installation and launch on multiple tablet configurations, configuration changes, and process termination.

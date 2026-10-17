@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 03.**
+
+## 2026-10-18 — Current-design update
+
+- Compose shell, activity/lifecycle integration, root navigation state, dependency bootstrap, loading/empty/error/offline/auth-required primitives, state restoration. Keep business logic out of composables.
+- Bars are OVERLAID, never padded/resized containers (phone lesson: the Settings-panel jump fix). Each primary tab pads itself.
+- Validate cold/warm launch, recreation, process death, rotation, dark mode (charcoal `#131120`, never pure black), large fonts, and multiple tablet sizes. Do not implement Gmail features.

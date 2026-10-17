@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 18.**
+
+## 2026-10-18 — Current-design update
+
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.
+- Bounded rule/correction management: create/edit/disable/delete, scope, precedence, explanation, history where available. No arbitrary scripts.
+- Test contradictory rules, rollback, malformed input, account isolation, and email prompt-injection attempts (email content cannot create or approve an automation).

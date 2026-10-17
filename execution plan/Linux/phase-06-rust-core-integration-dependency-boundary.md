@@ -41,3 +41,8 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 06. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Integration must verify the current-behavior contracts from Phase 02: logo-pipeline domain flow, fixed-denominator progress, cursor resume, throttle pacing + `Retry-After`, insertion-ordered streams.
+- Dependency direction: UI → core, never the reverse. No duplicate domain/data logic in the shell. Feature flags gate behavior, never duplicate implementations.

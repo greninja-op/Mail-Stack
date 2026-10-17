@@ -28,3 +28,9 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 25.**
+
+## 2026-10-18 — Current-design update
+
+- Automation is user-created rules only. Finite, explainable, account-scoped, idempotent, safety-validated. Circuit breaker on repeated failures. Destructive actions are conservative. Loop prevention + provenance required.
+- Email content cannot create or approve an automation. No arbitrary scripts. Engine proposes / user confirms / nothing external automatic. AI cannot bypass safety.
+- Keep the deterministic effective pipeline: correction > rule > deterministic base. Bulk/destructive safeguards: previews, confirmation levels, history, retry/unknown states.

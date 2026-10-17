@@ -19,3 +19,9 @@ Run targeted tests, build and launch the real macOS application when possible, e
 Update status and add only permanent rules.
 
 **STOP AFTER PHASE 13.**
+
+## 2026-10-18 — Current-design update
+
+- The domain/presentation contract must carry: raw sender email + display name (logo-pipeline inputs), detected sender domain, subject, snippet, dates, labels, categories, star/unread state, receiving-account identity, attachment metadata, thread grouping, and defensive malformed-payload handling.
+- Presentation models must make it impossible to render a company row without the detected domain. SwiftUI only renders Rust-owned state; no business logic in Swift.
+- Sanitized HTML/plain-text rendering contract: entities fully decoded, `<!DOCTYPE>`/processing instructions/CDATA never printed as text, images never fetched (render as nothing).

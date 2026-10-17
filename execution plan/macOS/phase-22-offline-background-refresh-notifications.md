@@ -26,3 +26,9 @@ Run targeted unit/integration tests; build and launch the actual macOS app when 
 Update status accurately and add only permanent rules.
 
 **STOP AFTER PHASE 22.**
+
+## 2026-10-18 — Current-design update
+
+- Background work carries an explicit account id and never reads the active UI account (protects against races when switching accounts). Periodic intervals clamped to the platform minimum; lifecycle triggers apply a 15-minute staleness threshold (no aggressive polling).
+- Offline state is cleanly distinguished from authentication failure or API errors — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision.
+- macOS: respect App Nap / sleep-wake / termination / relaunch constraints. Never claim background work runs continuously or at an exact cadence macOS does not guarantee. Notifications are honest (no fake/bait content); duplicate notifications suppressed; authorization/privacy respected.

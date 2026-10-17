@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 01.**
+
+## 2026-10-18 — Current-design update
+
+- Toolchain must support the current design system: centralized tokens (brand violet, dark-mode charcoal `#131120`, typography scale, 28px card radius, motion tiers), WinUI 3 / Fluent 2, MSIX packaging, and signing.
+- Reproducible build path; application identity; secrets out of source. Build profiles cover light/dark, high contrast, text scaling, and varied window sizes/display scales.

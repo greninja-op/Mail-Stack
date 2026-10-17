@@ -40,3 +40,8 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 16. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Search: structured query all the way down (UI never builds SQL); on-device FTS index; every FTS term escaped (injection-proof by construction); debounce (~300ms); account-scoped; unified search joins enabled accounts only.
+- Indexing happens in the same transaction as the write path where applicable. Stale-index recovery rebuilds without wiping user state. Queries are never logged.

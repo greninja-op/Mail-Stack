@@ -90,3 +90,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 13 — Mailbox Data Model & Message Presentation. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Incremental sync: history/cursors where supported, pagination, cursor persistence (only after a page fully persists), gap detection, stale-cursor recovery, deduplication, concurrent-request control, cancellation, retries/backoff, partial failures, account-scoped recovery.
+- Cursor + throttle interplay: a throttled page must NOT advance the cursor; the page is retried, not skipped. Throttled per-message GETs are retried, never silently dropped.
+- Join in-flight syncs per account, never cancel/restart. Verify restart/process interruption, sleep/wake, and large-mailbox behavior.

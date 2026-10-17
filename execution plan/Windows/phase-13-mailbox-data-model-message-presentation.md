@@ -25,3 +25,8 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 13.**
+
+## 2026-10-18 — Current-design update
+
+- Rust-owned message/thread models and presentation contracts: sender/recipient metadata, subject, snippets, dates, labels, categories, star/unread state, receiving-account identity, attachments, defensive malformed-payload handling.
+- **The row model must carry the raw sender email + display name** so the domain can be detected for the logo pipeline. A model that drops the sender email makes company logos impossible downstream — that is a bug, not a simplification.

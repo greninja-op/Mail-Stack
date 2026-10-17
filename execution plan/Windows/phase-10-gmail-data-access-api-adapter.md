@@ -25,3 +25,9 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 10.**
+
+## 2026-10-18 — Current-design update
+
+- Gmail adapter in Rust: mailbox metadata, messages, threads, labels, history where supported, pagination, rate limits, auth failures, cancellation, retry, normalization into shared Rust models.
+- **Daily quota is effectively never the problem** (one 500-message first sync ≈ 2,682 units vs 1,000,000,000 daily). The real limit is the **per-second throttle (250 units/user/sec)**. Pace requests (token bucket, ~10 req/sec) + honor Gmail's `Retry-After` header. **Never silently skip a throttled per-message GET** — retry dropped GETs; a skipped message is silently missing forever. Do NOT fire retry LIST calls while Gmail is throttling (they extend the throttle).
+- Parse the FULL error body before classifying (never truncate-then-parse — truncation mid-JSON hides the real reason). Map Gmail's actual scope-error reason (`insufficientScopes`) and `dailyLimitExceeded`.

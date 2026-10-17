@@ -13,3 +13,9 @@ Establish the real iPadOS project target and toolchain without implementing the 
 Inspect the actual repository before deciding. Implement only this phase. Run exact relevant build and automated tests, then runtime validation on iPad Simulator and a real iPad when available. Test failure and recovery states relevant to the phase. Fix failures, rebuild/reinstall/retest, record evidence, update status and permanent editor rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Project target + toolchain only — no mailbox yet. Scaffolding must make the later phases deterministic: Swift/KMP framework consumption path, Debug/Release separation, simulator/device destinations, dependency resolution.
+- The shell foundation must anticipate the multi-column workspace (NavigationSplitView root) and the centralized token system from `design.md` — do not scatter per-screen values later.
+- Validate clean build, install, launch, termination on multiple simulator configurations (including narrow split and Stage Manager sizes). Inspect logs for secrets.

@@ -90,3 +90,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 06 — Rust desktop core Framework Integration & Dependency Boundary. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Implement the FULL token set from `design.md` (2026-10-18): brand violet `#5238E8` / `#B9A8FF`, dark-mode charcoal `#131120` (never pure black), surfaces one step lighter, near-white primary text, soft-gray secondary text, semantic category accents (amber/orange/sky/royal-blue/brand-violet), typography scale, 28pt card radius, motion tiers. No per-screen magic values.
+- Flat rows on the background (no card/border/shadow). Cards only for grouped content, solid tonal fill, tap highlight clipped to the rounded shape.
+- Validate visually at multiple window sizes, light/dark mode, high contrast, reduced motion, focus states, and consistent loading/empty/error presentation.

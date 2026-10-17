@@ -23,3 +23,8 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 28.**
+
+## 2026-10-18 — Current-design update
+
+- Traceable end-to-end QA matrix through Phase 27: install/upgrade, launch, OAuth, sync, mailbox, categories, companies, search, priority, rules, temporal/conversation, Action Engine, Calendar/Tasks, multi-account, offline/background, notifications, AI, automation. Use realistic and synthetic data. Classify P0/P1/P2/P3. Every defect fix is retested. Never fabricate evidence.
+- Cover the current-design cases at every width: logo pipeline (company vs personal vs unknown domain), category groups (one-cavity, vertical centring, accent colors), import flow (progress never backwards, 99% cap, Done gating, error chrome), throttle handling, malformed HTML, account isolation, pane transitions, multi-window, and all input modes.

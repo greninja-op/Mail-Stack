@@ -15,3 +15,11 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Truthful offline/stale behavior, reconnect/reconcile, background refresh where justified, notification categories/actions, privacy-safe notification content, duplicate suppression, deep links, auth-required states, battery-aware scheduling. Respect OS scheduling; never promise exact cadence.
+- Background workers carry an explicit account id and never read the active UI account (protects against races when switching accounts). Lifecycle triggers apply a 15-minute staleness threshold (no aggressive polling).
+- **Offline is cleanly distinguished from authentication failure or API errors** — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision.
+- iPadOS: respect BGAppRefresh / background-task constraints. Never claim a background task will run continuously or at an exact cadence iPadOS does not guarantee. Notifications are honest (no fake/bait content).
+- Test airplane mode, flaky network, suspension, termination, reboot where practical, delayed background execution, denied permissions, duplicate notifications, stale cache.

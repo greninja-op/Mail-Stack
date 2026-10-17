@@ -15,3 +15,11 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Safe Action Cards + integration flows on the common Action Engine. Provenance, deduplication (`messageId|actionType|targetKey`; thread-dedup on actionType+targetKey), confirmation levels, permission state, Calendar/EventKit + task adapter boundaries, account association, failure/retry, undo where possible. Use the inspector/detail space for explanation.
+- **Engine proposes / user confirms / nothing external automatic.** Generation and safety validation are separate layers. Confirming external proposals honestly reports "not connected" — never fake success.
+- Calendar/Tasks use the SAME account + tokens via the one sign-in (no per-integration sign-in). Idempotent creation (Calendar: iCalUID + extended-property key + receipt cache + recovery lookup; Tasks: marker-in-notes + execution store + recovery scan).
+- Gmail write (mark read/unread, archive, etc.) behind a confirmation gate: fail-closed, account isolation, idempotency pre-check, Gmail-verified-before-local-update, per-item bulk. 403 → incremental-auth upgrade dialog (gmail.modify is the only incremental scope).
+- Test denied/revoked permissions, duplicate actions, conflicting events/tasks, offline state, account removal, user cancellation. AI cannot bypass safety.

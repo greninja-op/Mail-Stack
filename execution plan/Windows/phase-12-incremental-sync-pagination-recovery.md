@@ -25,3 +25,9 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 12.**
+
+## 2026-10-18 — Current-design update
+
+- History/cursor-based incremental sync where supported, pagination, cursor persistence, gap detection, stale-cursor recovery, deduplication, concurrency limits, cancellation, backoff, restart recovery.
+- Join in-flight syncs per account, never cancel/restart. Cursor saved only after a page fully persists; retries resume from the saved cursor.
+- Classify failures honestly: per-second throttle ("wait a minute, tap once") vs daily quota ("resets at midnight Pacific, try tomorrow") vs permission vs offline. Never say "Reconnect" when offline.

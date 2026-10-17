@@ -40,3 +40,8 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 29. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Cover: malformed email, hostile HTML (sanitizer + entity decoding + no per-image lines + images never fetched), corrupt DB (FTS failure-safe, table-existence guards), expired/revoked tokens (Testing-mode 7-day expiry), interrupted sync (cursor resume, no silent skips), duplicates (dedup id `messageId|actionType|targetKey`), permission denial (403 reason mapping: `insufficientScopes`, `dailyLimitExceeded`), secret-store failure (locked/unavailable keyring → honest error, never crash).
+- Account-isolation attack: no cross-account message/rule/action/credential leakage under switching, disconnect, or reinstall.

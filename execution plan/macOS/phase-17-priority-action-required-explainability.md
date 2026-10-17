@@ -19,3 +19,9 @@ Run targeted tests, build and launch the real macOS application when possible, e
 Update status and add only permanent rules.
 
 **STOP AFTER PHASE 17.**
+
+## 2026-10-18 — Current-design update
+
+- Priority badges carry "why this priority?" explanations; classification carries "Why this category?" explanations. Confidence = rule strength, not probability.
+- **No "Action Required" chip/filter/empty state in the Mail list** (removed on Android). Action Required remains available as a destination/section where defined, but not as a Mail-list chip. Search filter untouched.
+- Priority is independent from category. Manual overrides are safe (user intent outranks the engine).

@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 04.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive sidebar + message list + detail + optional inspector. Destinations: All Inbox, Primary, Promotional, Social, Spam, Starred. Company grouping/filtering lives INSIDE the selected category — companies are never top-level destinations.
+- Sidebar is compact and stable (Gmail parity). Selection restoration, keyboard/pointer navigation, resizing, and multi-window state all preserve context. Navigation never reloads the page.

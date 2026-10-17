@@ -25,3 +25,9 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 19.**
+
+## 2026-10-18 — Current-design update
+
+- Rust temporal and conversation intelligence for deadlines, meetings, waiting-for-reply, follow-up, thread state. Timezone/date ambiguity, quoted text, duplicates, malformed content, user corrections; extracted facts stay distinct from confirmed external objects.
+- Temporal extraction: 14 item types, reference time = message received, ambiguity policy, idempotent.
+- Conversation intelligence: 7 deterministic states (NO_ACTION, AWAITING_USER_REPLY, AWAITING_OTHER_PARTY, RECENTLY_REPLIED, STALE_CONVERSATION, RESOLVED, UNKNOWN). Explain what appears to be happening without inventing intent; never equate "no reply" with "user forgot". Negative signals (newsletters, notifications, receipts, spam, no-reply) shield against false "awaiting reply". 3-day follow-up candidates; 7-day stale threshold. Status badge pills + expandable intelligence card with timeline & reasons.

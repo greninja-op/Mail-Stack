@@ -25,3 +25,8 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 16.**
+
+## 2026-10-18 — Current-design update
+
+- Local-first Rust search/indexing for sender, subject, body/thread, company/domain, category, priority, Action Required, Gmail labels, supported metadata. Incremental updates, deletion, ranking, cancellation, empty results, large indexes.
+- Structured query all the way down (UI never builds SQL). Every FTS term escaped (injection-proof by construction). Debounce (~300ms). Account-scoped; unified search joins enabled accounts only.

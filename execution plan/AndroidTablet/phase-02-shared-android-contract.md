@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 02.**
+
+## 2026-10-18 — Current-design update
+
+- Reuse shared models, repositories, sync contracts, state, semantic constants, and interfaces. Tablet-specific adapters cover UI/window/input/OS behavior only.
+- The shared code already carries the current semantics — throttle pacing, cursor resume, logo detection, fixed-denominator progress, insertion-order rows. The tablet CONSUMES these; it does not re-implement them. Remove or prevent duplicate business engines where proven.
+- Compile and unit-test shared consumers and verify the phone path is not broken.

@@ -41,3 +41,9 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 10. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Parse the FULL error body before classifying (never truncate before JSON parse — a truncated body yields an empty reason and a generic fallback). Map Gmail's actual reasons: `insufficientScopes` (scope error), `dailyLimitExceeded` → rate-limited, per-second throttle → rate-limited.
+- Read Gmail's `Retry-After` header on throttled responses and honor it. Classify failures honestly: per-second throttle vs daily quota vs permission vs offline.
+- Pagination: 50-message pages (config), bounded per-run max (500). Never fire retry LIST calls while Gmail is throttling (they extend the throttle).

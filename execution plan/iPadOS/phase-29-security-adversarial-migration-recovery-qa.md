@@ -15,3 +15,9 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Hostile/recovery pass. Malicious email HTML/URLs, prompt injection, malformed provider responses, OAuth callback attacks, token/log leakage, cross-account access, database corruption, migration failures, interrupted sync, cursor/history gaps, process death, reboot, storage pressure, stale cache, notification privacy, account removal, partial external-action failures.
+- Verify fail-closed behavior and data integrity. **Never silently skip a throttled per-message GET** — retry dropped GETs; a skipped message is silently missing forever. Cursor advances only past safely committed data.
+- No feature expansion except fixes required by findings. No unsupported legal/compliance claims.

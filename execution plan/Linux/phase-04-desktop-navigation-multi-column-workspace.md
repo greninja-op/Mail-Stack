@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 04. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Navigation pane behaves like Gmail's drawer: compact, stable, collapsible. Destinations: All Inbox, Primary, Promotional, Social, Spam, Starred. Company grouping belongs INSIDE the selected category, never as navigation destinations.
+- Multi-column workspace: resizable navigation, message-list, and conversation panes; narrow-window fallback; keyboard traversal; selection state preserved.
+- **View switches never reload the mailbox.** Content transitions without flicker or reload.
+- Top-bar profile circle (DP) uniform 40px on every view, entry point for the Gmail-style account switcher. Settings opens as a dedicated view; non-important Settings entries go to the bottom as small footer text, not buttons.

@@ -22,3 +22,11 @@ Run targeted automated tests; build and run the actual macOS app when possible; 
 Update status accurately and add only genuinely permanent rules. Do not delete unrelated rules.
 
 **STOP AFTER PHASE 14.**
+
+## 2026-10-18 — Current-design update
+
+- **Mail row (exact):** 40pt avatar, sender + time line 1, subject line 2, snippet line 3, min 88pt height. Flat rows on the background — no card, no border, no shadow.
+- **Logo pipeline in every row:** company sender → logo (bundled → asset catalog → favicon → letter fallback); personal sender → letter avatar. Unified inbox rows add the small receiving-account indicator circle. Star on the right. Unread = bold sender/subject + primary-colored time.
+- Native macOS scroll indicators. Refresh is an explicit user action (toolbar button / Cmd+R) — never auto-fire on scroll.
+- Conversation viewer: message reveal 350ms expand + fade, rotating chevron. HTML sanitized; entities decoded; images never fetched (no per-image placeholder lines). No JavaScript from mail content.
+- Keyboard movement (up/down, Cmd+arrows, J/K), context actions, selection restoration, large-thread performance. No "Action Required" chip/filter in the Mail list.

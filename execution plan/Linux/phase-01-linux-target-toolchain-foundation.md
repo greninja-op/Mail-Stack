@@ -41,3 +41,9 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 01. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Foundation must support the CURRENT UI: centralized design tokens (brand violet, dark-mode charcoal `#131120`, typography scale, 28px card radius, motion tiers), the GTK/Qt shell with resizable multi-column workspace, and high-DPI scaling.
+- Reproducible local build + CI baseline must cover the token system (a token change is a single-point change, never scattered magic values).
+- No per-fix test builds: test builds only when the user explicitly asks; every release increments the version.

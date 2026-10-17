@@ -40,3 +40,8 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 17. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Priority badges carry "why this priority?" explanations; classification carries "Why this category?" explanations. Confidence is rule strength, not probability; unknown stays unknown, never invented.
+- **No "Action Required" chip/filter/empty state in the Mail list** (removed on Android). Action Required remains available as a destination/section where defined, but not as a Mail-list chip. Search filter untouched.

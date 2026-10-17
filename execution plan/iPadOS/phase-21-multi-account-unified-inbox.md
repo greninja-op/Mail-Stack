@@ -15,3 +15,10 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Account switching + unified All Inbox. Current/connected/add-account, account-specific recovery, receiving-account identity, unified list/detail, account-scoped search/rules/company intelligence/actions, account removal + local cleanup.
+- **Unified inbox is presentation-layer only** — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only. Every unified row shows the small receiving-account indicator (receiving account, NOT sender).
+- Adding an account reuses OAuth → sync → recovery (import card, same visual language). One sign-in grants Gmail + Calendar + Tasks. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync.
+- Account switching preserves mailbox context safely. Disconnecting an account cascades through that account's boundaries only. Perform adversarial cross-account search/cache/notification/rule/action/company tests; verify fail-closed isolation.

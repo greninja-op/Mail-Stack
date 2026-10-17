@@ -13,3 +13,10 @@ Implement the adaptive navigation workspace foundation. Build sidebar → list �
 Inspect the actual repository before deciding. Implement only this phase. Run exact relevant build and automated tests, then runtime validation on iPad Simulator and a real iPad when available. Test failure and recovery states relevant to the phase. Fix failures, rebuild/reinstall/retest, record evidence, update status and permanent editor rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive navigation workspace: sidebar → list → detail architecture with current native SwiftUI navigation APIs. Content-driven width thresholds, never device-name checks.
+- Preserve selection and context when moving between columns. Support narrow split fallback (iPhone-like single column + drawer), medium two-column behavior, and wide three-column behavior (+ optional inspector).
+- **Selection/column changes never reload the page.** Content updates in place; no flicker, no reload. Column appear/disappear animates; selection is preserved through it.
+- Establish keyboard focus, pointer hover/selection, contextual menu, and touch interaction foundations. Test portrait, landscape, split widths, full-screen, Slide Over, and Stage Manager resizing repeatedly, including rapid resize while state changes. Do not implement real Gmail data yet.

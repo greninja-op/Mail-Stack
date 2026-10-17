@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 09. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Redirect URI `com.greninjaop.mailorganizer:/oauth2redirect` (RFC 8252 single slash). Linux: loopback redirect or custom-scheme handler registered with the desktop environment + callback handling for cold-start AND warm redirects.
+- **One sign-in grants Gmail + Calendar + Tasks.** Base scopes = gmail.readonly + calendar.events + tasks + openid/email/profile. Auth URL uses `prompt=consent` + `include_granted_scopes=true` + `access_type=offline`. gmail.modify stays incremental, confirmation-gated.
+- Console-side: Custom URI Scheme must be enabled on the OAuth client (Google rejects with Error 400 otherwise). Testing-mode consent → only listed test users; Testing-mode refresh tokens expire after 7 days.
+- Sign-in opens in the system browser (trusted context) — never an in-app imitation credential form; the app never sees the password. A sign-in that strands the user in the browser is a bug, not a user error.

@@ -40,3 +40,8 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 18. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.
+- Corrections are explicit and deterministic; previews show the effect before applying. Migration preserves user intent.

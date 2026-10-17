@@ -26,3 +26,9 @@ Run targeted unit/integration tests; build and launch the actual macOS app when 
 Update status accurately and add only permanent rules.
 
 **STOP AFTER PHASE 21.**
+
+## 2026-10-18 — Current-design update
+
+- Unified inbox is presentation-layer only — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only.
+- Every unified row shows the small receiving-account indicator (receiving account, NOT sender). Account switching preserves mailbox context safely; disconnecting an account cascades through that account's boundaries only.
+- One sign-in grants Gmail + Calendar + Tasks for the account. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync. Global Starred semantics preserved (starring does not remove mail from its category).

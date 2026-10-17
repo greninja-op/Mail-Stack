@@ -13,3 +13,9 @@ Implement/verify iPad Keychain-backed credential/token state and account metadat
 Inspect actual repository and prior phase evidence. Implement only this phase. Run targeted unit/integration tests and runtime tests on iPad Simulator and real iPad where available. Exercise success, failure, cancellation and recovery paths appropriate to the phase. Inspect logs and persisted state. Fix, rebuild/reinstall/retest. Record exact evidence. Update status and permanent rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Keychain-backed credential/token state and account metadata boundaries. Secure storage adapter through the common interface, token refresh state, logout/disconnect cleanup, lock/privacy behavior.
+- **Disconnect/clear-all also clears tokens.** Pending PKCE flow persisted in Keychain. No secrets in logs, screenshots, analytics, ordinary DB, or SwiftUI state dumps. Logging sanitizer redacts bearer tokens, raw OAuth tokens, authorization headers, and email addresses (domains preserved).
+- Test account add/remove, revoked credentials, corrupted secure state, duplicate accounts, and cross-account access attempts. Do not build the OAuth UI yet.

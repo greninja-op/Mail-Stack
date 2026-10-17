@@ -13,3 +13,9 @@ Implement iPad rule/correction management over the common rules engine. Support 
 Inspect actual repository and prior evidence. Implement only this phase. Run targeted unit/integration tests plus iPad Simulator and real iPad validation where available. Test multiple viewport modes, accessibility and relevant failure/recovery paths. Fix, rebuild/reinstall/retest and record exact evidence. Update status/rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Rule/correction management over the common rules engine. Create/edit/disable/delete, scope, precedence, explanation, history/audit where available, immediate correction feedback.
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.
+- Rules are bounded and cannot execute arbitrary scripts. Test contradictory rules, correction rollback, deleted messages, account isolation, malformed rule input, and email prompt-injection attempts. Do not build temporal/conversation extraction yet.

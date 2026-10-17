@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 25. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Automation is user-created rules only. Finite, explainable, account-scoped, idempotent, safety-validated. Circuit breaker on repeated failures. Destructive actions are conservative.
+- Email content cannot create or approve an automation. No arbitrary scripts. Engine proposes / user confirms / nothing external automatic.
+- Keep the deterministic effective pipeline: correction > rule > deterministic base.

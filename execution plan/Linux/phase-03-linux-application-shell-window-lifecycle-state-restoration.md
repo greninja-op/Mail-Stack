@@ -41,3 +41,9 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 03. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Shell restores safe UI state only: pane sizes, selection, window geometry, theme. Never credentials (Keychain/Secret Service only).
+- Cold-start OAuth redirect handling: the shell must route the redirect to the pending PKCE flow whether the app was already running or cold-started.
+- Crash-safe recovery: an in-flight sync resumes from the saved page cursor, never from scratch; a cleanup failure must never crash the app nor block account removal (every cleanup step individually best-effort).

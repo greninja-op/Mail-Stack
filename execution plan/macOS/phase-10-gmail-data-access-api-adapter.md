@@ -90,3 +90,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 11 — Initial Gmail Sync. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- The adapter must parse the FULL Gmail error body (never truncate before JSON parse) and surface the real reason (`error.errors[0].reason`): `insufficientScopes`, `dailyLimitExceeded`, rate-limit reasons, etc. Truncation caused the generic-fallback bug on Android.
+- Rate-limit classification: distinguish per-second throttle from daily quota from permission errors — the UI messages differ. Expose Gmail's `Retry-After` header to the caller; never swallow it.
+- Normalization must preserve raw sender email + display name (logo-pipeline inputs) and receiving-account identity per message.

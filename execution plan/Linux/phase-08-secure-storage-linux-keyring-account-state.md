@@ -41,3 +41,9 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 08. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Tokens/secrets live ONLY in the Secret Service/keyring — never in source, logs, UI, screenshots, or ordinary DB fields. Logging sanitizer redacts bearer tokens, raw OAuth tokens, authorization headers, and email addresses (preserve domains).
+- Pending PKCE flow persisted in the keyring. Replay + consume-once on the OAuth redirect result. Clear-all/disconnect also clears tokens.
+- Keyring lock/unlock/error behavior: a locked or unavailable keyring must surface an honest error, never a silent auth failure or a crash.

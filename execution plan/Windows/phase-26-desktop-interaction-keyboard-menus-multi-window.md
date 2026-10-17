@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 26.**
+
+## 2026-10-18 — Current-design update
+
+- Rust-first Windows desktop interaction: keyboard shortcuts, command/menu behavior, toolbar actions, context menus, selection semantics, pointer/mouse/trackpad behavior, safe drag/drop, multiple windows, state restoration, focus management.
+- Current motion specs apply: Settings pane slide (350ms, underlying content shifts 1/12 left where layout supports it), scroll-hide bars (250ms translate), message reveal (350ms expand+fade, rotating chevron), navigation that never reloads the page.
+- Full keyboard-only operation must remain possible. Focus order is logical; no keyboard traps.

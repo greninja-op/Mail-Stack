@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 06.**
+
+## 2026-10-18 — Current-design update
+
+- Module boundaries, async runtime, threading, cancellation, error mapping, serialization, dependency injection, logging, and test seams stay in Rust. Native Windows API calls stay behind Rust adapters.
+- Logging uses the sanitizer: redact bearer tokens, raw OAuth tokens, authorization headers, email addresses (preserve domains). No secrets in logs.

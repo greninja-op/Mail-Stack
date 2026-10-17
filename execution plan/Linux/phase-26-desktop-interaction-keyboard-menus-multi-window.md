@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 26. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Keyboard shortcuts, menus, context menus, focus, safe drag/drop, multi-window behavior, workspace restoration — all preserving accessibility (keyboard traversal, visible focus, Orca labels/order).
+- View switches never reload the mailbox; selection state preserved. Pane sizes restored across launches.
+- Multi-window: each window preserves account isolation and selection state; no cross-window data leaking.

@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 28. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Never claim a test, device run, screenshot, log, or validation that was not actually performed. Build success alone is never sufficient.
+- Cover: light/dark mode, text scaling, high-DPI, keyboard-only operation, Orca, narrow/normal/wide windows, long subjects, large threads, missing sender/avatar data, network interruptions, malformed email/HTML cases, permission denial, authentication failure/recovery, account-isolation attack, throttle simulation (per-second throttle vs daily quota), logo-pipeline cases (company vs personal vs unknown domain), category-group rendering (one-cavity, vertical centring, accent colors), import-flow cases (progress never backwards, 99% cap, Done gating, error chrome).
+- Screenshot review on every major UI change. Jank/frame-time inspection where practical. Regression review of existing screens.

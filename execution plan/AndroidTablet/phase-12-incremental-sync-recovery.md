@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 12.**
+
+## 2026-10-18 — Current-design update
+
+- History/cursor processing, changed/deleted messages, pagination, retries/backoff, history gaps, full-resync fallback. Cursor advancement is atomic and idempotent.
+- Backoff must NOT fire retry LIST calls while Gmail is throttling (they extend the throttle). Pace requests, honor `Retry-After`, never silently skip throttled GETs.
+- Test interruptions, process death, duplicate/out-of-order events, invalid cursors, rate limits (per-second throttle vs daily quota), and partial account failure.

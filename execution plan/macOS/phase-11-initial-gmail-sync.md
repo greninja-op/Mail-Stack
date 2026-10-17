@@ -90,3 +90,10 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 12 — Incremental Sync, Pagination & Recovery. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- **Daily quota is effectively never the problem** (one 500-message first sync ≈ 2,682 units vs 1,000,000,000 daily). The real limit is the **per-second throttle (250 units/user/sec)**.
+- Pace requests (token bucket, ~10 req/sec) + honor `Retry-After`. **Never silently skip a throttled per-message GET** — retry dropped GETs; a skipped message is silently missing forever. Do NOT fire retry LIST calls while throttling (they extend the throttle).
+- Progress from the real sync only, never backwards: total fetched ONCE (Gmail profile `messagesTotal`) before the loop, bounded by the per-run max; caps at 99% while running; Done = 100%. Import UI: conduit arc is NOT progress (pulse travels it); ONLY the Mailstack ring is progress; rows show the 2 most recently inserted mails; Continue gated on Done.
+- Spam pass runs once per first sync. Sync is resumable via the saved cursor.

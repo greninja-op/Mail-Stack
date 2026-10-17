@@ -23,3 +23,8 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 29.**
+
+## 2026-10-18 — Current-design update
+
+- Dedicated hostile/recovery pass: malicious HTML/URLs, prompt injection, malformed Gmail responses, OAuth callback attacks, token/log leakage, cross-account access, DB corruption, migrations, interrupted sync, cursor gaps, process death, reboot, storage pressure, stale cache, notification privacy, account removal, partial external-action failures.
+- Verify fail-closed behavior and data integrity. Full-body error parsing (never truncate before JSON parse). Throttle cases: per-second throttle vs daily quota, Retry-After honored, no silent skips. Feature expansion only for required fixes.

@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 14. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Workspace: resizable panes, selection, thread navigation, attachment metadata, safe rendering, loading/error/offline states, keyboard/mouse workflows.
+- Message reveal: 350ms expand + fade, rotating chevron. Thread view: oldest-first, chronological.
+- Pull-to-refresh (where offered) fires ONLY on a deliberate user gesture — a fast fling back to the top must never trigger it.
+- View switches never reload the mailbox. Selection state preserved across pane resizes and view switches.

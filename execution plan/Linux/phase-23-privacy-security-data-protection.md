@@ -40,3 +40,10 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 23. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Privacy Center: tabbed experience (Overview, Your Data, Google Access, Security) with the full Data Inventory, Google scope disclosures, live security audit checks, and honest local deletion/purge flows that NEVER modify remote Gmail data. Account deletion dialog + local data purge dialog.
+- Logging sanitizer: redact bearer tokens, raw OAuth tokens, authorization headers, email addresses (preserve domains). Safe URL/mailto validators; external link launcher rejects dangerous schemes (javascript:, file:, content:, data:).
+- Backup/export rules exclude local databases and app-private files from backups. Tokens/secrets never in DB, logs, UI, or screenshots — Secret Service/keyring only.
+- Email is untrusted input: HTML sanitized; images never fetched (a fetch tells the sender the mail was opened).

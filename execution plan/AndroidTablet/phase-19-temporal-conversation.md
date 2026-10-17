@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 19.**
+
+## 2026-10-18 — Current-design update
+
+- Temporal extraction: 14 item types, reference time = message received, ambiguity policy, idempotent, no schema migration for extracted items.
+- Conversation intelligence: 7 deterministic states (NO_ACTION, AWAITING_USER_REPLY, AWAITING_OTHER_PARTY, RECENTLY_REPLIED, STALE_CONVERSATION, RESOLVED, UNKNOWN). Explain what appears to be happening without inventing intent; never equate "no reply" with "user forgot". Negative signals (newsletters, notifications, receipts, spam, no-reply) shield against false "awaiting reply". 3-day follow-up candidates; 7-day stale threshold. Status badge pills + expandable intelligence card with timeline & reasons.
+- Expose contextual information in list/detail panes. Test ambiguous dates, locale/timezone changes, DST, quoted text, forwarded messages, duplicate threads, and missing timestamps.

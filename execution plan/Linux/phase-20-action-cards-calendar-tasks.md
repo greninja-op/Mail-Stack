@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 20. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Action Engine: proposes / user confirms / nothing external automatic. Generation and safety validation are separate layers. Deterministic dedup id `messageId|actionType|targetKey`; thread-dedup on (actionType, targetKey). Confirming external proposals honestly reports "not connected" — never fake success.
+- Calendar/Tasks use the SAME account + tokens via the one sign-in (no per-integration sign-in). Idempotent creation (Calendar: iCalUID + extended-property key + receipt cache + recovery lookup; Tasks: marker-in-notes + execution store + recovery scan).
+- Gmail write (mark read/unread, archive, etc.) behind a confirmation gate: fail-closed, account isolation, idempotency pre-check, Gmail-verified-before-local-update, per-item bulk. 403 → incremental-auth upgrade dialog (gmail.modify is the only incremental scope).

@@ -90,3 +90,10 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 05 — macOS Visual System, Tokens & Theming. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Sidebar destinations: All Inbox, Primary, Promotional, Social, Spam, Starred. Companies are filters within the selected category — never top-level destinations. Company pinning is separate from email starring.
+- Destination switches never reload the message list and never flicker; selection restoration works across switches, resizes, and restarts. Minimum window constraints keep the three columns usable.
+- Category context stays visible when a company filter is active. Navigation state (selected destination, category, company filter, message, thread) is restorable.
+- Menu bar commands + keyboard shortcuts mirror every primary navigation action.

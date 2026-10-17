@@ -26,3 +26,9 @@ Run targeted automated tests; build and run the actual macOS app when possible; 
 Update status accurately and add only genuinely permanent rules. Do not delete unrelated rules.
 
 **STOP AFTER PHASE 16.**
+
+## 2026-10-18 — Current-design update
+
+- Search: structured query all the way down (UI never builds SQL); on-device FTS index; every FTS term escaped (injection-proof by construction); debounce (~300ms); account-scoped; unified search joins enabled accounts only.
+- Write-path hooks index in the same transaction. Queries never logged. Index creation failure-safe; table-existence guards on cleanup.
+- Keyboard-first search entry (Cmd+K / Cmd+F), Esc clears. Empty results are an intentional state, not a blank screen.

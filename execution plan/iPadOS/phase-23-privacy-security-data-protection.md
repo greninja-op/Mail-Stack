@@ -15,3 +15,10 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Privacy Center: tabbed experience (Overview, Your Data, Google Access, Security) with the full Data Inventory, Google scope disclosures, live security audit checks, and honest local deletion/purge flows that NEVER modify remote Gmail data. Account deletion dialog + local data purge dialog.
+- Security hardening: Keychain/token lifecycle, database protection, account isolation, notification privacy, logging redaction (bearer tokens, raw OAuth tokens, authorization headers, email addresses — domains preserved), deep-link validation, HTML sanitization, hostile URLs, attachment handling, pasteboard/screenshot/background-snapshot privacy, URL schemes, entitlements, transport security, dependency audit, secret scanning.
+- Safe URL/mailto validators; external link launcher rejects dangerous schemes (javascript:, file:, content:, data:). Email is untrusted input; images never fetched (a fetch tells the sender the mail was opened).
+- Backup rules exclude local databases and app-private files from cloud backup / device transfer. Do not make unsupported legal/compliance claims. Test adversarial inputs and cross-account attacks.

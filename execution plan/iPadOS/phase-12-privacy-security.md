@@ -13,3 +13,10 @@ Implement incremental Gmail history/cursor processing using the common sync engi
 Inspect the actual repository and prior evidence. Implement only this phase. Run targeted automated tests, then iPad Simulator and real iPad validation where available. Test multiple viewport states relevant to the feature and exercise failure/recovery paths. Fix, rebuild/reinstall/retest and record exact evidence. Update status/rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Incremental history/cursor processing on the common sync engine. History gaps, token invalidation, deleted/changed messages, pagination, retries/backoff, rate limits, partial account failure, full-resync fallback.
+- **Idempotency + atomic cursor advancement:** never advance a cursor beyond data that was not safely committed. Cursor saved only after a page fully persists.
+- Do NOT fire retry LIST calls while Gmail is throttling (they extend the throttle). Honor `Retry-After`.
+- Test interruption at every major boundary, duplicate events, out-of-order events, and process termination.

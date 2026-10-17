@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 10.**
+
+## 2026-10-18 — Current-design update
+
+- Normalize provider responses, pagination tokens, history identifiers, labels, headers, and message/thread data.
+- **Parse the FULL error body before JSON parsing — never truncate first.** Long Gmail errors truncated mid-JSON parse to nothing, which hid the real reason for days. Read `error.errors[0].reason` (not `error.reason`, which is absent). Map `insufficientScopes` (the actual scope-error reason) and `dailyLimitExceeded` correctly.
+- Classify failures honestly: per-second throttle vs daily quota vs permission vs auth vs malformed. Test missing fields, duplicates, deleted objects, partial responses, and provider failures. No full sync workflow yet.

@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 27.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports 120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Profile cold/warm launch, scrolling, search, sync, thread opening, account switching, resizing, and background/foreground. Fix Compose state churn, unbounded lists, image/cache pressure, memory leaks, excessive work, and expensive background tasks.
+- Complete TalkBack, large fonts, contrast, reduced motion, focus, keyboard/mouse accessibility. Test low battery/power saver, memory pressure, and large datasets.

@@ -90,3 +90,10 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 04 — Desktop Navigation & Multi-Column Workspace. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Shell implements the CURRENT navigation: multi-column workspace (sidebar + list + detail + optional inspector), uniform 40pt toolbar account avatar, account menu + sidebar account section, Settings in its own window via the standard macOS Settings scene, destination switches that never reload the list (selection preserved, no flicker).
+- Window defaults, state restoration, and termination behavior preserve selection, sidebar state, and account context across restarts.
+- Launch/loading/failure states are intentional (loading / loaded / empty / offline / stale / syncing / auth-required / permission-denied / error / retry). The error variant keeps screen chrome.
+- Safe initialization: no mailbox functionality invented here; no secrets in logs.

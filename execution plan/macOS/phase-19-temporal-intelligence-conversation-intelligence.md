@@ -26,3 +26,9 @@ Run targeted unit/integration tests; build and launch the actual macOS app when 
 Update status accurately and add only permanent rules.
 
 **STOP AFTER PHASE 19.**
+
+## 2026-10-18 — Current-design update
+
+- Conversation intelligence: 7 deterministic states (NO_ACTION, AWAITING_USER_REPLY, AWAITING_OTHER_PARTY, RECENTLY_REPLIED, STALE_CONVERSATION, RESOLVED, UNKNOWN). Explain what appears to be happening without inventing intent; never equate "no reply" with "user forgot". Negative signals (newsletters, notifications, receipts, spam, no-reply) shield against false "awaiting reply". 3-day follow-up candidates; 7-day stale threshold. Status badge pills + expandable intelligence card with timeline & reasons.
+- Temporal extraction: 14 item types, reference time = message received, ambiguity policy, idempotent, no schema migration for extracted items. Timezone/date ambiguity handled explicitly; quoted-text filtered; duplicate protection.
+- Thread chronology: strict oldest-to-newest ordering. Direction is multi-account aware (owning account's email + aliases).

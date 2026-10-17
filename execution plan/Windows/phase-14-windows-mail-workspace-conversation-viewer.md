@@ -25,3 +25,11 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 14.**
+
+## 2026-10-18 — Current-design update
+
+- Rust-first native Windows mail list/detail + conversation viewer. Selection, thread navigation, attachment metadata, loading/empty/error/offline states, keyboard/pointer movement, context actions, large-thread performance.
+- **Mail row (exact):** 40px avatar, sender + time line 1, subject line 2, snippet line 3, min 88px height. Flat rows on the background — no card, no border, no shadow.
+- **Logo pipeline in every row:** company sender → logo (bundled → app assets → favicon → letter fallback); personal sender → letter avatar. The row MUST receive the detected sender domain; a missing domain falling back to letters for company mail is a bug. Unified inbox rows add the small receiving-account indicator circle. Star on the right. Unread = bold sender/subject + primary-colored time.
+- Thread/message view: message reveal 350ms expand + fade, rotating chevron. HTML sanitized; entities fully decoded; `<!DOCTYPE>`/processing instructions never print as text; images never fetched (render as nothing, no per-image placeholder lines). No JavaScript from mail content.
+- Refresh is explicit (button/shortcut) — a fast fling or velocity gesture must never trigger a refresh. No "Action Required" chip/filter in the Mail list.

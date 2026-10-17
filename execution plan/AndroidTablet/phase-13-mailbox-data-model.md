@@ -23,3 +23,10 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 13.**
+
+## 2026-10-18 — Current-design update
+
+- View models over synchronized shared data. **Mail row (exact):** 40dp avatar, sender + time line 1, subject line 2, snippet line 3, min 88dp height. Flat rows on the background.
+- **Logo pipeline in every row:** company sender → logo (bundled → ICONS-ASSETS → favicon → letter fallback); personal sender → letter avatar. The row MUST receive the detected sender domain; a missing domain falling back to letters for company mail is a bug. Unified rows add the small receiving-account indicator circle. Star on the right. Unread = bold sender/subject + primary-colored time.
+- Sanitized HTML/plain text: entities fully decoded (no raw `&bull;`, no zero-width-character walls); `<!DOCTYPE>`/processing instructions/CDATA never print as text; images never fetched (render as nothing, no per-image placeholder lines). Safe URLs. Attachment metadata. Thread navigation.
+- Test malformed HTML, hostile links, missing headers, huge threads, deleted messages, and accessibility semantics.

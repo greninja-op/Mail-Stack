@@ -23,3 +23,10 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 25.**
+
+## 2026-10-18 — Current-design update
+
+- Automation is user-created rules only. Finite, explainable, account-scoped, idempotent, safety-validated. Circuit breaker on repeated failures. Destructive actions are conservative.
+- Expose builder/list/detail/history in a tablet workspace. Finite triggers/conditions/actions, account scope, preview/dry run, confirmation, enable/disable/delete/re-enable, idempotency, retry/loop protection, background constraints.
+- Email content cannot create or approve an automation. No arbitrary scripts; no automatic send/reply/forward/permanent delete.
+- Test duplicates, partial failure, stale schedules, account removal, permissions, and malicious email.

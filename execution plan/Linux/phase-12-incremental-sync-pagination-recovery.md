@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 12. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Retries resume from the saved page cursor (cursor saved only after a page fully persists). A dropped page is re-fetched, never skipped.
+- Backoff must NOT fire retry calls while Gmail is throttling — wait for `Retry-After` / throttle clearance instead.
+- Local state converges with Gmail without destructive assumptions. Stale state is repaired by re-sync from the cursor, never by wiping the local store.
+- Offline vs auth-failure vs throttle are distinguished in every error path (never "Reconnect" when offline).

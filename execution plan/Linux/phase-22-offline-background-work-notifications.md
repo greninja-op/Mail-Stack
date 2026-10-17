@@ -40,3 +40,9 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 22. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Background work carries an explicit account id and never reads the active UI account (protects against races when switching accounts). Scheduling respects Linux desktop constraints (systemd timers / desktop autostart / session services — never claim continuous or exact-cadence execution the platform does not guarantee). Lifecycle triggers apply a staleness threshold (15 min) — no aggressive polling.
+- Offline state is cleanly distinguished from authentication failure or API errors — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision.
+- Notifications are honest (no fake/bait content), deduplicated, and honor user preferences.

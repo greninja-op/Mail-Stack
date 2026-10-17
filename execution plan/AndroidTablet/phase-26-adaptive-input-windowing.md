@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 26.**
+
+## 2026-10-18 — Current-design update
+
+- Dedicated whole-product large-screen interaction pass: narrow/medium/wide panes, portrait/landscape, split-screen, multi-window. Refine adaptive thresholds (content-driven, not device-name checks), selection restoration, mouse/pointer hover, keyboard shortcuts/focus, context menus, and useful drag & drop.
+- Verify rapid resizing during sync/search/loading/detail transitions and accessibility focus stability. Stylus where genuinely useful; touch remains first-class.
+- Re-verify the current motion specs at every width: tab-switch slide (no reload), Settings slide/pane, scroll-hide bars (250ms translate), message reveal (350ms), scrollbar behavior.

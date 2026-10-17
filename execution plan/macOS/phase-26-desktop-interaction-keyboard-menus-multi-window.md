@@ -28,3 +28,9 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 26.**
+
+## 2026-10-18 — Current-design update
+
+- Keyboard shortcuts, menu commands, toolbar validation, context menus, selection semantics, pointer/trackpad behavior, safe drag/drop, multiple windows/scenes, state restoration, focus management, workspace consistency.
+- Shortcuts cover: search (Cmd+K / Cmd+F), refresh (Cmd+R), navigation between destinations, star/unstar, archive, mark read/unread, reply/forward (where write features exist), account switching. Full Keyboard Access verified.
+- Destination switches never reload the list; selection restoration works across windows, restarts, and sleep/wake. Focus order is logical; focus never lost after an action.

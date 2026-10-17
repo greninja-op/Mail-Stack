@@ -23,3 +23,10 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 30.**
+
+## 2026-10-18 — Current-design update
+
+- Final gate. Verify all phase evidence and master docs. Audit application identity, signing (test builds: stable debug keystore; production: separate release key), Play configuration, OAuth release identity/scopes, permissions, data/privacy declarations, assets, versioning (increment every release — never reuse a version name), release config, dependency/security/secret scans, debug/test bypass removal, reproducible artifact, repository hygiene.
+- Clean production build/install and smoke path: launch→OAuth→sync→multi-pane All Inbox→detail→search→company filter→star→Action Required→account switch→offline→reconnect. Verify multiple tablet sizes/window modes and accessibility.
+- Final audit extends the checklist with the current-design items: company logos in EVERY row area (list, Categories, detail pane, import rows); category groups (one-cavity, vertical centring, semantic accents); scrollbar behavior; import flow (arc-not-progress, ring-only progress, progress never backwards, 99% cap, Done gating, error chrome); throttle handling (pacing, Retry-After, no silent skips); no fabricated counts; no app emojis; dark-mode charcoal (never pure black); HTML rendering (entity decoding, no per-image lines, images never fetched); pull-to-refresh finger-only; tab-switch no-reload; Settings footer rule; drawer covering top section.
+- RELEASE READY only with evidence; otherwise RELEASE BLOCKED with severity/evidence/remediation. Never publish automatically or claim approval without evidence. Note: a public app using restricted Gmail scopes (gmail.readonly) needs a CASA-style independent security assessment before Google verification (Android precedent: ~$500–$1,500/yr, ~4–6 weeks, annual). Do not claim verification, approval, or compliance without actual evidence.

@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 17.**
+
+## 2026-10-18 — Current-design update
+
+- Priority badges carry "why this priority?" explanations; classification carries "Why this category?" explanations. Expose them in list/detail/inspector layouts. Show explainable indicators, unknown/stale states, and user-correction effects.
+- **No "Action Required" chip/filter in the Mail list** (removed on phone). Action Required remains available as a destination/section where defined, but not as a Mail-list chip.
+- Test borderline signals, missing metadata, conflicting signals, sorting/filtering, and accessibility labels. Do not create a second intelligence engine.

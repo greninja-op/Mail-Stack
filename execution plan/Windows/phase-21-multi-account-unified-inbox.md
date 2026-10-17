@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 21.**
+
+## 2026-10-18 — Current-design update
+
+- Connected/current/add account state, account-specific sync and recovery, receiving-account identity per message, Unified Inbox, global Starred semantics, category preservation, account removal cleanup, cross-account isolation.
+- Unified inbox is presentation-layer only — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only. Every unified row shows the small receiving-account indicator (receiving account, NOT sender).
+- One sign-in grants Gmail + Calendar + Tasks for the account. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync. Account switching preserves mailbox context safely.

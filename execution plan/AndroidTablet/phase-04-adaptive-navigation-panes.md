@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 04.**
+
+## 2026-10-18 — Current-design update
+
+- Navigation rail/sidebar + list + detail panes with narrow fallback (modal drawer covering the top section, phone parity). Same six destinations in the same order: All Inbox, Primary, Promotional, Social, Spam, Starred.
+- Preserve selection/context across tab switches, pane changes, and configuration changes. **Tab switches never reload the page** — content slides in from the respective side, no flicker, no reload.
+- Keyboard focus, mouse/pointer hover, touch, and context-menu foundations. Test portrait, landscape, split-screen, resizing, and rapid configuration changes. No real Gmail data yet.

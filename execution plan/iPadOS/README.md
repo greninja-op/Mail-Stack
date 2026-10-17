@@ -67,3 +67,12 @@ At sufficient width, the product should be able to show navigation/category cont
 30. Production Signing, App Store Preparation & Final Release Hardening
 
 STOP AFTER PHASE 30. There is no Phase 31.
+
+## 2026-10-18 — Plan updated to the current Mailstack UI
+
+This plan was updated to match the CURRENT Mailstack UI as shipped on Android (1.0.39 + in-main fixes), adapted to the iPad workspace in SwiftUI. The Android app is the reference implementation for the design philosophy.
+
+- `design.md` rewritten as the full current visual & UX contract (multi-column workspace, brand tokens, dark-mode charcoal, flat rows, card rules, mail-row spec, categories, inspector, import flow, scrollbar, motion, copy rules, input).
+- `editor-rules.md` rewritten with every standing directive earned building Android (copy-exact, fix-means-remove, auto-readjust, logos everywhere, no fabrication, no app emojis, OAuth + sync facts, push/continuity rules), adapted to iPadOS.
+- Each phase carries a "2026-10-18 — Current-design update" section with the post-Phase-30 requirements for that phase. The original phase text is preserved; the update section wins on disagreement. NOTE: several phase filenames do not match their content's topic (a pre-existing quirk) — the update sections follow each file's ACTUAL topic.
+- Do NOT execute phases from this update. The user executes the plan separately.

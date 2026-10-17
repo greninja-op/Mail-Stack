@@ -40,3 +40,10 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 30. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Reproducible release builds; Linux packaging/distribution artifacts (Flatpak + distro packages per the explicit distribution strategy); signing strategy where applicable; metadata; permissions; clean install/uninstall; upgrades; release notes; final go/no-go. No Phase 31.
+- Final audit extends the checklist with the current-design items: company logos in EVERY row area (Mail, Categories, import rows); category groups (one-cavity, vertical centring, semantic accents); scrollbar behavior; import flow (arc-not-progress, ring-only progress, progress never backwards, 99% cap, Done gating, error chrome); throttle handling (pacing, Retry-After, no silent skips); no fabricated counts; no app emojis; dark-mode charcoal (never pure black); HTML rendering (entity decoding, no per-image lines, images never fetched); view-switch no-reload; Settings footer rule.
+- Google OAuth verification: a public app using restricted Gmail scopes (gmail.readonly) needs an independent security assessment before Google verification (Android precedent: ~$500–$1,500/yr, ~4–6 weeks, annual). Testing-mode refresh tokens expire after 7 days; "unverified app" screen until verified. Do not claim verification, approval, or compliance without actual evidence.
+- Declare release-ready only when every blocking gate has evidence. Otherwise release-blocked with blocker, severity, evidence, remediation. Do not publish automatically. Final release is a human-controlled decision.

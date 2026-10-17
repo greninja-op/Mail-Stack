@@ -15,3 +15,11 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Optional AI architecture, deterministic-first routing. AI is an optional secondary fallback, never the foundation. Deterministic local intelligence remains authoritative. AI disabled by default with explicit user opt-in. AI is never required for core mailbox access, search, classification, or safety.
+- DataMinimizer: strip HTML, MIME headers, recipient lists; truncate bodies to ≤500 characters; sanitize identifiers (emails/tokens). Prompt boundary: anti-injection delimiter shielding.
+- Output validator: strict structured JSON schemas, model confidence capped at 0.85, reject executable command verbs (delete/send/drop), and NEVER downgrade deterministic SECURITY classifications. AI output never directly executes actions. AI can never authorize Gmail/Calendar/Tasks/automation/external actions.
+- Confidence thresholds, structured output validation, prompt-injection defense, minimal context, sensitive-data controls, provider privacy disclosure, enable/disable, failure/offline fallback, usage visibility, provenance. On-demand thread summarization is explicitly user-initiated with a clear advisory notice ("Advisory summary · May contain errors"). Subtle "AI suggestion" badge pill where a suggestion appears.
+- Test disabled provider, unavailable provider, malformed output, adversarial email, timeout, offline, deterministic fallback.

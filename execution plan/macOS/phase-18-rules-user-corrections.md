@@ -26,3 +26,9 @@ Run targeted tests; build and launch the macOS application when possible; exerci
 Update status accurately and add only permanent reusable rules.
 
 **STOP AFTER PHASE 18.**
+
+## 2026-10-18 — Current-design update
+
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.
+- Rules remain structured data — never a general-purpose execution mechanism. Rules cannot silently perform consequential external actions. Correction scopes: message / sender / domain / company, plus undo.
+- Legacy rule rows derive equivalent structured rules. Predictable reclassification after any rule/correction change.

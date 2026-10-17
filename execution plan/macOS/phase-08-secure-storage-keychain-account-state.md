@@ -90,3 +90,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 09 — Google OAuth & Account Connection. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Tokens/secrets live in Keychain only — never in the DB, logs, UI, or screenshots. Pending PKCE flow persisted in Keychain. Replay + consume-once on the OAuth redirect result.
+- Disconnect/clear-all also clears tokens. Logout/disconnect cleanup removes that account's credentials + cached state without touching other accounts.
+- Zero-secret logging: sanitizer redacts bearer tokens, raw OAuth tokens, authorization headers, email addresses (preserve domains). Testing-mode refresh tokens expire after 7 days — the UI must handle re-auth gracefully, not crash or loop.

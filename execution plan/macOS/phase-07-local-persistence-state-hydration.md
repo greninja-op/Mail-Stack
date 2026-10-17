@@ -90,3 +90,10 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 08 — Secure Storage, Keychain & Account State. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Account isolation is a first-class DB boundary (FK-enforced) — never break it.
+- Sync state: cursor-based resume (cursor saved only after a page fully persists); retries resume from the saved cursor. Lists surface the most recently INSERTED mails (insertion order, not modification order).
+- No tokens/passwords in the DB by schema design. FTS/index creation is failure-safe (a missing FTS module must never abort DB creation). Table-existence guards on all index cleanup paths.
+- Demo/seeded accounts never sync. Migration paths tested (fresh + existing data); corruption/recovery covered in Phase 29.

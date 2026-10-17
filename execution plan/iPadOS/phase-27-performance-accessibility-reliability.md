@@ -15,3 +15,10 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports ProMotion/120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Centralized motion system (Essential / Standard / Expressive / Reduced Motion). Expressive reserved for meaningful moments. Respect Reduce Motion + Low Power Mode. No animation blocks interaction or sync.
+- Profile real workflows: cold/warm launch, scrolling, search, sync, thread opening, account switching, resizing, background/foreground. Fix SwiftUI state churn, unbounded lists, image/cache pressure, memory leaks, excessive network work, expensive background tasks.
+- Complete VoiceOver, Dynamic Type, Reduce Motion, contrast, focus, keyboard/pointer accessibility. Test Low Power Mode, memory pressure, large datasets. ProMotion is not a 120 FPS guarantee.

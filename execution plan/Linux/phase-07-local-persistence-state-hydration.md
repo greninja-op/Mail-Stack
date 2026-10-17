@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 07. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Account isolation is a first-class DB boundary (FK-enforced) — never break it.
+- Sync state: cursor-based resume (cursor saved only after a page fully persists); retries resume from the saved cursor. Rows surface the most recently INSERTED mails (insertion order, not modification order).
+- No tokens/passwords in the DB by schema design. Index/FTS creation is failure-safe (a missing FTS module must never abort DB creation). Table-existence guards on all index cleanup paths.
+- Demo/seeded accounts never sync.

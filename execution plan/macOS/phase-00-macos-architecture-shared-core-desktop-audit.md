@@ -90,3 +90,10 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 01 — macOS Target & Toolchain Foundation. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Audit against the CURRENT Android UI (1.0.39 + in-main fixes), not the pre-2026-10-18 plan docs. Record the design delta in `design.md` / `editor-rules.md` as the target the macOS build must match.
+- Classify the Rust desktop core against the current behavior: the shared layer must carry the current sync/classification/search semantics (throttle pacing, cursor resume, fixed-denominator progress, logo pipeline inputs). The macOS work is presentation + platform boundary, not re-derivation of the design.
+- Verify the macOS target can consume: the logo pipeline (bundled → asset catalog → favicon → letter), the fixed-denominator progress model, the cursor-resume sync model, and the per-second-throttle pacing model.
+- Do not re-derive the design from the old plan docs. Where the old plan and `design.md` (2026-10-18) disagree, `design.md` wins. Rust-first architecture is preserved.

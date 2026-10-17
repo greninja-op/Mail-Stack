@@ -25,3 +25,9 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 11.**
+
+## 2026-10-18 — Current-design update
+
+- First sync: discovery, retrieval, normalization, persistence, classification handoff, index population, cancellation, retry, partial failure, resumability.
+- **Progress from the real sync only, never backwards:** total fetched ONCE (Gmail profile `messagesTotal`) before the loop, bounded by the per-run max; caps at 99% while running; Done = 100%. Indeterminate state only when no trustworthy denominator exists.
+- Import-flow UI (see `design.md`): conduit arc is NOT a progress bar (a pulse travels it); ONLY the Mailstack ring is progress. Real Gmail + Mailstack logos (user-supplied, as-is). Flying mails stay visible (re-seed whenever the list empties while progress < 100%). Rows show the 2 most recently INSERTED mails. Continue gated on Done. Back = "Not now". Error variant keeps card chrome (Try again / Continue anyway). Card keeps its hardcoded dark palette in both themes. Spam pass runs once per first sync.

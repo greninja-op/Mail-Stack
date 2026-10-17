@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 05.**
+
+## 2026-10-18 — Current-design update
+
+- Tokens come from `design.md` (2026-10-18): brand violet `#5238E8`/`#B9A8FF`, dark-mode charcoal `#131120` never pure black, typography scale, 28dp card radius, spacing, motion tiers, semantic category accents (amber/orange/sky/royal-blue/brand-violet). Same tokens as the phone app — no per-screen magic values, no second palette.
+- Mail rows are flat rows on the background (no card/border/shadow). Cards are reserved for grouped content (category groups, settings groups) with clip-before-clickable.
+- Validate light/dark, large text, contrast, reduced motion, and dense/wide layouts. Do not duplicate business constants.

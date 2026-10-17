@@ -25,3 +25,10 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 28.**
+
+## 2026-10-18 — Current-design update
+
+- End-to-end QA through Phase 27: install/upgrade/restart, OAuth, sync, parsing, categories, companies, search, priority, Action Required, rules, temporal/conversation intelligence, Calendar, Tasks, multi-account, offline, notifications, automation, AI fallback. Fix defects and record only real evidence.
+- Never claim a test, device run, screenshot, log, or validation that was not actually performed. Build success alone is never sufficient.
+- Cover: light/dark mode, text scaling, keyboard/pointer, malformed email/HTML cases, permission denial, authentication failure/recovery, account-isolation attack, throttle simulation (per-second throttle vs daily quota), logo-pipeline cases (company vs personal vs unknown domain), category-group rendering (one-cavity, vertical centring, accent colors), import-flow cases (progress never backwards, 99% cap, Done gating, error chrome).
+- Screenshot review on every major UI change. Jank/frame-time inspection where practical. Regression review of existing screens.

@@ -40,3 +40,10 @@ After verification update relevant documentation/status. Add genuinely permanent
 Implementation, tests, runtime verification where applicable, documentation and regression checks must be complete.
 
 **STOP AFTER PHASE 27. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports 120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Centralized motion system (Essential / Standard / Expressive / Reduced Motion). Expressive reserved for meaningful moments. Respect reduced-motion settings. No animation blocks interaction or sync.
+- Applies the current motion specs: view-switch transitions (no reload), message reveal (350ms expand+fade, rotating chevron), scrollbar behavior.
+- Accessibility: keyboard traversal, visible focus, Orca, large text/scaling, high-contrast themes, reduced motion, high-DPI rendering, crash recovery.

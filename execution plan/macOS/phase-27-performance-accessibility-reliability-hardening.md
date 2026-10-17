@@ -28,3 +28,10 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 27.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports 120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Centralized motion system (Essential / Standard / Expressive / Reduced Motion). Expressive reserved for meaningful moments. Respect Reduce Motion + Low Power Mode. No animation blocks interaction or sync.
+- Applies the current motion specs: destination-switch (no reload), Settings window, message reveal (350ms expand+fade, rotating chevron), scrollbar behavior.
+- Accessibility: VoiceOver labels/traits/focus order, macOS accessibility text sizing, contrast, 44pt-equivalent hit targets, light/dark mode, all window sizes. Crash recovery + state restoration verified. Large datasets (10k+ mails) stay smooth.

@@ -23,3 +23,11 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 14.**
+
+## 2026-10-18 — Current-design update
+
+- Category/navigation context + persistent message list + selected conversation/detail where width permits. Preserve list context and selection across pane changes, rotation, and resizing.
+- Thread navigation, attachment presentation, loading/stale/offline/error states, selection restoration. Message reveal 350ms expand + fade, rotating chevron.
+- Material scrollbar on the list pane: invisible until scroll; slide+fade in 200ms; out after 1.5s static; thumb-only growth 4dp→12dp on press-and-hold; drag = fast-scroll; track press jumps the thumb; no scrollbar when content fits.
+- Pull-to-refresh fires ONLY on a real finger drag — a fast fling back to the top must never trigger it. Mouse-wheel scroll must never trigger pull-to-refresh either.
+- Validate narrow split fallback, wide panes, orientation, resizing, keyboard/mouse/touch, and large threads.

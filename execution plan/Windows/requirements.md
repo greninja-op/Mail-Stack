@@ -22,3 +22,12 @@ User correction > user rule > deterministic result > AI fallback > unknown. AI c
 
 ## Quality
 Test runtime behavior beyond compilation, including fresh/upgrade/restart/offline/error/recovery, multi-account isolation, accessibility, keyboard/pointer, performance, data integrity and release configuration.
+
+## 2026-10-18 addendum — cross-cutting requirements from the Android build
+
+- Company logos in EVERY area where a mail row appears (same pipeline everywhere: bundled → app assets → favicon → letter fallback). People keep letter avatars. Never fabricate a logo. Images inside mail bodies are NEVER fetched.
+- Never fabricate unread counts or any data the app does not have. No app-created emojis.
+- Progress from the real sync only, never backwards; Continue gated on Done. The import conduit arc is not a progress bar; only the Mailstack ring is.
+- Per-second Gmail throttle (250 units/user/sec) is the real sync limit, not the daily quota. Pace requests, honor `Retry-After`, never silently skip throttled GETs.
+- One sign-in grants Gmail + Calendar + Tasks; gmail.modify stays incremental and confirmation-gated.
+- A supplied reference/screenshot/logo is the spec to copy exactly — "nothing more, nothing less." "Fix means remove." Removal auto-readjusts everything that depended on the removed element's position.

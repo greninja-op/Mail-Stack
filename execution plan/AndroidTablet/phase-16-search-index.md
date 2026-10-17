@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 16.**
+
+## 2026-10-18 — Current-design update
+
+- Search over the common local index for sender, subject, body, thread, company, domain, category, priority, Action Required, and Gmail labels where supported.
+- Structured query all the way down (UI never builds SQL). Every FTS term escaped (injection-proof by construction). Debounce (~300ms). Account-scoped; unified search joins enabled accounts only.
+- Keyboard-friendly search (focus, shortcuts, cancellation), pagination, stale-index handling, rich result/detail context. Test special characters, partial terms, empty queries, huge datasets, deleted messages, offline search, and account switching.

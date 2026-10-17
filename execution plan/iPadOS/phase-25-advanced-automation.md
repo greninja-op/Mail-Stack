@@ -15,3 +15,9 @@ Read root instructions and all iPadOS master documents. Inspect the actual repos
 Never claim unrun tests, screenshots, logs, device results or performance measurements.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Safe automation builder/list/detail/history using the workspace capabilities. Finite triggers/conditions/actions, account scope, preview/dry-run, confirmation, enable/disable/delete/re-enable, execution history, idempotency, retry/loop protection, background constraints, notifications, circuit breaker.
+- **User-created rules only.** No arbitrary scripts; no automatic send/reply/forward/permanent-delete. Email content cannot create or approve an automation. Keep the deterministic effective pipeline: correction > rule > deterministic base.
+- Test duplicate events, partial failure, stale schedules, account removal, permission denial, offline execution, malicious email.

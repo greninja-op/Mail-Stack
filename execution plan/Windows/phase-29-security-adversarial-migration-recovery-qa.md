@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 29.**
+
+## 2026-10-18 — Current-design update
+
+- Adversarial/recovery QA: malicious email/HTML/URLs/prompt injection, cross-account attacks, credential leakage, destructive actions, automation loops, stale cursors, database corruption, migrations, interrupted writes, offline conflicts, process death, sleep/wake, partial sync, account removal.
+- HTML sanitization: entities fully decoded; `<!DOCTYPE>`/processing instructions never print as text; images never fetched. No JavaScript from mail content. Secrets audit: no tokens/credentials in source, logs, UI, or screenshots.
+- Account-isolation attack test: one account's data must never surface under another account.

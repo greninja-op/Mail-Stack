@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 30.** The Windows roadmap ends here; do not create Phase 31.
+
+## 2026-10-18 — Current-design update
+
+- Final Windows release hardening: release configuration, application identity, signing certificates, secure packaging, MSIX installer, OAuth release configuration, privacy/data disclosures, dependency review, clean production build, install/smoke test, artifact inspection, versioning (never reuse a version name), rollback/update documentation, explicit RELEASE READY or RELEASE BLOCKED decision. Never publish automatically.
+- Google OAuth verification: a public app using restricted Gmail scopes (gmail.readonly) needs a CASA-style independent security assessment before Google verification (Android precedent: ~$500–$1,500/yr, ~4–6 weeks, annual). Testing-mode refresh tokens expire after 7 days; "unverified app" screen until verified. Do not claim verification, approval, or compliance without actual evidence.
+- No debug bypasses, no test credentials, no verbose sensitive logging. Final release is a human-controlled decision.

@@ -41,3 +41,9 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 05. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- Implement the FULL token system from `design.md` (2026-10-18): brand violet `#5238E8` / `#B9A8FF`; dark-mode charcoal `#131120`, never pure black; surfaces one step lighter; near-white primary text; soft-gray secondary text; semantic category accents (amber/orange/sky/royal-blue/brand-violet); typography scale (display 64/57, title 22/17/16, body 16/14, label 14/12); 28px card radius; spacing scale; motion tiers (Essential/Standard/Expressive/Reduced Motion).
+- Flat rows on the background (no card/border/shadow); cards only for grouped content, solid tonal fill, highlight clipped to the rounded shape.
+- Every screen uses the same tokens; consistency pass across all implemented screens before completing a UI phase. No per-screen magic values. No gradients merely for fashion. No photo backgrounds, glass UI, or splash animation.

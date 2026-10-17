@@ -28,3 +28,10 @@ Never claim tests, screenshots, runtime results, performance metrics, signing, n
 Update phase status accurately. Add only genuinely permanent reusable rules to macOS editor-rules.md and never delete unrelated rules.
 
 **STOP AFTER PHASE 28.**
+
+## 2026-10-18 — Current-design update
+
+- Never claim a test, device run, screenshot, log, or validation that was not actually performed. Build success alone is never sufficient.
+- Cover end-to-end: fresh install, upgrade, restart, termination, sleep/wake, OAuth, Gmail sync, parsing, categories, company filters, search, priority, Action Required, rules, temporal/conversation intelligence, Calendar, Tasks, multi-account, offline, notifications, automation, AI fallback.
+- Current-design cases: light/dark mode, accessibility text sizes, long subjects, large threads, missing sender/avatar data, network interruptions, malformed email/HTML cases, permission denial, authentication failure/recovery, account-isolation attack, throttle simulation (per-second throttle vs daily quota), logo-pipeline cases (company vs personal vs unknown domain), category-group rendering (one-cavity, vertical centring, accent colors), import-flow cases (progress never backwards, 99% cap, Done gating, error chrome).
+- Screenshot review on every major UI change. Regression review of existing screens.

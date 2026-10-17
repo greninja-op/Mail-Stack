@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 22.**
+
+## 2026-10-18 — Current-design update
+
+- Windows-appropriate offline behavior, background work, notifications through Rust adapters. Network loss, sleep/wake, termination, relaunch, stale work, cancellation, duplicate notifications, notification privacy/authorization, power constraints.
+- Background work carries an explicit account id and never reads the active UI account (protects against races when switching accounts). Periodic intervals clamped to the platform minimum; lifecycle triggers apply a 15-minute staleness threshold (no aggressive polling).
+- Offline state is cleanly distinguished from authentication failure or API errors — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision. Notifications are honest (no fake/bait content).

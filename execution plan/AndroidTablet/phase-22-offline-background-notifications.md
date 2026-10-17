@@ -23,3 +23,9 @@ Fix failures. Rebuild/reinstall/retest. Record exact commands and evidence. Upda
 Never claim a test, screenshot, log, device result or performance measurement that was not actually performed.
 
 **STOP AFTER PHASE 22.**
+
+## 2026-10-18 — Current-design update
+
+- Truthful offline/stale states. Offline state is cleanly distinguished from authentication failure or API errors — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision.
+- Background workers carry an explicit account id and never read the active UI account (protects against races when switching accounts). Periodic intervals clamped to the platform minimum; lifecycle triggers apply a 15-minute staleness threshold (no aggressive polling). Respect scheduler/battery constraints; never promise exact cadence.
+- Notification categories/actions, privacy-safe content, deduplication, deep links, auth-required states. Test airplane mode, flaky network, process death, reboot where practical, delayed work, denied notifications, duplicate notifications, and stale cache.

@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 08.**
+
+## 2026-10-18 — Current-design update
+
+- Credential/token storage via Windows Credential Manager / DPAPI behind a Rust adapter. Account identity, secure-store failure, logout/disconnect cleanup, migration, lock/error states, zero-secret logging.
+- Clear-all/disconnect also clears tokens. Tokens/secrets never in DB, logs, UI, or screenshots.

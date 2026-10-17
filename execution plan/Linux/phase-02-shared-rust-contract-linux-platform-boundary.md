@@ -41,3 +41,8 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 02. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- The Rust-core ↔ Linux boundary must expose: sender-domain detection for the logo pipeline (the UI row MUST receive the detected domain — a missing domain falling back to letters for company mail is a bug), fixed-denominator progress events, cursor-resume sync state, throttle/`Retry-After` signals, and insertion-ordered message streams (rows surface the most recently INSERTED mails).
+- Cancellation-safe, ownership-safe, narrow, testable. Business logic stays in the core; the UI never re-derives classification, sync math, or logo detection.

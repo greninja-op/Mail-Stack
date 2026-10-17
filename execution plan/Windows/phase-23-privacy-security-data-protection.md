@@ -25,3 +25,10 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 23.**
+
+## 2026-10-18 — Current-design update
+
+- Dedicated security pass: data minimization, protected credentials, OAuth scopes, local storage, HTML/URL safety, logs, crash data, notifications, analytics, AI data boundaries, disconnect cleanup, threat-model fixes.
+- Privacy Center: tabbed experience (Overview, Your Data, Google Access, Security) with the full Data Inventory, Google scope disclosures, live security audit checks, and honest local deletion/purge flows that NEVER modify remote Gmail data. Account deletion dialog + local data purge dialog.
+- Logging sanitizer: redact bearer tokens, raw OAuth tokens, authorization headers, email addresses (preserve domains). Safe URL/mailto validators; external link launcher rejects dangerous schemes (javascript:, file:, content:, data:).
+- Backup rules exclude local databases and app-private files from backup/transfer. Tokens/secrets never in DB, logs, UI, or screenshots. Email is untrusted input: HTML sanitized; images never fetched (a fetch tells the sender the mail was opened).

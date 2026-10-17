@@ -25,3 +25,9 @@ Run targeted and integration tests; build and launch the real Windows applicatio
 Update status accurately and add only genuinely permanent reusable rules. Record blockers honestly.
 
 **STOP AFTER PHASE 25.**
+
+## 2026-10-18 — Current-design update
+
+- Structured Rust automation with finite triggers, conditions, actions, account scope, idempotency, confirmation levels, previews, history, retry/unknown states, bulk/destructive safeguards, background integration, loop prevention, provenance, circuit breaking. AI cannot bypass safety.
+- Automation is user-created rules only. Finite, explainable, account-scoped, idempotent, safety-validated. Circuit breaker on repeated failures. Destructive actions are conservative.
+- Email content cannot create or approve an automation. No arbitrary scripts. Engine proposes / user confirms / nothing external automatic. Keep the deterministic effective pipeline: correction > rule > deterministic base.

@@ -25,3 +25,9 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 17.**
+
+## 2026-10-18 — Current-design update
+
+- Rust-owned deterministic priority and Action Required intelligence using explainable signals, user corrections/rules, sender/company context, confidence. UI presents explanations but never reimplements the decision engine.
+- Priority badges carry "why this priority?" explanations; classification carries "Why this category?" explanations.
+- **No "Action Required" chip/filter/empty state in the Mail list** (removed on Android). Action Required remains available as a destination/section where defined, but not as a Mail-list chip.

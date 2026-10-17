@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 05.**
+
+## 2026-10-18 — Current-design update
+
+- Implement the FULL current token set from `design.md` (rewritten 2026-10-18): brand violet `#5238E8` / `#B9A8FF`; dark-mode charcoal `#131120`, never pure black; surfaces one step lighter; near-white primary / soft-gray secondary text; typography scale (display 64/57, title 22/17/16, body 16/14, label 14/12); 28px card radius; semantic category accents (amber/orange/sky/royal-blue/brand-violet); motion tiers (Essential / Standard / Expressive / Reduced Motion); scrollbar behavior; loading/empty/error states; light/dark themes; high contrast; focus; reduced motion.
+- Validate multiple window sizes and display scales, plus text scaling up to the largest sizes without breaking layout.

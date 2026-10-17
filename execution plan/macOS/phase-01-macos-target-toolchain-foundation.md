@@ -90,3 +90,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 02 — Shared Rust desktop core Contract & macOS Platform Boundary. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- Toolchain must support the current design system: centralized tokens (brand violet, dark-mode charcoal `#131120`, typography scale, 28pt card radius, motion tiers), SF Symbols, and the asset catalog for bundled company logos.
+- Bundle/application identifiers, entitlements, and signing placeholders must anticipate the production OAuth client (custom URL scheme for the redirect) and the hardened-runtime/notarization path — no debug bypasses carried into release config.
+- Keep secrets out of configuration. Reproducible local build path documented.

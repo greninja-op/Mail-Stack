@@ -13,3 +13,10 @@ Build the iPad SwiftUI application shell and scene lifecycle. Establish app entr
 Inspect the actual repository before deciding. Implement only this phase. Run exact relevant build and automated tests, then runtime validation on iPad Simulator and a real iPad when available. Test failure and recovery states relevant to the phase. Fix failures, rebuild/reinstall/retest, record evidence, update status and permanent editor rules only when genuinely required.
 
 **STOP AFTER THIS PHASE.**
+
+## 2026-10-18 — Current-design update
+
+- Shell + scene lifecycle: app entry, scene/window state, dependency/bootstrap boundary, navigation root (NavigationSplitView), selection state + restoration foundation, reusable loading/empty/error/offline/auth-required state primitives.
+- Bars are overlaid, never padded/resized containers. Selection state must survive scene activation/deactivation, orientation changes, and window resizes.
+- Keep business logic outside views; consume shared KMP use cases through explicit interfaces. Do not implement Gmail/OAuth/mail features beyond compile-time contracts.
+- Validate cold launch, warm launch, terminate/relaunch, scene activation/deactivation, orientation changes, Dynamic Type, dark mode, and multiple iPad simulator sizes including Stage Manager.

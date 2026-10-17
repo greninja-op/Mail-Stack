@@ -25,3 +25,8 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 18.**
+
+## 2026-10-18 — Current-design update
+
+- Structured Rust rules and user corrections with precedence, scopes, safe matching, versioning, enable/disable, conflicts, history, predictable reclassification. Rules must never become arbitrary code execution.
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.

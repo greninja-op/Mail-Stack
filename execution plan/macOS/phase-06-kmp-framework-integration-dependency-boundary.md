@@ -94,3 +94,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 07 — Local Persistence & State Hydration. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- The Rust core integration must carry the current-behavior contracts across the boundary: throttle classification, `Retry-After` handling, cursor persistence, fixed-denominator progress, logo-pipeline inputs, insertion-ordered recents, and error classification (throttle vs daily vs permission vs offline).
+- Error mapping must preserve Gmail's actual error reasons (full error body parsed, never truncated before parse) so the UI can classify failures honestly.
+- Threading/dispatch boundaries: sync joins in-flight work per account, never cancels/restarts; cancellation is explicit and safe. No Android-specific assumptions leaked into Swift.

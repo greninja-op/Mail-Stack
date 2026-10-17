@@ -25,3 +25,8 @@ Run targeted automated tests; build the real Windows application; launch and exe
 Update status accurately and add only genuinely permanent reusable rules to Windows/editor-rules.md. Preserve unrelated rules and record blockers honestly.
 
 **STOP AFTER PHASE 02.**
+
+## 2026-10-18 — Current-design update
+
+- The shared Rust contract must expose what the current UI needs: logo-pipeline inputs (raw sender email + display name → detected sender domain), the sync progress model (fixed denominator fetched once, 99% cap, Done = 100%), cursor state, throttle/pacing behavior, account isolation, the sanitized-HTML model (entity decoding, no per-image lines, images never fetched), and the category-group model (single-cavity cards, semantic accents).
+- Async/cancellation semantics, error types, ownership, serialization, and platform-service traits stay in Rust. No business logic leaks into the UI layer or another language.

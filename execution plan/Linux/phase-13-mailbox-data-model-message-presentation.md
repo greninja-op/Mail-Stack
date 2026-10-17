@@ -41,3 +41,10 @@ After verification, update phase status and relevant documentation. Add only gen
 The phase is complete only when implementation, tests, runtime verification where applicable, documentation and regression checks are complete.
 
 **STOP AFTER PHASE 13. Do not continue to the next phase.**
+
+## 2026-10-18 — Current-design update
+
+- **Mail row (exact):** 40px avatar, sender + time line 1, subject line 2, snippet line 3, min 88px height. Flat rows on the background.
+- **Logo pipeline in every row:** company sender → logo (bundled → asset catalog → favicon → letter fallback); personal sender → letter avatar. The row model MUST carry the raw sender email + display name so the domain can be detected; a missing domain falling back to letters for company mail is a bug. Unified inbox rows add the small receiving-account indicator circle.
+- Star on the right. Unread = bold sender/subject + primary-colored time. No fabricated unread counts.
+- HTML sanitized; entities fully decoded; `<!DOCTYPE>`/processing instructions/CDATA never print as text; images never fetched (render as nothing, no per-image placeholder lines). No JavaScript from mail content.

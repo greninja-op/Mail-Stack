@@ -94,3 +94,9 @@ A phase is complete only when:
 After completing and verifying this phase, **STOP**. Do not continue into the next phase. Do not publish, distribute, notarize, or otherwise perform final release actions unless this exact phase explicitly includes them.
 
 **Next phase:** Phase 03 — SwiftUI App Shell, Scenes & Lifecycle. Do not execute it now.
+
+## 2026-10-18 — Current-design update
+
+- The Rust↔Swift boundary must expose everything the current UI needs, with no business logic duplicated in Swift: detected sender domain per message (logo pipeline input), raw sender email + display name (domain detection input), sync progress with the fixed denominator, throttle classification (per-second vs daily vs permission vs offline), cursor state, and insertion-ordered recent messages.
+- Swift-facing APIs must make it impossible to render a company row without the detected domain — a missing domain falling back to letter avatars for company mail is a bug, not a fallback.
+- Boundary stays narrow, explicit, memory-safe, testable, cancellation-aware, ownership-safe. No macOS-only assumptions in shared Rust modules (Windows reuse).

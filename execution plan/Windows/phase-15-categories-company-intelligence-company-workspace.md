@@ -25,3 +25,11 @@ Run targeted unit/integration tests; build and launch the real Windows app when 
 Update status and add only permanent reusable Windows rules.
 
 **STOP AFTER PHASE 15.**
+
+## 2026-10-18 — Current-design update
+
+- Category semantics and company intelligence in Rust. Company grouping/filtering is inside the selected category; company pinning is separate from message starring and moves pinned companies to the top of that category's company filter.
+- **Groups are single-cavity cards:** header + members inside ONE rounded card (no gaps/seams). Member rows are full-width inside the card. Click highlight clipped to the rounded shape (clip BEFORE the input gesture).
+- **Group header is vertically centred:** icon, text block, chevron all vertically centred (a horizontal line through the card centre passes through all three). Card hugs content — symmetric vertical padding, no dead space at the bottom.
+- **Semantic accent colors** from centralized tokens: Needs attention → amber; Promotions → orange; Updates → sky blue; Work & learning → royal blue; Everything else → brand violet. Leading circle tinted accent at 14% alpha; icon is the full accent.
+- **Category detail rows use the same row layout AND the same logo pipeline as the Mail list.** No fabricated counts.
