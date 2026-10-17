@@ -127,8 +127,11 @@ class ImportViewModel(
                 .onEach { progress ->
                     if (progress is SyncProgress.Running) {
                         val total = progress.totalEstimate
+                        // 100% is reserved for completion (2026-10-17
+                        // fix): while the sync is still Running the
+                        // fraction is capped at 99%.
                         val pct = if (total != null && total > 0) {
-                            (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 1f)
+                            (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 0.99f)
                         } else null
                         withContext(dispatchers.main) {
                             _uiState.update { current ->

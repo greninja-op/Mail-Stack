@@ -157,4 +157,90 @@ class PrivacyUseCaseTest {
         // Active selection fallback to Unified
         assertEquals(AccountSelection.Unified, activePrefs.activeSelection.value)
     }
+
+    @Test
+    fun getSecurityAuditSnapshot_survivesFailingAccountRead() = runTest {
+        // 2026-10-17 fix: the Privacy Overview was stuck on "Loading
+        // privacy audit…" forever when the audit's account read failed
+        // — the snapshot must degrade to zero accounts, never throw.
+        val testDispatchers = com.greninjaop.mailorganizer.core.AppDispatchers(
+            io = kotlinx.coroutines.Dispatchers.Unconfined,
+            default = kotlinx.coroutines.Dispatchers.Unconfined,
+            main = kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        val throwing = object : com.greninjaop.mailorganizer.data.repository.AccountRepository {
+            private val delegate = accountRepo
+            override suspend fun upsert(account: AccountRecord) = delegate.upsert(account)
+            override suspend fun getById(accountId: String) = delegate.getById(accountId)
+            override fun observeAll(): kotlinx.coroutines.flow.Flow<List<AccountRecord>> =
+                kotlinx.coroutines.flow.flow { throw IllegalStateException("boom") }
+            override fun observeEnabled() = delegate.observeEnabled()
+            override suspend fun updateConnectionState(accountId: String, state: ConnectionState) =
+                delegate.updateConnectionState(accountId, state)
+            override suspend fun recordSync(accountId: String, syncEpochMs: Long) =
+                delegate.recordSync(accountId, syncEpochMs)
+            override suspend fun setEnabled(accountId: String, enabled: Boolean) =
+                delegate.setEnabled(accountId, enabled)
+            override suspend fun deleteById(accountId: String) = delegate.deleteById(accountId)
+        }
+        val useCase = PrivacyUseCase(
+            appDatabase = null,
+            accountRepository = throwing,
+            activeAccountPreferences = activePrefs,
+            integrationManager = null,
+            integrationStateRepository = null,
+            searchIndexStore = null,
+            dispatchers = testDispatchers,
+        )
+        val snapshot = useCase.getSecurityAuditSnapshot()
+        assertEquals(0, snapshot.totalConnectedAccounts)
+        assertEquals(0, snapshot.totalLocalMessagesCount)
+    }
+
+    @Test
+    fun deleteAccountData_alsoClearsTokens() = runTest {
+        // 2026-10-17 fix: deleting account data must also clear the
+        // OAuth tokens, otherwise the auth layer restores "Connected"
+        // for an account that no longer exists (split-brain).
+        val testDispatchers = com.greninjaop.mailorganizer.core.AppDispatchers(
+            io = kotlinx.coroutines.Dispatchers.Unconfined,
+            default = kotlinx.coroutines.Dispatchers.Unconfined,
+            main = kotlinx.coroutines.Dispatchers.Unconfined,
+        )
+        var disconnected: String? = null
+        val auth = object : com.greninjaop.mailorganizer.data.auth.AuthRepository {
+            override fun observeAuthStates() =
+                kotlinx.coroutines.flow.emptyFlow<Map<com.greninjaop.mailorganizer.core.AccountId, com.greninjaop.mailorganizer.data.auth.GoogleAuthState>>()
+            override fun observeAuthState(accountId: com.greninjaop.mailorganizer.core.AccountId) =
+                kotlinx.coroutines.flow.emptyFlow<com.greninjaop.mailorganizer.data.auth.GoogleAuthState>()
+            override suspend fun getValidAccessToken(accountId: com.greninjaop.mailorganizer.core.AccountId): String? = null
+            override suspend fun handleOAuthResult(data: android.content.Intent?) =
+                com.greninjaop.mailorganizer.data.auth.AuthResult.Cancelled
+            override fun createOAuthIntent(additionalScopes: List<String>) =
+                android.content.Intent()
+            override fun createIncrementalAuthIntent(
+                accountId: com.greninjaop.mailorganizer.core.AccountId,
+                additionalScopes: List<String>,
+            ) = android.content.Intent()
+            override fun observeOAuthResults() =
+                kotlinx.coroutines.flow.emptyFlow<com.greninjaop.mailorganizer.data.auth.AuthResult>()
+            override suspend fun disconnect(accountId: com.greninjaop.mailorganizer.core.AccountId) {
+                disconnected = accountId.value
+            }
+            override suspend fun isConnected(accountId: com.greninjaop.mailorganizer.core.AccountId) = false
+        }
+        val useCase = PrivacyUseCase(
+            appDatabase = null,
+            accountRepository = accountRepo,
+            activeAccountPreferences = activePrefs,
+            integrationManager = null,
+            integrationStateRepository = null,
+            searchIndexStore = null,
+            dispatchers = testDispatchers,
+            authRepository = auth,
+        )
+        useCase.deleteAccountData("acct-1")
+        assertEquals("acct-1", disconnected)
+        assertEquals(1, accountRepo.observeAll().first().size)
+    }
 }

@@ -1,5 +1,6 @@
 package com.greninjaop.mailorganizer.ui.import
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -116,6 +117,14 @@ fun ImportFlowScreen(
     modifier: Modifier = Modifier,
 ) {
     val state by viewModel.uiState.collectAsState()
+    // System Back mirrors the on-screen Back (2026-10-17 fix): it
+    // skips the animated import and goes to the inbox — it must never
+    // pop the back stack (which, with a lone import entry, finishes
+    // the Activity and reads as "Back relaunches the app").
+    BackHandler {
+        viewModel.skipImport()
+        onDone()
+    }
     when (val s = state) {
         is ImportViewModel.ImportUiState.Loading -> {
             Surface(

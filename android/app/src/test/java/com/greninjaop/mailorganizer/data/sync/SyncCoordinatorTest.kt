@@ -494,4 +494,47 @@ class SyncCoordinatorTest {
         assertTrue(progress is SyncProgress.Succeeded)
         assertEquals(1, (progress as SyncProgress.Succeeded).summary.messagesProcessed)
     }
+
+    @Test
+    fun `progress never pins at 100 percent when gmail estimate underestimates`() = runTest {
+        // 2026-10-17 fix: Gmail's resultSizeEstimate can UNDERestimate
+        // (here 5, but 25 messages actually arrive). The old code kept
+        // totalEstimate at 5, so processed/total coerced to 1.0 = 100%
+        // while mail was still arriving. The coordinator must revise
+        // the estimate upward, so every Running emission keeps
+        // processed < totalEstimate (the UI additionally caps the
+        // displayed fraction at 99% while Running).
+        seedAccount("acc-a")
+        val page1 = (1..10).map { fakeRemoteMessage("m-$it", "t-$it") }
+        val page2 = (11..20).map { fakeRemoteMessage("m-$it", "t-$it") }
+        val page3 = (21..25).map { fakeRemoteMessage("m-$it", "t-$it") }
+        fake.scriptPages(
+            "acc-a",
+            MessagePage(page1, "tok-2", resultSizeEstimate = 5),
+            MessagePage(page2, "tok-3", resultSizeEstimate = 5),
+            MessagePage(page3, null, resultSizeEstimate = 5),
+        )
+        fake.scriptHistoryCursor("acc-a", "h-100")
+        fake.scriptSpamPage(MessagePage(emptyList(), null))
+
+        val c = coordinator()
+        val seen = mutableListOf<SyncProgress>()
+        val collectJob = launch { c.progress.collect { seen.add(it) } }
+        val outcome = c.syncNow(accA)
+        collectJob.cancel()
+        assertTrue(outcome is SyncOutcome.Success)
+        assertEquals(25, (outcome as SyncOutcome.Success).summary.messagesProcessed)
+        val running = seen.filterIsInstance<SyncProgress.Running>()
+        assertTrue(running.isNotEmpty())
+        for (progress in running) {
+            val total = progress.totalEstimate
+            if (total != null) {
+                assertTrue(
+                    "processed=${progress.messagesProcessed} must stay below " +
+                        "totalEstimate=$total while Running (stage=${progress.stage})",
+                    progress.messagesProcessed < total,
+                )
+            }
+        }
+    }
 }

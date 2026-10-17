@@ -64,8 +64,15 @@ class GoogleAuthRepository(
     private val _authStates = MutableStateFlow<Map<AccountId, GoogleAuthState>>(emptyMap())
     private val authStatesFlow = _authStates.asStateFlow()
 
+    // OAuth results (2026-10-17 fix): replay = 1. The redirect can
+    // arrive on a cold start (process killed while the browser was in
+    // front) and the Connect ViewModel is created after the token
+    // exchange finishes — with replay = 0 the Success was lost, the
+    // Connect screen stayed on "Connect with Google", and tapping it
+    // opened Chrome all over again (the Connect → Chrome loop). A
+    // replayed result is consumed exactly once via clearOAuthResult().
     private val _oauthResults =
-        MutableSharedFlow<AuthResult>(extraBufferCapacity = 4)
+        MutableSharedFlow<AuthResult>(replay = 1, extraBufferCapacity = 4)
     private val oauthResultsFlow = _oauthResults.asSharedFlow()
 
     // Delivered redirects, by (state, code): each authorization code is
@@ -112,6 +119,10 @@ class GoogleAuthRepository(
         authStatesFlow.map { it[accountId] ?: GoogleAuthState.Disconnected }
 
     override fun observeOAuthResults(): Flow<AuthResult> = oauthResultsFlow
+
+    override fun clearOAuthResult() {
+        _oauthResults.resetReplayCache()
+    }
 
     override suspend fun getValidAccessToken(accountId: AccountId): String? {
         val accessToken = tokenStorage.getAccessToken(accountId) ?: return null
@@ -196,9 +207,17 @@ class GoogleAuthRepository(
             // authorization codes are single-use, so a re-exchange would
             // fail with invalid_grant and flip the UI Success -> Error ->
             // "Try Again" -> straight back to Chrome. Return the first
-            // handling's result instead of re-exchanging.
+            // handling's result instead of re-exchanging — and RE-EMIT
+            // it (2026-10-17 fix): a redelivery must re-notify the
+            // current collector, otherwise a Connect screen that consumed
+            // the first emission (or subscribed after it) never learns
+            // the sign-in succeeded and the user is stuck tapping
+            // "Connect with Google" → Chrome in a loop.
             if (key != null) {
-                handledRedirects[key]?.let { return@withLock it }
+                handledRedirects[key]?.let {
+                    _oauthResults.emit(it)
+                    return@withLock it
+                }
             }
             val result = processOAuthRedirect(data)
             if (key != null) handledRedirects[key] = result

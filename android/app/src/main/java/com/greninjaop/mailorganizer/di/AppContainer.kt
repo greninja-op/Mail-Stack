@@ -533,6 +533,7 @@ class AppContainer(private val appContext: Context) {
             searchIndexStore = searchIndexStore,
             aiFallbackUseCase = aiFallbackUseCase,
             dispatchers = dispatchers,
+            authRepository = authRepository,
         )
     }
 

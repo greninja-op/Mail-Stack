@@ -462,9 +462,25 @@ class MailViewModel(
             connectivity.isOnline,
             companyFilter,
         ) { c, sync, online, companies ->
+            // While a sync is running, never present a false "No
+            // synchronized email yet" (2026-10-17 fix): the mailbox
+            // may be about to receive mail — the sync at 301 emails
+            // showed the Empty state while mail was still arriving,
+            // which reads as "my mail is gone". Show the skeleton
+            // (Loading) instead; once the sync settles, the real
+            // content (or a true Empty) appears.
+            val displayContent =
+                if (c.content is MailboxContent.Empty &&
+                    c.content.kind == EmptyKind.NO_MAIL &&
+                    sync is SyncUiState.Syncing
+                ) {
+                    MailboxContent.Loading
+                } else {
+                    c.content
+                }
             MailScreenState(
                 destination = c.destination,
-                content = c.content,
+                content = displayContent,
                 activeAccount = c.account,
                 isUnified = c.isUnified,
                 accountsById = c.all.associateBy { it.accountId },
@@ -557,8 +573,12 @@ class MailViewModel(
             .onEach { progress ->
                 if (progress is SyncProgress.Running) {
                     val total = progress.totalEstimate
+                    // 100% is reserved for completion (2026-10-17 fix):
+                    // while the sync is still Running the fraction is
+                    // capped at 99% — the bar must never claim "done"
+                    // while mail is still arriving.
                     val pct = if (total != null && total > 0) {
-                        (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 1f)
+                        (progress.messagesProcessed.toFloat() / total).coerceIn(0f, 0.99f)
                     } else null
                     syncUi.value = SyncUiState.Syncing(
                         stageText = stageText(progress.stage),

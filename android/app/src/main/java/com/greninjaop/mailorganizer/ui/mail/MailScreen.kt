@@ -232,6 +232,13 @@ fun MailScreen(
     viewModel: MailViewModel,
     onOpenThread: (threadId: String, focusMessageId: String?) -> Unit,
     modifier: Modifier = Modifier,
+    /**
+     * Navigates to the Connect screen (2026-10-17 fix): when NO account
+     * is connected, the empty state's action is "Connect Gmail", not a
+     * "Sync now" that silently no-ops with "No accounts connected."
+     * The blank page must always offer a way forward.
+     */
+    onConnect: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsState()
     val isLoadingMore by viewModel.isLoadingMore.collectAsState()
@@ -287,6 +294,7 @@ fun MailScreen(
                     state = state,
                     onOpenThread = onOpenThread,
                     onRetry = viewModel::refresh,
+                    onConnect = onConnect,
                     onLoadMore = viewModel::loadMore,
                     isLoadingMore = isLoadingMore,
                     onClearFilter = viewModel::clearFilter,
@@ -358,6 +366,8 @@ private fun MailContent(
     onClearFilter: () -> Unit,
     modifier: Modifier = Modifier,
     header: @Composable () -> Unit = {},
+    /** Navigates to Connect (2026-10-17 fix): the empty state's action. */
+    onConnect: () -> Unit = {},
 ) {
         // Instagram-style pull-to-refresh (2026-10-16, hardened 2026-10-17):
         // a custom pull (InstagramPullToRefresh) over the whole mailbox —
@@ -501,10 +511,20 @@ private fun MailContent(
                         when (content.kind) {
                             EmptyKind.NO_MAIL -> MoEmptyState(
                                 title = "No synchronized email yet",
-                                message = "Connect a Gmail account to see your mail here. " +
-                                    "Tap Sync now to fetch your messages.",
-                                actionLabel = "Sync now",
-                                onAction = { onRetry() },
+                                message = if (state.accountCount == 0) {
+                                    "Connect a Gmail account to see your mail here."
+                                } else {
+                                    "No mail in this mailbox yet. " +
+                                        "Tap Sync now to fetch your messages."
+                                },
+                                // No account → "Connect Gmail" (2026-10-17
+                                // fix): "Sync now" silently no-ops with
+                                // "No accounts connected" and leaves the
+                                // user stuck on a blank page.
+                                actionLabel = if (state.accountCount == 0) "Connect Gmail" else "Sync now",
+                                onAction = {
+                                    if (state.accountCount == 0) onConnect() else onRetry()
+                                },
                                 modifier = Modifier.weight(1f),
                             )
                             EmptyKind.NO_FILTER_RESULTS -> MoEmptyState(

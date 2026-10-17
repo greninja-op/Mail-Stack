@@ -233,6 +233,15 @@ class SyncCoordinator(
             inserted += pageInserted
             updated += pageUpdated
             processed += page.messages.size
+            // Gmail's resultSizeEstimate is approximate and can
+            // UNDERestimate: when processed passes it, revise the
+            // estimate upward (assume at least one more page) so the
+            // displayed fraction keeps moving and never pins at 100%
+            // while mail is still arriving (2026-10-17 fix — the bar
+            // sat at 100% while the sync fetched 600+ mails).
+            if (totalEstimate != null && processed >= totalEstimate) {
+                totalEstimate = processed + config.pageSize
+            }
             pageToken = page.nextPageToken
             // Cursor advances only after the page is safely committed.
             syncState.updateCursor(accountId.value, SyncCursor.Page(pageToken).encode())

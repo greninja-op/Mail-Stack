@@ -608,6 +608,7 @@ fun AppNavGraph(
                             AppDestinations.threadRoute(threadId, focusMessageId),
                         )
                     },
+                    onConnect = { navController.navigate(AppDestinations.CONNECT) },
                 )
                 }
             }

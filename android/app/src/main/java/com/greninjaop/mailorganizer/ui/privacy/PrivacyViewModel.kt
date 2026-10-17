@@ -106,23 +106,45 @@ class PrivacyViewModel(
 
     fun refreshAudit() {
         viewModelScope.launch(dispatchers.io) {
-            val audit = privacyUseCase.getSecurityAuditSnapshot()
-            _uiState.update { it.copy(auditSnapshot = audit) }
+            try {
+                val audit = privacyUseCase.getSecurityAuditSnapshot()
+                _uiState.update { it.copy(auditSnapshot = audit) }
+            } catch (e: Exception) {
+                // The audit must never leave the screen stuck — a
+                // failed refresh keeps the last snapshot (2026-10-17).
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "PrivacyViewModel",
+                    "Audit refresh failed: ${e.javaClass.simpleName}",
+                )
+            }
         }
     }
 
     private fun loadData() {
         viewModelScope.launch(dispatchers.io) {
-            val inventory = privacyUseCase.getDataInventory()
-            val scopes = privacyUseCase.getScopeDisclosures()
-            val audit = privacyUseCase.getSecurityAuditSnapshot()
-            _uiState.update {
-                it.copy(
-                    isLoading = false,
-                    dataInventory = inventory,
-                    scopes = scopes,
-                    auditSnapshot = audit,
+            try {
+                val inventory = privacyUseCase.getDataInventory()
+                val scopes = privacyUseCase.getScopeDisclosures()
+                val audit = privacyUseCase.getSecurityAuditSnapshot()
+                _uiState.update {
+                    it.copy(
+                        isLoading = false,
+                        dataInventory = inventory,
+                        scopes = scopes,
+                        auditSnapshot = audit,
+                    )
+                }
+            } catch (e: Exception) {
+                // 2026-10-17 fix: the Overview was stuck on "Loading
+                // privacy audit…" forever when the audit failed (e.g.
+                // a DB read throwing) — loadData had no error handling,
+                // so isLoading never resolved. Always resolve it; the
+                // Overview shows what loaded (possibly empty).
+                com.greninjaop.mailorganizer.core.MoLogger.w(
+                    "PrivacyViewModel",
+                    "Privacy load failed: ${e.javaClass.simpleName}",
                 )
+                _uiState.update { it.copy(isLoading = false) }
             }
         }
     }

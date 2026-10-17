@@ -75,8 +75,26 @@ interface AuthRepository {
      * Emits the result of each OAuth redirect handled by
      * [handleOAuthResult]. The Connect UI collects this to drive its
      * connecting/success/error states.
+     *
+     * The last result is REPLAYED to a new subscriber (2026-10-17 fix):
+     * the redirect can arrive on a cold start (the process was killed
+     * while the browser was in front), and the Connect ViewModel is
+     * created after the exchange finishes — with a no-replay flow the
+     * Success was lost, the Connect screen stayed on "Connect with
+     * Google", and tapping it opened Chrome all over again (the
+     * Connect → Chrome loop). A replayed result is consumed exactly
+     * once via [clearOAuthResult].
      */
     fun observeOAuthResults(): Flow<AuthResult>
+
+    /**
+     * Consumes the last OAuth result so a LATER Connect session does
+     * not get a stale replay (e.g. opening Connect to add a second
+     * account must not auto-navigate to the first account's import).
+     * Called by the Connect ViewModel right after it acts on a result.
+     * Default no-op; the real repository clears its replay cache.
+     */
+    fun clearOAuthResult() {}
 
     /**
      * Disconnects the given account: revokes the token with Google,

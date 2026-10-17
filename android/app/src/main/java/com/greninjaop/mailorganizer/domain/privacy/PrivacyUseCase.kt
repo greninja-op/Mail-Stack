@@ -6,6 +6,7 @@ import com.greninjaop.mailorganizer.core.privacy.DataInventoryItem
 import com.greninjaop.mailorganizer.core.privacy.DataSensitivity
 import com.greninjaop.mailorganizer.core.privacy.PermissionScopeDisclosure
 import com.greninjaop.mailorganizer.core.privacy.SecurityAuditSnapshot
+import com.greninjaop.mailorganizer.data.auth.AuthRepository
 import com.greninjaop.mailorganizer.data.local.AppDatabase
 import com.greninjaop.mailorganizer.data.local.ConnectionState
 import com.greninjaop.mailorganizer.data.local.SearchIndexStore
@@ -37,6 +38,16 @@ class PrivacyUseCase(
     private val searchIndexStore: SearchIndexStore? = null,
     private val aiFallbackUseCase: com.greninjaop.mailorganizer.domain.ai.AiFallbackUseCase? = null,
     private val dispatchers: AppDispatchers,
+    /**
+     * Auth repository (2026-10-17 fix): deleting account data / clearing
+     * all local data must ALSO clear the OAuth tokens. Before this, a
+     * full clear wiped the account record but left the tokens, so the
+     * auth layer restored "Connected" for an account that no longer
+     * existed — a split-brain where the UI showed an empty mailbox with
+     * a sync running for a ghost account, and the only way forward was
+     * re-signing in via Chrome.
+     */
+    private val authRepository: AuthRepository? = null,
 ) {
 
     /**
@@ -201,7 +212,16 @@ class PrivacyUseCase(
      * Evaluates security audit state (Phase 23 §40, §41).
      */
     suspend fun getSecurityAuditSnapshot(): SecurityAuditSnapshot = withContext(dispatchers.io) {
-        val accounts = accountRepository.observeAll().first()
+        // 2026-10-17 fix: never hang the Privacy Overview — the account
+        // read is bounded (5s) and the message count is best-effort, so
+        // a stuck DB read can't leave the screen on "Loading…" forever.
+        val accounts = try {
+            kotlinx.coroutines.withTimeoutOrNull(5_000) {
+                accountRepository.observeAll().first()
+            } ?: emptyList()
+        } catch (_: Throwable) {
+            emptyList()
+        }
         var messageCount = 0
         try {
             messageCount = appDatabase?.messageDao()?.countAll() ?: 0
@@ -239,7 +259,17 @@ class PrivacyUseCase(
         aiFallbackUseCase?.handleAccountRemoved(accountId)
         // 5. Delete account entity from Room (cascades to threads, messages, classifications, rules, etc.)
         accountRepository.deleteById(accountId)
-        // 6. If active selection was this account, reset to Unified
+        // 6. Revoke + clear this account's OAuth tokens (2026-10-17
+        // fix): deleting the DB record alone left the tokens behind,
+        // so the auth layer restored "Connected" for an account that
+        // no longer existed (split-brain). Disconnect is best-effort
+        // on revocation — local state is always cleared.
+        try {
+            authRepository?.disconnect(com.greninjaop.mailorganizer.core.AccountId(accountId))
+        } catch (e: Exception) {
+            MoLogger.w(TAG, "Token clear on account delete failed: ${e.javaClass.simpleName}")
+        }
+        // 7. If active selection was this account, reset to Unified
         val activeSelection = activeAccountPreferences.activeSelection.first()
         if (activeSelection is AccountSelection.Single && activeSelection.accountId == accountId) {
             activeAccountPreferences.setActiveSelection(AccountSelection.Unified)
@@ -252,6 +282,23 @@ class PrivacyUseCase(
      */
     suspend fun clearAllLocalData() = withContext(dispatchers.io) {
         MoLogger.w(TAG, "Executing full local data clear")
+        // 0. Disconnect ALL accounts first (2026-10-17 fix): a full
+        // clear must clear the OAuth tokens too, otherwise the auth
+        // layer restores "Connected" for accounts whose records were
+        // just wiped (split-brain). Disconnect is best-effort on
+        // revocation — local state is always cleared.
+        try {
+            val ids = accountRepository.observeAll().first().map { it.accountId }
+            for (id in ids) {
+                try {
+                    authRepository?.disconnect(com.greninjaop.mailorganizer.core.AccountId(id))
+                } catch (e: Exception) {
+                    MoLogger.w(TAG, "Token clear on full clear failed: ${e.javaClass.simpleName}")
+                }
+            }
+        } catch (e: Exception) {
+            MoLogger.w(TAG, "Account list for full clear failed: ${e.javaClass.simpleName}")
+        }
         // 1. Clear database tables
         appDatabase?.clearAllTables()
         // 2. Clear FTS index store

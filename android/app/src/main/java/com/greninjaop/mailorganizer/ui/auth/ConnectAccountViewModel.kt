@@ -62,6 +62,13 @@ class ConnectAccountViewModel(
                                 },
                             )
                     }
+                    // Consume the result (2026-10-17 fix): the repository
+                    // replays the last result to new subscribers, so a
+                    // consumed result must be cleared — otherwise a
+                    // LATER Connect session (e.g. adding a second
+                    // account) would get this stale Success and
+                    // auto-navigate to the wrong account's import.
+                    authRepository.clearOAuthResult()
                 }
             } catch (e: Exception) {
                 MoLogger.w(TAG, "OAuth result collection ended: ${e.javaClass.simpleName}")
