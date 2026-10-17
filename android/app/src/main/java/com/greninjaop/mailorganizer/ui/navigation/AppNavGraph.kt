@@ -271,6 +271,11 @@ object AppDestinations {
 fun AppNavGraph(
     container: AppContainer,
     navController: NavHostController = rememberNavController(),
+    // Cold-start routing (2026-10-17): MainActivity passes CONNECT when
+    // the launch intent is an OAuth redirect, so a just-completed sign-in
+    // lands on the Connect screen (which consumes the Success and routes
+    // to Import) instead of HOME (which would silently drop the Success).
+    startDestination: String = AppDestinations.HOME,
 ) {
     // 2026-10-13 (redone): single tab-navigation path. Primary tabs use
     // the standard saveState/restoreState pattern — switching tabs keeps
@@ -479,7 +484,7 @@ fun AppNavGraph(
         ) {
         NavHost(
                 navController = navController,
-                startDestination = AppDestinations.HOME,
+                startDestination = startDestination,
                 modifier = Modifier.fillMaxSize(),
             // 2026-10-16: tab switches (primary ↔ primary) slide
             // DIRECTIONALLY — the incoming tab's content enters from the
@@ -951,7 +956,21 @@ fun AppNavGraph(
                                         popUpTo(AppDestinations.CONNECT) { inclusive = true }
                                     }
                                 } else {
-                                    navController.popBackStack()
+                                    // Reconnect (already synced): return to
+                                    // where the user came from. If CONNECT is
+                                    // the start destination (cold-start
+                                    // redirect), there is nothing to pop to —
+                                    // popBackStack returns false, so go to
+                                    // HOME and remove CONNECT, otherwise the
+                                    // user strands on the "Taking you to
+                                    // import…" spinner forever.
+                                    if (!navController.popBackStack()) {
+                                        navController.navigate(AppDestinations.HOME) {
+                                            popUpTo(AppDestinations.CONNECT) {
+                                                inclusive = true
+                                            }
+                                        }
+                                    }
                                 }
                             } catch (e: Exception) {
                                 MoLogger.w(

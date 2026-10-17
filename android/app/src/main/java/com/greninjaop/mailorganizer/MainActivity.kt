@@ -55,12 +55,30 @@ class MainActivity : ComponentActivity() {
         // intent arrives here in onCreate — NOT in onNewIntent. Handle it
         // the same way, otherwise consent completes in the browser and the
         // app silently does nothing ("authentication not working").
+        //
+        // Cold-start routing (2026-10-17 fix for the Connect → Chrome
+        // loop): a redirect that arrives here means the user JUST signed
+        // in. The NavHost must start at CONNECT, not HOME — otherwise
+        // the Connect ViewModel is never created, the Success is never
+        // consumed, the app lands on Home with no confirmation and no
+        // Import animation, and the user taps Connect again → Chrome
+        // again, forever. Must be read BEFORE handlePossibleOAuthRedirect
+        // (which clears the stored intent via setIntent).
+        val isOAuthRedirect =
+            intent.data?.scheme == com.greninjaop.mailorganizer.data.auth.GoogleAuthRepository.REDIRECT_SCHEME
         handlePossibleOAuthRedirect(intent)
         setContent {
             // No launch animation (removed 2026-10-16 per user request):
             // the app opens straight into the content, light or dark.
             MailOrganizerTheme(themeMode = foundationViewModel.themeMode) {
-                AppNavGraph(container = app.container)
+                AppNavGraph(
+                    container = app.container,
+                    startDestination = if (isOAuthRedirect) {
+                        com.greninjaop.mailorganizer.ui.navigation.AppDestinations.CONNECT
+                    } else {
+                        com.greninjaop.mailorganizer.ui.navigation.AppDestinations.HOME
+                    },
+                )
             }
         }
     }
