@@ -96,3 +96,15 @@ Last updated: 2026-10-17
 1. After every iOS change: update **Phase status** and append **Skipped** rows if anything was deferred.
 2. Never write iOS continuity into root `CONTEXT.md`.
 3. When completed on a Mac, add a “Verified on Mac” subsection and clear the matching Skipped row.
+
+## Verified on this agent (2026-10-17)
+
+| Check | Result |
+|-------|--------|
+| `shared/` `jvmTest` | PASS |
+| Android `SyncCoordinatorTest` + related (smoke) | PASS — phone app not broken by iOS work |
+| iOS Swift source inventory | 37 Swift files present |
+| MoreHubView `NavigationLink` without `NavigationStack` | **FIXED** |
+| `xcodebuild` / Simulator | SKIPPED (Linux) |
+| XCTest run | SKIPPED (no Xcode) |
+
