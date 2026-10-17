@@ -7,17 +7,97 @@
 4. When updating: fetch the REMOTE version of this file first and merge — never push a stale local copy over a newer remote one. (A stale push once wiped Phase 5's entry; don't repeat that.)
 5. Purpose: this file alone must let any agent reconstruct every conversation, decision, and rule — even with zero prior context (e.g. user switches accounts/chats).
 
-## Standing rules (non-negotiable)
-- **Branch:** `main`. Push DIRECTLY to main — no pull requests, no separate branches.
-- **Push as you go:** push each completed phase immediately; do NOT wait for approval taps. Standing user authorization (2026-10-09).
-- **One push call per phase** = at most one approval prompt per phase. (Batch a phase's files into a single `push_files` call.)
-- **Phases run one by one, continuously**, without asking. Next phase starts when the previous is pushed.
-- **Deferred to the very end** (user has no computer access for keys): Phase 3 (Google OAuth & Gmail connection), Phases 15/16 (Calendar/Tasks), Phase 22 (Gmail write), Phase 29 (production OAuth/Play Store). Build clean seams/interfaces for them; never fake them.
-- **Reports:** after EVERY phase, post a completion report in the side chat "Mail Organizer — build progress" (chat_id cc10335a-62bf-4626-becc-abbd55b0613c) — what was added/changed, what was verified, honest caveats. During long phases, post periodic progress updates too (user asked after a 2.5h silent Phase 0).
-- **Honesty:** never fake completion — only real, verified work counts. Never put secrets (API keys, tokens, credentials) in the repo. Secret-audit every phase.
-- **Speed:** run at FULL SPEED, but only within the free weekly quota.
-- **Quota guardrail (UPDATED 2026-10-09 ~22:48 IST):** user EXPLICITLY APPROVED using the 1B additional-token pool. If free weekly quota crosses 90-100%, DO NOT STOP — continue working, drawing from the 1B pool. No per-incident approval needed (standing approval). Free quota was 87% used on 2026-10-09 ~22:47 IST; resets Oct 15 9:36 PM IST; 1B pool untouched at 0%.
-- **Approval prompts** come from the app's runtime safety system, not the agent — the user only ever sees an "allow" button (no always-allow option). The agent cannot disable them; never re-ask from its side.
+## Standing rules — the editor MUST follow these (user directives, non-negotiable)
+
+### Continuity
+- **R1. Read CONTEXT.md fully before starting ANY work** on this repo (phase, fix, doc, push — anything). If the user ever says "read CONTEXT.md", stop everything and re-read it before continuing.
+- **R2. UPDATE CONTEXT.md after EVERY prompt/request is handled** — no matter what. Update `Current build state`, append dated entries to `Decision log`, keep `Standing rules` current. This is indefinite and always has attention. Never delete history — append and update. Keep entries short and factual.
+- **R3. When updating: fetch the REMOTE version first and merge** — never push a stale local copy over a newer remote one. (A stale push once wiped Phase 5's entry.) Purpose: this file alone must let any agent reconstruct every conversation, decision, and rule — even with zero prior context (e.g. user switches accounts/chats).
+- **R4. Check `~/MEMORY.md` + memory search before replying/acting**, so the user never has to repeat what matters or correct the same mistake twice.
+
+### Pushing
+- **R5. Branch: `main`. Push DIRECTLY to main** — no pull requests, no separate branches. Pushes go through the GitHub App/API only, never git-over-SSH.
+- **R6. Push as you go; never stall on push approval.** Standing user authorization (2026-10-09). One push call per phase = at most one approval prompt per phase. Batch a phase's files into a single `push_files` call. Approval prompts come from the app's runtime safety system, not the agent — the agent cannot disable them; never re-ask from its side.
+- **R7. Byte-verify every pushed file** against the remote afterward (sha256/blob SHA) — a stale/partial push happened once. When the user asks whether anything is unpushed, verify push state rather than asserting it. Claim a push only after remote files are read back and byte-verified.
+- **R8. Binaries: NEVER push raw binaries via the GitHub API** (it double-base64-corrupts them). Use base64 split parts + README per the local-github-binary-assets skill. Split parts must NOT live under `res/` (AAPT rejects non-.png/.xml names there). Delete repo files with `delete_file` (needs the blob SHA from `get_file_contents`).
+
+### Releases / APKs
+- **R9. NO per-fix APKs. Build + deliver an APK ONLY when the user explicitly asks** ("Apk pls", "Okey buidl", etc.). The user re-asserted it: "Don't produce any APK unless I say something, okay." Deliver the APK in the chat where asked, with sideload instructions (installs over the existing app, keeps accounts/data).
+- **R10. Every release increments the version — never reuse a version name.** APK naming: clean `Mailstack-X.Y.Z.apk` matching `versionName`.
+- **R11. Sign every APK with the stable debug keystore** (`/home/hatch/keys/mailstack-debug.keystore`, SHA-1 `07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05`). Never change the signing key — the OAuth client is bound to it.
+- **R12. No emulator or phone access in this sandbox — never claim on-device verification.** The user's phone is the only proof. Never present on-device launch, live sign-in, token exchange, or real sync as verified until the phone has done them.
+
+### How to reply
+- **R13. Brief, fix-first replies.** "Just tell me the fix, only that particular thing. Don't give me a paragraph of explanation." Exact numbers (test counts, hashes, sizes). Own mistakes plainly and fast.
+- **R14. When the user reports an error: audit fully before fixing.** (Lesson: the "403 permission" error was a per-second throttle mislabeled for days.) When the user reports bugs with screenshots: analyse the screenshots, find the root cause, fix exactly what was named.
+- **R15. Suggestions that fit:** concrete build fixes, exact console steps with values to copy verbatim, honest statements of what was checked here vs what only the phone can prove. Suggestions that do NOT fit: generic polish, per-fix APKs, re-litigating settled decisions, claiming on-device verification from the sandbox.
+
+### UI — design system
+- **R16. STRICT Material Design 3 on every UI change, no exceptions.** Call out any deliberate deviation before building it.
+- **R17. NO app-created emojis anywhere** — UI copy, sample/fixture data, AI prompts, summaries, generated text. The ONLY emojis that may ever appear are ones that arrived inside the user's actual mail content.
+- **R18. Never fabricate unread counts, account details, or any data the app does not have.** (Unread counts are omitted wherever there is no confirmed source.)
+- **R19. Preserve tab state, cached data, ViewModels, scroll position, account isolation, edge-to-edge.**
+- **R20. NEVER reintroduce Breeze artwork, glass UI** (outside the import card's user-supplied frosted host), **photo backgrounds, splash animation, or tab-triggered mailbox reloads.**
+- **R21. Dark mode is built on dark gray, NEVER pure black:** deep-gray background, surfaces one step lighter, near-white primary text, soft-gray secondary text on solid surfaces. Current: dark is deep violet-tinted charcoal (#131120), never pure black. Material You dynamic color is ON (Android 12+ derives the palette from wallpaper; below 12, violet fallback). Light and dark mirror each other.
+- **R22. When appearance is set to System Default, follow the system** (dark when the system is in dark mode).
+- **R23. Mailstack must NOT reload the page on tab switch.** Tab switches use a new animation without flickering or reload.
+- **R24. Uniformity: the same design rules apply on every page.** Redesign rule (user-approved): remove photo backgrounds, replace glass cards with flat rows, fixed brand palettes, same rules everywhere.
+- **R25. Settings: non-important entries must NOT remain as buttons in the Settings list** — move them to the very bottom as small text (Gmail-style footer) or a paragraph about that thing. General rule, not only Privacy Policy / Terms of Service / About.
+- **R26. Drawer (Gmail parity): the drawer must cover the top section like Gmail** (not appear below a hoisted top bar). Drawer rows/buttons/text match Gmail's sizing and fidelity. The drawer must NOT activate on Mail-to-Home tab switch (no flicker). NEVER conditionally compose `ModalNavigationDrawer` content — anchors derive from the sheet's measured width.
+- **R27. Account switcher (Gmail parity):** Gmail-style sheet/panel; no unread counts on rows (no real source). Three-dots overflow menu removed from all tabs (DP is the only trailing action). Top-bar DP uniform 40dp on every tab — matches the mail row avatar.
+- **R28. Settings panel: full-screen Box + NavHost (never padded/resized), bars OVERLAID; each primary tab pads itself.** WhatsApp shift: panel slides in from the right (full width, 350ms FastOutSlowIn) while the underlying screen slides slightly LEFT (1/12); closing reverses it. Scroll-hide bars: scroll DOWN hides bars, scroll UP shows them; pure translate, 250ms; entering a tab always shows bars.
+- **R29. Pull-to-refresh fires ONLY on a real finger drag** (`NestedScrollSource.UserInput` only) — a fast fling back to the top must never trigger it.
+- **R30. Message reveal animation: 350ms expand + fade, rotating chevron.**
+- **R31. Material scrollbar (Mail list):** invisible until scroll; appears instantly on scroll (slide in from right + fade, 200ms FastOutSlowIn); after 1.5s static it slides back out to the right + fades (250ms LinearOutSlowIn); press-and-hold grows ONLY the thumb (4dp → 12dp, spring pop) — the 2dp track never grows; drag thumb = fast-scroll; press on track jumps the thumb to the press first; no scrollbar when content fits.
+- **R32. Categories groups:** header + members live inside a SINGLE MoCard (one rounded rectangle, no gaps/seams). `MoCard`: `clip(shape)` BEFORE `clickable` — the ripple follows the card's rounded shape (fixes the square highlight on every clickable card). Group headers are vertically centred (plain Row, CenterVertically, symmetric vertical padding — a horizontal line through the card centre passes through icon, text, and arrow; card hugs content). Member rows are full-width (no left inset). Category icon colors are semantic accents from the centralized tokens (amber/orange/sky/royal-blue/brand-violet) — this supersedes the 2026-10-12 "neutral icon, never per-category color" rule.
+- **R33. Integrations:** Gmail row REMOVED (the app IS Gmail). Calendar/Tasks rows show the real product icons. Per-integration sign-in removed — one sign-in covers all scopes.
+- **R34. Demo/seeded accounts (`fixture-*`, `local-*`) NEVER sync.**
+
+### UI — copying references
+- **R35. A supplied reference / screenshot / logo is the SPEC to copy exactly — "nothing more, nothing less."** "Fix means remove": delete unwanted components, don't restyle them.
+- **R36. Auto-readjust on removal:** when the user removes a button/element, everything that depended on its position readjusts automatically, without being told. ("From now onwards, I won't tell you about these kinds of adjustments.")
+- **R37. Follow the user's exact geometric description.** (Example: "vertically centred, not horizontally — a line through the centre horizontally, the text should be centred. Don't try to move everything to the centre.")
+
+### Animations + reference.html
+- **R38. `android/reference.html` is the stock library of Mailstack animations + the living UI design reference.** Assets in `android/design-reference/` (`reference.css`, `animations.js`). §3 is the living Design Reference: overall three-layer layout, current Material 3 colour values, typography/shapes, component specifications, complete motion table, standing UI/content rules.
+- **R39. EVERY animation discussed — complex or simple, built or only proposed, used in this project or not — gets a study in `android/reference.html`:** live demo + annotated diagram + zoomed frames + handwritten notes + exact specs. Animations there are a reusable library for this project or another project. NEVER skip adding it. The user will NOT tell me when to add it — if I find an animation interesting, I add it there. Backfill missed ones.
+- **R40. NEVER remove an animation section, even if superseded.** Component changed → update its Design Reference section; component removed → remove it there too (animations exempt). New animation in the app → new section.
+- **R41. For the reference.html entries the user names** (tab-switch animation: Mail tab to/from another tab, content sliding in from the respective sides; top-section adjustment), **the representation must be a faithful carbon copy of the exact current Mailstack UI:** same design, not tampered with, animation perfect as shown, with nothing added that was not really happening in the app.
+- **R42. When the user says "Use the X animation from reference.html", reproduce the specs — no re-explaining.**
+- **R43. Import animation (§11): the arc must NOT show progress** — a pulse travels the arc (left → right); ONLY the Mailstack progress ring moves as the progress bar. The blue line connects first, then mails transfer. Transferred mails (rows) are shown; Card 1 must NOT show alongside. Use the user-supplied logo as-is (never an AI-generated/hand-drawn substitute). The Gemini refine (commit `05aaf6e5`) is REFERENCE-ONLY, not transferred — do not call the current animation final until the user approves.
+
+### Logos
+- **R44. Company logos in EVERY area where a mail row appears** — Mail tab, Categories tab, import rows, everywhere. Same pipeline everywhere: bundled logo → ICONS-ASSETS → sender's website favicon → letter fallback. People keep letter avatars. The §11 demo shows the user's real email `c47011882@gmail.com` — demo content only; the app uses the real account email.
+- **R45. Never fabricate a logo. A user-supplied logo is the spec to copy exactly.**
+- **R46. The favicon fetch sends the sender's domain to Google** (flagged in code).
+- **R47. Images inside mail bodies are NEVER fetched** (privacy: a fetch tells the sender the mail was opened). Blocked images render as nothing — no "Image not loaded" line per image.
+
+### Import flow (invariants)
+- **R48. Progress from the REAL sync only.** Continue gated on Done, not merely 100%. Back on import Card 1 = old "Not now". Rows = the 2 most recently INSERTED mails (rowid order). Error variant keeps card chrome (Try again / Continue anyway). Card keeps the reference's hardcoded dark palette in both themes.
+
+### OAuth / accounts / sync
+- **R49. Redirect URI `com.greninjaop.mailorganizer:/oauth2redirect`** (RFC 8252 single slash). Manifest scheme-only filter (VIEW + DEFAULT + BROWSABLE), `exported=true`, `MainActivity` singleTask. Pending PKCE flow persisted in EncryptedSharedPreferences. Auth URL uses `prompt=consent` + `include_granted_scopes=true` + `access_type=offline`.
+- **R50. One sign-in grants Gmail + Calendar + Tasks.** `BASE_SCOPES` = gmail.readonly + calendar.events + tasks + openid/email/profile. gmail.modify stays incremental, confirmation-gated, via GmailWriteUseCase only. Sign-in IS Google OAuth in the system browser (app never sees the password), once per account, tokens persist. Testing-mode consent → only listed test users can sign in; Testing-mode refresh tokens expire after 7 days.
+- **R51. Account isolation is a first-class DB boundary** (`AccountId`, FK-enforced) — never break it.
+- **R52. Gmail is the source of truth.** `SyncCoordinator.syncNow` JOINS in-flight syncs per account, never cancels/restarts. Retries resume from the saved page cursor. Background worker + scheduler also call `syncNow`.
+
+### Privacy / AI / honesty
+- **R53. Email is untrusted input (HTML sanitized). Privacy-aware logging — never email bodies/tokens. No tokens/passwords in DB** by schema design. Never put secrets in the repo; secret-audit every phase.
+- **R54. AI is an optional fallback ONLY, never the foundation.** Deterministic local intelligence is authoritative. Precedence: User Correction > User Rule > Deterministic > AI > Unknown. AI disabled by default; AI output never directly executes actions; AI can never downgrade SECURITY signals nor authorize sends/deletes.
+- **R55. Honesty: never fake completion — only real, verified work counts.**
+
+### Autonomy / boundaries
+- **R56. Keep both build pipelines running by themselves until everything is finished.** The ONLY thing that ever waits for the user is GitHub push approval. Never stall on quota either: the user approved drawing from the 1B additional-token pool if free quota crosses 90–100%.
+- **R57. Do NOT touch OmniBuds. Do NOT start freebuff or CASA without explicit authorization.**
+- **R58. Phase reports go to the side chat "Mail Organizer — build progress"** (chat_id cc10335a-62bf-4626-becc-abbd55b0613c) — what was added/changed, what was verified, honest caveats. During long phases, post periodic progress updates too (user asked after a 2.5h silent Phase 0).
+- **R59. Phase prompts live in the repo** under `execution plan/android/phase-NN-*.md` — do NOT ask the user to paste them. Read each phase's prompt from the repo and iterate autonomously.
+- **R60. agy CLI:** 1.4.0, signed in as arjunsabu360@gmail.com (Google AI Pro). Verify with `bash ~/agy-work/agy-probe.sh` → expect HEALTHY. Invocation: `agy -p "<prompt>" --model gemini-3.8-flash-medium --effort medium --dangerously-skip-permissions`. Caution: agy hallucinates — always verify its claims against the actual code before acting.
+
+### Build environment (sandbox facts — not user rules, kept so the next agent doesn't re-learn them)
+- **R61. JDK `/home/hatch/jdk/jdk-17.0.20.1+1`** (call `bin/java` by full path); Gradle env `JAVA_HOME=/home/hatch/jdk/jdk-17.0.20.1+1`, `GRADLE_USER_HOME=/home/hatch/.gradle`, flags `--offline -Djava.net.preferIPv4Stack=true`. Daemon/"Failed connecting to the daemon in 4 retries"/fileHashes.lock lines are sandbox flakiness, not code errors — retry.
+- **R62. Tests via direct JUnitCore** (Gradle test workers crash here): `:app:printTestClasspath`, classpath is on the output line starting `###TEST_CP###` (strip the marker; save to `/tmp/testcp.txt`), prepend `app/build/tmp/kotlin-classes/debug`, run `org.junit.runner.JUnitCore` over `*Test` classes under `app/build/tmp/kotlin-classes/debugUnitTest`. Known baseline: 9 Robolectric env failures (`android-all-instrumented` Maven fetch).
+- **R63. Offline Maven repo `file:///home/hatch/local-m2`** (settings.gradle.kts lists it first). Fetch missing artifacts with curl; dl.google.com works, repo1.maven.org 404s. Material3 1.4.0 is the resolved version. compileSdk/targetSdk 35 kept deliberately over 36.
+- **R64. Never run `git read-tree --reset -u HEAD`** (or any `-u`/working-tree-updating reset) on a tree with uncommitted phase work — it silently wipes it. Never use Python `.split()` (bare) on `git diff --name-only` output — use `.splitlines()` or `-z` mode (paths contain spaces).
 
 ## User
 - **Arjun Sabu** (GitHub: `greninja-op`, India). Primary contact for this build.
@@ -918,3 +998,21 @@ User on 1.0.32: consent screen showed Calendar + Tasks scopes ("that all works")
 
 Built from main at the Custom-Tab revert + this CONTEXT entry. Debug build, signed with the stable debug keystore (cert SHA-1 07:31:05:EF:F3:E1:CD:DD:6C:7F:16:C1:A5:B1:83:4D:12:AA:7D:05, verified via apksigner). 17,453,546 bytes, SHA-256 4524c50c3349bb6952182d53e3ef34ce24f38dc9062203cd1a84c47220b346d1. File: `~/workspace/Mailstack-1.0.33.apk`.
 Contains: sign-in opens in the plain browser instead of the in-app Chrome tab + everything in 1.0.32 (one sign-in grants Gmail + Calendar + Tasks; per-integration sign-in removed). Import animation still the 1cf0a71 build — the Gemini-prompt refine (05aaf6e5) is still REFERENCE-ONLY. Version bump + CONTEXT.md pushed + byte-verified. On-device confirmation pending.
+
+## Decision log (continued 2026-10-17 — 2026-10-18)
+- **2026-10-17 — Mailstack 1.0.34 (vc 35):** import auto-starts + in-place retry. Import sync failed (403) → old friendlyError said "Reconnect your account" → user looped through Chrome consent forever. Fix: ImportViewModel.init calls startImport() once after Intro; "Reconnect" removed from Import errors. User confirmed the animation plays.
+- **2026-10-17 — Mailstack 1.0.35 (vc 36):** fixed progress (never backwards — Gmail profile `messagesTotal`, fetched once, bounded by 500, caps at 99% while Running); flying mails always visible (progress deltas + re-seed when the list empties); real Gmail + Mailstack logos; company logos in transpiring rows; 403 reason plumbing (PermissionDenied detail surfaced).
+- **2026-10-17 — The 403 saga RESOLVED as diagnosis:** 1.0.36 (vc 37) fixed `handleErrorCode` truncating the error body before JSON parse (reason/message came back empty → generic fallback). User retried and got "Gmail is rate-limiting right now" — it was a THROTTLE all along, mislabeled as permission. 1.0.37 (vc 38): fetch concurrency 8→4 + clearer message. 1.0.38 (vc 39): daily quota vs per-second throttle distinguished; daily → "resets at midnight (Pacific), try tomorrow" + fail-fast; per-second → "wait a minute, tap once." User confirmed import WORKED on the second "Try again" tap.
+- **2026-10-17 — REQUEST AUDIT (user-directed):** daily quota CANNOT be the problem — one 500-message first sync ≈ 2,682 units vs 1,000,000,000 daily quota. Real cause: per-second throttle (250 units/user/sec) + NO pacing. Waste found: `withRetries` fires extra LIST calls while throttling; throttled per-message GETs are SKIPPED (message silently missing); app never reads Gmail's `Retry-After` header. PROPOSED FIX (awaiting user's go-ahead, NOT implemented): token-bucket rate limiter (~10 req/sec) + honor Retry-After + retry dropped GETs instead of skipping.
+- **2026-10-17 — Mailstack 1.0.39 (vc 40) delivered:** Material scrollbar on the Mail list (invisible until scroll; slide+fade in 200ms; slides out after 1.5s static; press-and-hold grows ONLY the thumb 4dp→12dp; drag = fast-scroll); "Needs attention" one-cavity fix (`MoCard` clip-before-clickable fixes the square ripple globally; member inset removed; header + members in ONE MoCard); semantic category icon colors (amber/orange/sky/royal-blue/brand-violet from centralized tokens — supersedes the 2026-10-12 "neutral icon" rule); Reddit digest rendering fixes (DOCTYPE stripped; shared single-pass entity decoder incl. zwnj→nothing; no per-image "Image not loaded" lines). SHA-256 `4794521741c65c2805abf439ece517644cf6d8c46c3a70ecd0f60e82d9bc50ae`.
+- **2026-10-17 (in main, NOT in an APK yet):** category group header vertical centring — header is now a plain Row, CenterVertically, symmetric 8dp vertical padding; icon, text, arrow all vertically centred; card hugs content. (Commit `726f5b38`.)
+- **2026-10-18 (in main, NOT in an APK yet):** company logos in Categories detail rows — detail rows called `MailRowLayout` WITHOUT `senderDomain` (null → letter avatar) and `CategoryMessage` had dropped `fromAddress`. Fix: `CategoryMessage` carries `fromAddress`/`fromName`; detail rows pass `senderDomain` via the same `CompanyDetector` detection as the Mail tab. (Commit `17eeeeed`.)
+- **2026-10-18 — STANDING RULES codified in CONTEXT.md (R1–R64)** at the user's request: every directive from this build (CONTEXT.md update after every prompt; copy-exact; fix-means-remove; auto-readjust; strict M3; no app emojis; logo pipeline everywhere; animations in reference.html; dark-mode gray; Settings footer; drawer parity; tab-switch; import-arc; OAuth facts; autonomy; build-env facts) is now written as a numbered rule the editor must follow. NOTE: the remote fetch for this update was flagged by a safety check; the user was told plainly, weighed it, and explicitly said to push — the merge was done by script against the fresh remote file, preserving all remote content byte-for-byte except the replaced Standing rules section and these appended entries.
+
+## Still open / awaiting the user (do not proceed without their word)
+- **Rate-limiter fix** (import working in one go) — proposed twice, NOT approved, NOT implemented. Next action on their "go."
+- **Vertical centring fix + category logos fix** — in main, user hasn't seen them (no APK). If they ask for an APK, they go in as the next version.
+- **Import animation Gemini refine** (commit `05aaf6e5`: modal overlay over blurred screen, static conduit arc, Gmail-node glow pulse, arrival ripples, title 17sp / counter 20sp / canvas 168dp / nodes 68dp) — still NOT transferred; the app runs the `1cf0a71` build + 1.0.35 changes (real logos, company logos, re-seed). Do not call it final until the user approves.
+- Confirmation/correction of the "replaced" interpretation behind commit `01592cf` (Continue-step removal) — never answered.
+- Privacy Center row: keep-or-remove alongside the Settings footer links — never answered.
+- Gemini prompt §3+ (design tokens/animation specs) never arrived; reconcile if it comes.
