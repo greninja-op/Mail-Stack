@@ -60,6 +60,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 import com.greninjaop.mailorganizer.ui.components.MailListSkeleton
+import com.greninjaop.mailorganizer.ui.components.MaterialScrollbar
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
 import com.greninjaop.mailorganizer.ui.components.MoErrorState
 import com.greninjaop.mailorganizer.ui.components.edgeFade
@@ -437,36 +438,46 @@ private fun MailContent(
                                 }
                             }
                         }
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.weight(1f).fillMaxSize()
-                                // Subtle top/bottom edge fade (2026-10-16):
-                                // rows dissolve gently as they scroll under
-                                // the bars instead of hard-clipping.
-                                .edgeFade(
-                                    top = listState.canScrollBackward,
-                                    bottom = listState.canScrollForward,
-                                ),
-                            contentPadding = PaddingValues(
-                                horizontal = MoSpacing.md,
-                                vertical = MoSpacing.sm,
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
+                        // Material scrollbar (2026-10-17): overlays the
+                        // list's right edge, shows only while scrolling.
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxSize(),
                         ) {
-                            items(content.items, key = { it.threadId }) { item ->
-                                val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
-                                ThreadRow(
-                                    item = item,
-                                    account = rowAccount,
-                                    showAccountIndicator = state.isUnified || state.destination == MailboxDestination.ALL_INBOX,
-                                    onClick = { onOpenThread(item.threadId, null) },
-                                    modifier = Modifier.animateItem(),
-                                )
-                                // No dividers between rows — Gmail has none.
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize()
+                                    // Subtle top/bottom edge fade (2026-10-16):
+                                    // rows dissolve gently as they scroll under
+                                    // the bars instead of hard-clipping.
+                                    .edgeFade(
+                                        top = listState.canScrollBackward,
+                                        bottom = listState.canScrollForward,
+                                    ),
+                                contentPadding = PaddingValues(
+                                    horizontal = MoSpacing.md,
+                                    vertical = MoSpacing.sm,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
+                            ) {
+                                items(content.items, key = { it.threadId }) { item ->
+                                    val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
+                                    ThreadRow(
+                                        item = item,
+                                        account = rowAccount,
+                                        showAccountIndicator = state.isUnified || state.destination == MailboxDestination.ALL_INBOX,
+                                        onClick = { onOpenThread(item.threadId, null) },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                    // No dividers between rows — Gmail has none.
+                                }
+                                if (isLoadingMore) {
+                                    item { LoadingMoreFooter() }
+                                }
                             }
-                            if (isLoadingMore) {
-                                item { LoadingMoreFooter() }
-                            }
+                            MaterialScrollbar(
+                                listState = listState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                            )
                         }
                     }
                     is MailboxContent.Messages -> {
@@ -488,36 +499,46 @@ private fun MailContent(
                                 }
                             }
                         }
-                        LazyColumn(
-                            state = listState,
-                            modifier = Modifier.weight(1f).fillMaxSize()
-                                // Subtle top/bottom edge fade (2026-10-16):
-                                // rows dissolve gently as they scroll under
-                                // the bars instead of hard-clipping.
-                                .edgeFade(
-                                    top = listState.canScrollBackward,
-                                    bottom = listState.canScrollForward,
-                                ),
-                            contentPadding = PaddingValues(
-                                horizontal = MoSpacing.md,
-                                vertical = MoSpacing.sm,
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
+                        // Material scrollbar (2026-10-17): overlays the
+                        // list's right edge, shows only while scrolling.
+                        Box(
+                            modifier = Modifier.weight(1f).fillMaxSize(),
                         ) {
-                            items(content.items, key = { it.messageId }) { item ->
-                                val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
-                                StarredMessageRow(
-                                    item = item,
-                                    account = rowAccount,
-                                    showAccountIndicator = state.isUnified,
-                                    onClick = { onOpenThread(item.threadId, item.messageId) },
-                                    modifier = Modifier.animateItem(),
-                                )
-                                // No dividers between rows — Gmail has none.
+                            LazyColumn(
+                                state = listState,
+                                modifier = Modifier.fillMaxSize()
+                                    // Subtle top/bottom edge fade (2026-10-16):
+                                    // rows dissolve gently as they scroll under
+                                    // the bars instead of hard-clipping.
+                                    .edgeFade(
+                                        top = listState.canScrollBackward,
+                                        bottom = listState.canScrollForward,
+                                    ),
+                                contentPadding = PaddingValues(
+                                    horizontal = MoSpacing.md,
+                                    vertical = MoSpacing.sm,
+                                ),
+                                verticalArrangement = Arrangement.spacedBy(MoSpacing.xs),
+                            ) {
+                                items(content.items, key = { it.messageId }) { item ->
+                                    val rowAccount = state.accountsById[item.accountId] ?: state.activeAccount
+                                    StarredMessageRow(
+                                        item = item,
+                                        account = rowAccount,
+                                        showAccountIndicator = state.isUnified,
+                                        onClick = { onOpenThread(item.threadId, item.messageId) },
+                                        modifier = Modifier.animateItem(),
+                                    )
+                                    // No dividers between rows — Gmail has none.
+                                }
+                                if (isLoadingMore) {
+                                    item { LoadingMoreFooter() }
+                                }
                             }
-                            if (isLoadingMore) {
-                                item { LoadingMoreFooter() }
-                            }
+                            MaterialScrollbar(
+                                listState = listState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                            )
                         }
                     }
                     is MailboxContent.Empty -> {
