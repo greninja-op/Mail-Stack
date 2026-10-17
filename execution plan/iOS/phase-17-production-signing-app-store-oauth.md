@@ -35,3 +35,9 @@ Do not publish, submit, or release automatically.
 Build a clean release archive. Inspect its bundle identifier, signing state, entitlements, embedded configuration, linked frameworks, assets, permissions, deep links, OAuth release identity, and absence of debug/test code. Run the release build on Simulator and a real iPhone when available.
 
 **STOP AFTER PHASE 17.**
+
+## 2026-10-18 — Current-design update
+
+- Real Apple signing/provisioning/App Store configuration, production OAuth configuration, accurate privacy/data declarations, correct entitlements, no debug bypasses, no test credentials, no verbose sensitive logging, clean archive.
+- Google OAuth verification: a public app using restricted Gmail scopes (gmail.readonly) needs a CASA-style independent security assessment before Google verification (Android precedent: ~$500–$1,500/yr, ~4–6 weeks, annual). Testing-mode refresh tokens expire after 7 days; "unverified app" screen until verified. Do not claim verification, approval, or compliance without actual evidence.
+- Do not publish automatically. Final release is a human-controlled decision.

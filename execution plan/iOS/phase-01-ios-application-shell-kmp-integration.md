@@ -39,3 +39,9 @@ Use iOS-native lifecycle and state handling. Keep platform concerns out of share
 Do not implement OAuth, Gmail sync, mailbox intelligence, Calendar, Tasks, automation, or AI beyond stubs/contracts required for compilation.
 
 **STOP AFTER PHASE 1.**
+
+## 2026-10-18 — Current-design update
+
+- Shell implements the CURRENT navigation: drawer covering the top section (Gmail parity), uniform 40pt profile circle on every tab, Gmail-style account switcher, Settings panel sliding in from the right (350ms, underlying screen slides 1/12 left), scroll-hide bars (down hides, up shows, 250ms, pure translate), tab switches that never reload the page (content slides from the respective side, no flicker).
+- Centralized design tokens from `design.md` (brand violet, dark-mode charcoal `#131120`, typography scale, 28pt card radius, motion tiers). No per-screen magic values.
+- Safe areas respected on all iPhone sizes; bars overlaid, never padded/resized containers.

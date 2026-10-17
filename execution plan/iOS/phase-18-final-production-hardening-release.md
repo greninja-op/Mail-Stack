@@ -62,3 +62,9 @@ Do not claim App Store approval, Google OAuth verification, legal compliance, or
 Create the final iOS release-readiness report under `iOS/`. Update permanent editor rules only for genuinely discovered permanent constraints. Verify clean Git state/repository hygiene and ensure no secrets are present.
 
 **STOP AFTER PHASE 18.**
+
+## 2026-10-18 — Current-design update
+
+- Final audit extends the checklist with the current-design items: company logos in EVERY row area (Mail, Categories, import rows); category groups (one-cavity, vertical centring, semantic accents); scrollbar behavior; import flow (arc-not-progress, ring-only progress, progress never backwards, 99% cap, Done gating, error chrome); throttle handling (pacing, Retry-After, no silent skips); no fabricated counts; no app emojis; dark-mode charcoal (never pure black); HTML rendering (entity decoding, no per-image lines, images never fetched); pull-to-refresh finger-only; tab-switch no-reload; Settings footer rule; drawer covering top section.
+- Critical smoke path unchanged, plus: one company-logo case, one throttle case, one malformed-HTML case, one permission-denial case.
+- Declare RELEASE READY only when every blocking gate has evidence. Otherwise RELEASE BLOCKED with blocker, severity, evidence, remediation. Do not claim App Store approval, Google OAuth verification, legal compliance, or policy acceptance without actual evidence.

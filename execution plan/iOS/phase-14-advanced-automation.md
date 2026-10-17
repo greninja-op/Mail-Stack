@@ -33,3 +33,9 @@ No arbitrary scripts and no automatic send/reply/forward/permanent-delete behavi
 Test duplicate events, retries, partial failure, stale schedules, account removal, permission denial, offline execution, background interruption, protected categories, and malicious email content.
 
 **STOP AFTER PHASE 14.**
+
+## 2026-10-18 — Current-design update
+
+- Automation is user-created rules only. Finite, explainable, account-scoped, idempotent, safety-validated. Circuit breaker on repeated failures. Destructive actions are conservative.
+- Email content cannot create or approve an automation. No arbitrary scripts. Engine proposes / user confirms / nothing external automatic.
+- Keep the deterministic effective pipeline: correction > rule > deterministic base.

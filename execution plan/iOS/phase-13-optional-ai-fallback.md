@@ -33,3 +33,10 @@ Never present fabricated AI output as verified fact.
 Test AI disabled, unavailable provider, malformed output, adversarial email prompt injection, sensitive content policy, offline operation, timeout/retry, and deterministic fallback.
 
 **STOP AFTER PHASE 13.**
+
+## 2026-10-18 — Current-design update
+
+- AI is an optional secondary fallback, never the foundation. Deterministic local intelligence remains authoritative. AI disabled by default with explicit user opt-in. AI is never required for core mailbox access, search, classification, or safety.
+- DataMinimizer: strip HTML, MIME headers, recipient lists; truncate bodies to ≤500 characters; sanitize identifiers (emails/tokens). Prompt boundary: anti-injection delimiter shielding.
+- Output validator: strict structured JSON schemas, model confidence capped at 0.85, reject executable command verbs (delete/send/drop), and NEVER downgrade deterministic SECURITY classifications. AI output never directly executes actions.
+- On-demand thread summarization is explicitly user-initiated with a clear advisory notice ("Advisory summary · May contain errors"). Subtle "AI suggestion" badge pill where a suggestion appears.

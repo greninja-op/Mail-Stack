@@ -32,3 +32,9 @@ Notifications must not reveal sensitive email content on a locked screen beyond 
 Test airplane mode, flaky network, app suspension, force termination, reboot where practical, delayed background execution, duplicate notifications, notification permission denial, and stale cache.
 
 **STOP AFTER PHASE 11.**
+
+## 2026-10-18 — Current-design update
+
+- Background workers carry an explicit account id and never read the active UI account (protects against races when switching accounts). Periodic intervals clamped to the platform minimum; lifecycle triggers apply a 15-minute staleness threshold (no aggressive polling).
+- Offline state is cleanly distinguished from authentication failure or API errors — never show "Reconnect" when simply offline. Last-sync timestamps are truthful, no fake precision.
+- iOS: respect BGAppRefresh / background-task scheduling constraints. Never claim a background task will run continuously or at an exact cadence iOS does not guarantee. Notifications are honest (no fake/bait content).

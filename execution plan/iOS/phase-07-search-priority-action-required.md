@@ -27,3 +27,9 @@ Use the KMP search/indexing engine. Do not create a second search database unles
 Test large datasets, special characters, partial terms, empty queries, stale index, account switching, deleted messages, offline search, and performance.
 
 **STOP AFTER PHASE 7.**
+
+## 2026-10-18 — Current-design update
+
+- Search: structured query all the way down (UI never builds SQL); on-device FTS index; every FTS term escaped (injection-proof by construction); debounce (~300ms); account-scoped; unified search joins enabled accounts only.
+- Priority badges carry "why this priority?" explanations; classification carries "Why this category?" explanations.
+- **No "Action Required" chip/filter/empty state in the Mail list** (removed on Android). Action Required remains available as a destination/section where defined, but not as a Mail-list chip. Search filter untouched.

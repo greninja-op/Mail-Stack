@@ -31,3 +31,11 @@ Inspect redirect handling, state/nonce where applicable, token storage, logs, sc
 Do not implement broad Gmail synchronization yet.
 
 **STOP AFTER PHASE 3.**
+
+## 2026-10-18 — Current-design update
+
+- Redirect URI `com.greninjaop.mailorganizer:/oauth2redirect` (RFC 8252 single slash). iOS: custom URL scheme in Info.plist + `onOpenURL` for cold-start AND warm redirects. Pending PKCE flow persisted in Keychain. Replay + consume-once on the redirect result.
+- **One sign-in grants Gmail + Calendar + Tasks.** Base scopes = gmail.readonly + calendar.events + tasks + openid/email/profile. Auth URL uses `prompt=consent` + `include_granted_scopes=true` + `access_type=offline`. gmail.modify stays incremental, confirmation-gated.
+- Console-side: Custom URI Scheme must be enabled on the OAuth client (Google rejects with Error 400 otherwise). Testing-mode consent → only listed test users; Testing-mode refresh tokens expire after 7 days.
+- Sign-in opens in the system browser via ASWebAuthenticationSession (trusted context) — never an in-app imitation credential form; the app never sees the password. The old Chrome-loop lesson: a sign-in that strands the user in the browser is a bug, not a user error.
+- Clear-all/disconnect also clears tokens.

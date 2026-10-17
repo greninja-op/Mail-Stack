@@ -29,3 +29,10 @@ Use Xcode/Instruments or equivalent available profiling tools. Test realistic an
 Fix only defects necessary for this phase; do not begin new product features.
 
 **STOP AFTER PHASE 15.**
+
+## 2026-10-18 — Current-design update
+
+- Adaptive performance model: lightweight capability profile with tiers (NOT device names) selecting animation complexity, prefetching, image cache limits, background concurrency, sync batch sizes. Never claim 120 FPS because hardware supports 120 Hz. Reduce expensive work before the UI becomes janky. No continuous hardware benchmarking; re-evaluate when conditions change.
+- Centralized motion system (Essential / Standard / Expressive / Reduced Motion). Expressive reserved for meaningful moments. Respect Reduce Motion + Low Power Mode. No animation blocks interaction or sync.
+- Applies the current motion specs: tab-switch slide (no reload), Settings panel slide (350ms, underlying 1/12 left), scroll-hide bars (250ms translate), message reveal (350ms expand+fade, rotating chevron), scrollbar behavior.
+- Accessibility: VoiceOver labels/traits/focus order, Dynamic Type including large accessibility sizes, contrast, 44pt hit targets, light/dark mode, all iPhone sizes.

@@ -33,3 +33,12 @@ Verify light/dark mode, Dynamic Type, VoiceOver labels/order, small and large iP
 Do not implement company intelligence or advanced search yet.
 
 **STOP AFTER PHASE 5.**
+
+## 2026-10-18 — Current-design update
+
+- **Mail row (exact):** 40pt avatar, sender + time line 1, subject line 2, snippet line 3, min 88pt height. Flat rows on the background — no card, no border, no shadow.
+- **Logo pipeline in every row:** company sender → logo (bundled → asset catalog → favicon → letter fallback); personal sender → letter avatar. The row MUST receive the detected sender domain; a missing domain falling back to letters for company mail is a bug. Unified inbox rows add the small receiving-account indicator circle.
+- Star on the right. Unread = bold sender/subject + primary-colored time.
+- Native iOS scroll indicators (see `design.md` scrollbar behavior if a custom scrollbar is ever built). Pull-to-refresh fires ONLY on a real finger drag — a fast fling back to the top must never trigger it.
+- Thread/message view: message reveal 350ms expand + fade, rotating chevron. HTML sanitized; entities fully decoded; `<!DOCTYPE>`/processing instructions never print as text; images never fetched (render as nothing, no per-image placeholder lines). No JavaScript from mail content.
+- Tab switches never reload the page. No "Action Required" chip/filter in the Mail list.

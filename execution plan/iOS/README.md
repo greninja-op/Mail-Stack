@@ -69,3 +69,13 @@ Mail Organizer remains a Kotlin Multiplatform application:
 18. iOS Final Production Hardening & Release
 
 **STOP AFTER PHASE 18.**
+
+## 2026-10-18 — Plan updated to the current Mailstack UI
+
+This plan was updated to match the CURRENT Mailstack UI as shipped on Android (1.0.39 + in-main fixes), adapted to iPhone/SwiftUI. The Android app is the reference implementation for the design philosophy.
+
+- `design.md` rewritten as the full current visual & UX contract (brand tokens, dark-mode charcoal, flat rows, card rules, mail-row spec, categories, import flow, scrollbar, motion, copy rules).
+- `editor-rules.md` rewritten with every standing directive earned building Android (copy-exact, fix-means-remove, auto-readjust, logos everywhere, no fabrication, no app emojis, OAuth + sync facts, push/continuity rules), adapted to iOS.
+- Each phase carries a "2026-10-18 — Current-design update" section with the post-Phase-30 requirements for that phase. The original phase text is preserved; the update section wins on disagreement.
+- Do NOT execute phases from this update. The user executes the plan separately.
+

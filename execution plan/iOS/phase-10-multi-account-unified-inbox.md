@@ -28,3 +28,9 @@ Adding an account must reuse the real Gmail OAuth → sync → recovery flow.
 Attempt cross-account search, rule, action, company filter, cache, notification, and automation leakage. Verify the system fails closed.
 
 **STOP AFTER PHASE 10.**
+
+## 2026-10-18 — Current-design update
+
+- Unified inbox is presentation-layer only — never shared ownership or cross-account data leaking. Unified queries join enabled accounts only.
+- Every unified row shows the small receiving-account indicator (receiving account, NOT sender). Account switching preserves mailbox context safely; disconnecting an account cascades through that account's boundaries only.
+- One sign-in grants Gmail + Calendar + Tasks for the account. Re-adding the same account refreshes the grant (`include_granted_scopes=true`). Demo/seeded accounts never sync.

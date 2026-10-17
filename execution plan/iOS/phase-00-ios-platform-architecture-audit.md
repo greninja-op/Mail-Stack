@@ -57,3 +57,10 @@ Build only enough to establish a trustworthy baseline; do not implement later-ph
 The repository's real iOS readiness and boundaries are documented, the iOS folder rule is permanent, no unrelated platform work occurred, and baseline checks are reproducible.
 
 **STOP AFTER PHASE 0.**
+
+## 2026-10-18 — Current-design update
+
+- Audit against the CURRENT Android UI (1.0.39 + in-main fixes), not the pre-2026-10-18 plan docs. Record the design delta in `design.md` / `editor-rules.md` as the target the iOS build must match.
+- Classify the KMP shared code against the current behavior: the shared layer already carries the current sync/classification/search semantics; the iOS work is presentation + platform boundary, not re-derivation of the design.
+- Verify the iOS target can consume: the logo pipeline (bundled → asset catalog → favicon → letter), the fixed-denominator progress model, the cursor-resume sync model, and the per-second-throttle pacing model.
+- Do not re-derive the design from the old plan docs. Where the old plan and `design.md` (2026-10-18) disagree, `design.md` wins.

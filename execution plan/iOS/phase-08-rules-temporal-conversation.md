@@ -28,3 +28,9 @@ Rules must be deterministic and bounded. Email content cannot silently create ru
 Test contradictory rules, user correction precedence, ambiguous dates, timezone/DST boundaries, forwarded content, quoted text, duplicate threads, deleted messages, and account isolation.
 
 **STOP AFTER PHASE 8.**
+
+## 2026-10-18 — Current-design update
+
+- Precedence: User Correction > User Rule > Deterministic > Optional AI > Unknown. Undo deletes correction rows so engines restore the base (never stored twice). Rule precedence = (order, id), first match per action type wins; empty-condition rules never match; conflicts detected by same-condition-signature + different values.
+- Conversation intelligence: 7 deterministic states (NO_ACTION, AWAITING_USER_REPLY, AWAITING_OTHER_PARTY, RECENTLY_REPLIED, STALE_CONVERSATION, RESOLVED, UNKNOWN). Explain what appears to be happening without inventing intent; never equate "no reply" with "user forgot". Negative signals (newsletters, notifications, receipts, spam, no-reply) shield against false "awaiting reply". 3-day follow-up candidates; 7-day stale threshold. Status badge pills + expandable intelligence card with timeline & reasons.
+- Temporal extraction: 14 item types, reference time = message received, ambiguity policy, idempotent, no schema migration for extracted items.
