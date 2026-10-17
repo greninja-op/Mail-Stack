@@ -9,6 +9,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.unit.dp
@@ -42,7 +43,13 @@ fun MoCard(
 ) {
     Surface(
         modifier = modifier.then(
-            if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier,
+            // Clip BEFORE clickable (2026-10-17 fix): the clickable's
+            // ripple is drawn by the Surface's own modifier, so the
+            // Surface's shape does NOT clip it — the ripple drew as a
+            // square over the rounded corners (visible on the "Needs
+            // attention" card). clip(shape) first makes the ripple
+            // follow the rounded shape.
+            if (onClick != null) Modifier.clip(shape).clickable(onClick = onClick) else Modifier,
         ),
         shape = shape,
         color = containerColor,

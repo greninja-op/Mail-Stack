@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -169,6 +170,16 @@ private fun CategoryGroupList(
             val members = remember(group, counts) {
                 group.members.filter { (counts[it] ?: 0) > 0 }
             }
+            // ONE cavity (2026-10-17 fix): the header + the member rows
+            // live inside a single MoCard — one rounded rectangle, no
+            // seams. The old design gave every member its own MoCard
+            // (separate overlapping pills) with a start inset, so the
+            // children were narrower than the header and left extra
+            // space on the left. Now the children are full-width rows
+            // inside the same card: same width as the header, no inset,
+            // no gaps. Tapping a child opens it (the inner clickable
+            // consumes the tap, so the card's toggle does not fire);
+            // tapping the header toggles the expansion.
             MoCard(
                 modifier = Modifier
                     .animateItem()
@@ -220,22 +231,19 @@ private fun CategoryGroupList(
                     )
                 },
             )
-            }
-            // Inline expansion, animated: member categories as sub-rows.
+            // Inline expansion, animated: member categories as full-width
+            // sub-rows inside the same card (no inset, no separate cards).
             AnimatedVisibility(visible = expanded) {
                 Column(modifier = Modifier.fillMaxWidth()) {
                     members.forEach { member ->
                         val label = remember(member) { member.visuals().label }
                         val count = counts[member] ?: 0
-                        MoCard(
+                        ListItem(
                             modifier = Modifier
-                                .padding(start = MoSpacing.xl)
+                                .clickable { onOpenCategory(member) }
                                 .semantics {
                                     contentDescription = "$label, $count messages"
                                 },
-                            onClick = { onOpenCategory(member) },
-                        ) {
-                        ListItem(
                             colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                             headlineContent = { Text(label) },
                             trailingContent = {
@@ -246,9 +254,9 @@ private fun CategoryGroupList(
                                 )
                             },
                         )
-                        }
                     }
                 }
+            }
             }
         }
     }
