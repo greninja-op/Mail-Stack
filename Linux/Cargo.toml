@@ -1,0 +1,11 @@
+[package]
+name = "mailstack-linux"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "mailstack-linux"
+path = "src/main.rs"
+
+[dependencies]
+mailstack-desktop-core = { path = "../desktop-core" }

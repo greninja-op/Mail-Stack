@@ -14,3 +14,12 @@ AndroidTablet/build/
 AndroidTablet/app/build/
 AndroidTablet/.idea/
 AndroidTablet/**/build/
+
+# Rust
+**/target/
+desktop-core/target/
+Windows/target/
+Linux/target/
+macOS/*.xcodeproj/
+macOS/*.xcworkspace/
+iPadOS/*.xcodeproj/

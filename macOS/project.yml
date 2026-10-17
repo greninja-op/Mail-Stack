@@ -1,0 +1,15 @@
+name: MailstackMac
+options:
+  bundleIdPrefix: com.greninjaop
+  deploymentTarget:
+    macOS: "14.0"
+targets:
+  MailstackMac:
+    type: application
+    platform: macOS
+    sources: [MailstackMac]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.greninjaop.mailorganizer.macos
+        GENERATE_INFOPLIST_FILE: true
+        MACOSX_DEPLOYMENT_TARGET: "14.0"

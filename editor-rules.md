@@ -8,11 +8,11 @@ Each platform plan owns its own root folder. Never mix them:
 |------|---------------------|-----------|
 | Android (phone) | `android/` | `execution plan/android/` |
 | iOS (iPhone) | `iOS/` | `execution plan/iOS/` |
-| iPadOS | `iPadOS/` (future) | `execution plan/iPadOS/` |
-| Android tablet | `AndroidTablet/` (future) | `execution plan/AndroidTablet/` |
-| macOS | `macOS/` (future) | `execution plan/macOS/` |
-| Windows | `Windows/` (future) | `execution plan/Windows/` |
-| Linux | `Linux/` (future) | `execution plan/Linux/` |
+| iPadOS | `iPadOS/` | `execution plan/iPadOS/` |
+| Android tablet | `AndroidTablet/` | `execution plan/AndroidTablet/` |
+| macOS | `macOS/` | `execution plan/macOS/` |
+| Windows | `Windows/` | `execution plan/Windows/` |
+| Linux | `Linux/` | `execution plan/Linux/` |
 
 Rules:
 
@@ -24,3 +24,11 @@ Rules:
 ## Continuity
 
 Always follow root `CONTEXT.md` standing rules (R1–R64) and the active platform’s `execution plan/<platform>/editor-rules.md`.
+
+
+## Platform-local CONTEXT.md
+
+Each platform root maintains its own `CONTEXT.md` for continuity and **skipped** items
+(`iOS/CONTEXT.md`, `iPadOS/CONTEXT.md`, `AndroidTablet/CONTEXT.md`, `macOS/CONTEXT.md`,
+`Windows/CONTEXT.md`, `Linux/CONTEXT.md`). Prefer updating those during platform work
+instead of mixing platform skip logs into unrelated roots.
