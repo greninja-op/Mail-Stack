@@ -84,6 +84,13 @@ class ImportViewModel(
                 if (acc != null) {
                     account = acc
                     _uiState.value = ImportUiState.Intro(acc)
+                    // 2026-10-17: auto-start the import. The user just
+                    // signed in to import — requiring a second tap on
+                    // "Import mails" left them bouncing to the browser
+                    // (the sync's auth error said "Reconnect") instead of
+                    // ever seeing the transfer animation. The import runs
+                    // the moment the flow appears; Back still skips it.
+                    startImport()
                 }
             }
         }
@@ -183,9 +190,14 @@ class ImportViewModel(
 
     private fun friendlyError(error: MoError): String = when (error) {
         is MoError.Network -> "No internet connection. Your import will resume when you're back online."
-        is MoError.Authentication -> "Gmail authorization expired. Reconnect your account and try again."
+        // 2026-10-17: NEVER tell the Import screen to "Reconnect your
+        // account" — that sentence sent the user back to the browser
+        // (Chrome) after every failed import, which is the loop they
+        // reported. An auth failure here retries in place (Try again);
+        // the user stays in the Import flow.
+        is MoError.Authentication -> "Sign-in didn't stick. Tap Try again to retry the import."
         is MoError.RateLimited -> "Gmail is rate-limiting right now. Please try again in a bit."
-        is MoError.PermissionDenied -> "Gmail permission was denied. Reconnect your account and try again."
+        is MoError.PermissionDenied -> "Gmail permission wasn't granted. Tap Try again to retry the import."
         is MoError.Api -> "Gmail API error${error.code?.let { " ($it)" } ?: ""}. Please try again."
         is MoError.Database -> "Import failed (${error.cause?.javaClass?.simpleName ?: "storage error"}). Please try again."
         is MoError.Unexpected -> "Import failed (${error.cause?.javaClass?.simpleName ?: "unexpected error"}). Please try again."
