@@ -42,6 +42,10 @@ data class CategoryMessage(
     val threadId: String,
     val subject: String,
     val senderName: String,
+    /** Raw sender email — needed for company-logo resolution. */
+    val fromAddress: String,
+    /** Raw sender display name (null when the mail has none). */
+    val fromName: String?,
     val timestampEpochMs: Long,
     val unread: Boolean,
 )
@@ -168,6 +172,8 @@ class CategoriesViewModel(
         threadId = threadId,
         subject = subject.ifBlank { "(no subject)" },
         senderName = fromName?.ifBlank { fromAddress } ?: fromAddress,
+        fromAddress = fromAddress,
+        fromName = fromName,
         timestampEpochMs = timestampEpochMs,
         unread = unread,
     )

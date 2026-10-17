@@ -46,6 +46,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import com.greninjaop.mailorganizer.core.company.CompanyDetectionInput
+import com.greninjaop.mailorganizer.core.company.CompanyDetector
 import com.greninjaop.mailorganizer.data.local.MailCategory
 import com.greninjaop.mailorganizer.di.AppContainer
 import com.greninjaop.mailorganizer.ui.components.MoEmptyState
@@ -366,6 +368,22 @@ fun CategoryDetailScreen(
                             MailRowLayout(
                                 sender = message.senderName,
                                 senderKey = message.senderName,
+                                // Company logo (2026-10-18 fix): the detail
+                                // rows never passed senderDomain, so
+                                // MailRowLayout fell back to letter avatars
+                                // for every row — while the Mail tab (which
+                                // passes the detected domain) showed the
+                                // real logos. Same detection as the Mail
+                                // tab rows: company senders get their logo,
+                                // personal senders keep the letter.
+                                senderDomain = remember(message.fromAddress, message.fromName) {
+                                    CompanyDetector.detect(
+                                        CompanyDetectionInput(
+                                            fromAddress = message.fromAddress,
+                                            fromName = message.fromName,
+                                        ),
+                                    )?.normalizedDomain
+                                },
                                 subject = MailFormatting.subjectDisplay(message.subject),
                                 snippet = "",
                                 timeText = timeText,
