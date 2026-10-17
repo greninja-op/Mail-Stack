@@ -262,8 +262,14 @@ class HttpGmailSyncApi(
         body: String,
         url: String,
     ): Nothing {
-        val trimmed = body.take(500)
-        val errorObj = JsonParser.parse(trimmed)?.obj("error")
+        // Parse the FULL body (2026-10-17 fix): the old code did
+        // body.take(500) BEFORE parsing, which truncated long Gmail
+        // errors mid-JSON (e.g. accessNotConfigured, whose message +
+        // extendedHelp URL run well past 500 chars). A truncated body
+        // is invalid JSON, so the parse failed and reason/message came
+        // back empty — which is why the Import showed the generic
+        // "Gmail refused the request" instead of Gmail's actual reason.
+        val errorObj = JsonParser.parse(body)?.obj("error")
         // Gmail's reason lives in error.errors[0].reason, NOT error.reason
         // (2026-10-17 fix: the old code read error.reason, which is always
         // absent, so every 403 — including rate limits — was misclassified
@@ -271,7 +277,13 @@ class HttpGmailSyncApi(
         val reason = errorObj?.array("errors")?.firstOrNull()?.string("reason").orEmpty()
         val message = errorObj?.string("message").orEmpty()
             .ifEmpty { errorObj?.array("errors")?.firstOrNull()?.string("message").orEmpty() }
-        MoLogger.w(TAG, "Gmail API HTTP $code reason=$reason url=${url.substringBefore("?")}")
+        // Log the full body (bounded) so the next 403 can be diagnosed
+        // from the log even if the parse fails.
+        MoLogger.w(
+            TAG,
+            "Gmail API HTTP $code reason=$reason url=${url.substringBefore("?")} " +
+                "body=${body.take(2000)}",
+        )
         throw when {
             code == 401 -> SyncApiException.AuthExpired()
             code == 404 && url.contains("/history?") -> SyncApiException.HistoryInvalid()
@@ -280,6 +292,10 @@ class HttpGmailSyncApi(
             code == 403 && reason.contains("RateLimitExceeded", ignoreCase = true) ->
                 SyncApiException.RateLimited(null)
             code == 403 && reason.contains("UserRateLimitExceeded", ignoreCase = true) ->
+                SyncApiException.RateLimited(null)
+            // Daily quota (Gmail returns this, not UserRateLimitExceeded,
+            // when the project's daily quota is exhausted).
+            code == 403 && reason.equals("dailyLimitExceeded", ignoreCase = true) ->
                 SyncApiException.RateLimited(null)
             code == 403 -> SyncApiException.PermissionDenied(
                 detail = permissionDeniedDetail(reason, message),
@@ -300,14 +316,23 @@ class HttpGmailSyncApi(
     private fun permissionDeniedDetail(reason: String, message: String): String {
         val cleanMessage = message.take(140).ifEmpty { "Gmail refused the request" }
         return when {
-            reason.equals("insufficientPermissions", ignoreCase = true) ->
+            // Gmail's scope error is "insufficientScopes" (not
+            // "insufficientPermissions") — both mean the grant lacks
+            // gmail.readonly.
+            reason.equals("insufficientPermissions", ignoreCase = true) ||
+                reason.equals("insufficientScopes", ignoreCase = true) ->
                 "Gmail says the sign-in didn't grant gmail.readonly " +
-                    "(reason: insufficientPermissions). Sign in again to grant it."
+                    "(reason: $reason). Sign in again to grant it."
             reason.equals("accessNotConfigured", ignoreCase = true) ->
                 "Gmail API is not enabled for this project " +
                     "(reason: accessNotConfigured). Enable the Gmail API in Google Cloud Console."
             reason.isNotEmpty() -> "$cleanMessage (reason: $reason)"
-            else -> cleanMessage
+            // No reason AND no message: Gmail returned a 403 with no
+            // explanation in the response. Say so (don't pretend we
+            // know why), and name the two things worth checking.
+            else -> "Gmail returned a 403 with no details. " +
+                "This usually means the request was blocked or the " +
+                "project's Gmail quota is exhausted. Try again in a bit."
         }
     }
 
