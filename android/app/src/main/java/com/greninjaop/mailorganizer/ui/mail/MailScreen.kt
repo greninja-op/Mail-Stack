@@ -124,6 +124,12 @@ internal fun isPullPastThreshold(offsetPx: Float, thresholdPx: Float): Boolean =
  * - Release before the threshold: the pull springs back, no reload.
  * - While a sync runs, the pull is pinned (the list drag-scrolls
  *   normally underneath the held indicator).
+ * - Fling never pulls (2026-10-17 fix for the auto-refresh bug):
+ *   only [NestedScrollSource.UserInput] (a real finger drag) grows
+ *   or shrinks the pull. A fast fling back to the top dumps a huge
+ *   leftover velocity into onPostScroll as SideEffect scroll; the
+ *   old code treated it as a pull, blew past the threshold and
+ *   fired a refresh with no finger on the screen.
  *
  * @param onRefresh starts a refresh; returns true when a sync was
  * actually started, false for a fast no-op.
@@ -152,6 +158,9 @@ private fun InstagramPullToRefresh(
         object : NestedScrollConnection {
             override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
                 // Scrolling back up while pulled: shrink the pull first.
+                // Finger drags only — a fling must never move the pull
+                // (see the fling note on the class doc).
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
                 if (available.y >= 0f || refreshingState.value) return Offset.Zero
                 val pull = pullOffset.value
                 if (pull <= 0f) return Offset.Zero
@@ -167,6 +176,10 @@ private fun InstagramPullToRefresh(
             ): Offset {
                 // Leftover downward scroll (the list is at the top):
                 // grow the pull, damped. Consume it so the list stays put.
+                // Finger drags only — a fling's leftover velocity
+                // (SideEffect) must never grow the pull, or a fast
+                // fling back to the top auto-triggers a refresh.
+                if (source != NestedScrollSource.UserInput) return Offset.Zero
                 if (available.y <= 0f || refreshingState.value) return Offset.Zero
                 scope.launch { pullOffset.snapTo(applyPullDrag(pullOffset.value, available.y)) }
                 return Offset(0f, available.y)
