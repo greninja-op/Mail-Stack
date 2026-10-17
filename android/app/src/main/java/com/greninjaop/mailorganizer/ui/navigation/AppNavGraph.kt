@@ -57,6 +57,7 @@ import androidx.navigation.navArgument
 import kotlinx.coroutines.flow.combine
 import kotlin.math.roundToInt
 import kotlinx.coroutines.launch
+import com.greninjaop.mailorganizer.core.MoLogger
 import com.greninjaop.mailorganizer.data.local.AccountRecord
 import com.greninjaop.mailorganizer.data.prefs.AccountSelection
 import com.greninjaop.mailorganizer.core.integrations.IntegrationId
@@ -931,14 +932,31 @@ fun AppNavGraph(
                     viewModel = vm,
                     // New accounts (never successfully synced) go to the import
                     // flow; reconnects return to where they came from.
+                    // The Connect screen auto-navigates on Success (no
+                    // Continue button any more), so this guards against a
+                    // double navigation if the screen is recreated
+                    // (rotation) while the Success screen is up, and
+                    // never strands the user on the "Taking you to
+                    // import…" spinner if the sync-state read fails.
                     onConnected = { accountId ->
                         scope.launch {
-                            val record = container.syncStateRepository.ensureForAccount(accountId)
-                            if (record.lastSuccessfulSyncEpochMs == null) {
-                                navController.navigate(AppDestinations.importRoute(accountId)) {
-                                    popUpTo(AppDestinations.CONNECT) { inclusive = true }
+                            if (navController.currentDestination?.route != AppDestinations.CONNECT) {
+                                return@launch
+                            }
+                            try {
+                                val record = container.syncStateRepository.ensureForAccount(accountId)
+                                if (record.lastSuccessfulSyncEpochMs == null) {
+                                    navController.navigate(AppDestinations.importRoute(accountId)) {
+                                        popUpTo(AppDestinations.CONNECT) { inclusive = true }
+                                    }
+                                } else {
+                                    navController.popBackStack()
                                 }
-                            } else {
+                            } catch (e: Exception) {
+                                MoLogger.w(
+                                    "AppNavGraph",
+                                    "onConnected navigation failed: ${e.javaClass.simpleName}",
+                                )
                                 navController.popBackStack()
                             }
                         }

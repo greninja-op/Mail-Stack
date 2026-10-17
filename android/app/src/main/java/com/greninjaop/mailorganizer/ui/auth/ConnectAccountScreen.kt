@@ -15,6 +15,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -123,18 +124,27 @@ fun ConnectAccountScreen(
                 }
             }
             is ConnectAccountUiState.Success -> {
+                // Auto-proceed (2026-10-17): the Continue step is GONE.
+                // After a completed login the app goes straight to the
+                // import flow (new account) or back (reconnect) — the
+                // old Continue button looped back to Chrome when tapped,
+                // so the step is removed, not just hidden. The import
+                // flow's Card 1 already shows "Connected as …".
+                LaunchedEffect(state.accountId) {
+                    onConnected(state.accountId)
+                }
                 Text(
                     text = "Connected as ${state.email}",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.primary,
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Button(
-                    onClick = { onConnected(state.accountId) },
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text("Continue")
-                }
+                CircularProgressIndicator()
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "Taking you to import…",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
             }
             is ConnectAccountUiState.Error -> {
                 Text(
