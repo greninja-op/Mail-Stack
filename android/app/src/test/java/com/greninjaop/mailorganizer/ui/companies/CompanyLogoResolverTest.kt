@@ -62,6 +62,20 @@ class CompanyLogoResolverTest {
     }
 
     @Test
+    fun `bundledRes maps the 2026-10-17 Google product icons`() {
+        // Integrations rows: the user-supplied Calendar / Tasks icons,
+        // not the Google "G" favicon.
+        assertEquals(
+            R.drawable.ic_calendar_logo,
+            CompanyLogoResolver.bundledRes("calendar.google.com"),
+        )
+        assertEquals(
+            R.drawable.ic_tasks_logo,
+            CompanyLogoResolver.bundledRes("tasks.google.com"),
+        )
+    }
+
+    @Test
     fun `new batch logos are full-color, not monochrome`() {
         assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_canva))
         assertFalse(CompanyLogoResolver.isMonochrome(R.drawable.company_github))

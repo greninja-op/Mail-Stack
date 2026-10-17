@@ -96,6 +96,16 @@ object CompanyLogoResolver {
         // 2026-10-13: Kick (official K-mark) + Reddit's mail domain
         // (Reddit notifications come from redditmail.com, not reddit.com).
         "kick.com" -> R.drawable.company_kick
+        // 2026-10-17: the user's supplied Google product icons, on a
+        // white circular backing (see drawable-nodpi/ic_calendar_logo.png
+        // and ic_tasks_logo.png — the black backgrounds of the supplied
+        // images were removed and the icons composited onto white discs).
+        // These are what the Integrations rows show; without them the
+        // pipeline fell through to the Google "G" favicon (pixelated,
+        // wrong product). Mail rows are unaffected — no real sender's
+        // domain is calendar.google.com / tasks.google.com.
+        "calendar.google.com" -> R.drawable.ic_calendar_logo
+        "tasks.google.com" -> R.drawable.ic_tasks_logo
         "redditmail.com" -> R.drawable.company_reddit
         else -> null
     }
