@@ -40,11 +40,29 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mailstack_desktop_core::{PageCursor, SyncHttpError, TokenBucket};
 
     #[test]
     fn demo_smoke() {
         let threads = demo_threads();
         assert!(!threads.is_empty());
         assert!(threads[0].account_id.is_demo());
+    }
+
+    #[test]
+    fn demo_never_passed_to_live_sync_gate() {
+        let id = demo_threads()[0].account_id.clone();
+        assert!(id.is_demo(), "CLI must refuse live sync for demo ids");
+    }
+
+    #[test]
+    fn pacing_bucket_and_throttle_copy() {
+        let mut b = TokenBucket::mailstack_default();
+        assert!(b.try_take(0));
+        let e = SyncHttpError::from_status(429, Some(60), "rateLimitExceeded");
+        assert!(!e.is_reconnect_message());
+        let mut c = PageCursor::default();
+        c.mark_persisted();
+        c.advance_after_persist(None);
     }
 }

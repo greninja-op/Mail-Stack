@@ -35,10 +35,22 @@ fn main() {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use mailstack_desktop_core::{SyncHttpError, TokenBucket};
 
     #[test]
     fn privacy_and_demo() {
         assert!(!Privacy::should_fetch_remote_images());
         assert!(demo_threads()[0].account_id.is_demo());
+    }
+
+    #[test]
+    fn sanitize_and_pacing() {
+        let clean = Privacy::sanitize_html("<p>a</p><script>x</script><img src=x>");
+        assert!(!clean.to_lowercase().contains("script"));
+        assert!(!clean.to_lowercase().contains("<img"));
+        let mut b = TokenBucket::mailstack_default();
+        assert!(b.try_take(0));
+        let daily = SyncHttpError::from_status(403, None, "dailyLimitExceeded quota");
+        assert_eq!(daily.user_message(), "resets at midnight Pacific");
     }
 }

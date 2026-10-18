@@ -1,43 +1,28 @@
 # Mailstack Android Tablet — Context (tablet only)
 
-> Continuity for **Android tablet** under `AndroidTablet/`. Do not merge into root `CONTEXT.md`.
-> Never modify `android/` (phone), `iOS/`, `iPadOS/`, `macOS/`, `Windows/`, or `Linux/` from this workstream.
+Last updated: 2026-10-18
 
-Last updated: 2026-10-17
+## Verified this session (2026-10-18)
+| Check | Result | Evidence |
+|-------|--------|----------|
+| `./gradlew --version` | **PASS** | Gradle 8.14.6 |
+| `./gradlew :app:testDebugUnitTest --rerun-tasks` | **PASS** | 6 tests (1 DemoMailbox + 5 ProgressAndPrivacy) — XML in `app/build/test-results/` |
+| Emulator GUI | **BLOCKED** | No interactive emulator session. Unblock: Android emulator + manual/UI Automator |
+| Live OAuth / Gmail | **BLOCKED** | Client secrets + test user |
+| Play signing | **BLOCKED** | Play Console + keystore |
 
-## Standing rules
-1. All tablet artifacts live under `AndroidTablet/`.
-2. Prefer consuming shared KMP (`shared/`) over copying phone UI code.
-3. Large-screen: list-detail layouts; content-driven breakpoints, not device-name checks.
-4. Same contracts: fixed sync denominator, no remote mail images, demo accounts never sync.
-5. Compile/test with Gradle when SDK is available; record skips honestly.
+## Buildability fixes (this session)
+- Added `gradlew` thin wrapper (Gradle 8.14.6, matching phone)
+- `gradle/wrapper/gradle-wrapper.properties`
+- Explicit plugin versions AGP 8.13.2 / Kotlin 2.3.21 / Compose plugin 2.3.21
+- Compose BOM pinned to `2026.06.01` (resolves with phone catalog family)
+- `compilerOptions` JVM 17 DSL (Kotlin 2.3)
 
-## Skipped / blocked
-| Item | Why | Instead |
-|------|-----|---------|
-| Emulator GUI verification | No interactive emulator session | Unit tests + compile |
-| Live Google OAuth / Gmail | No client secrets | Demo mailbox |
-| Play signing | No tablet keystore | Checklist |
-| Modifying phone `android/` | Isolation | Standalone module |
-| Root CONTEXT.md | Platform-local only | This file |
-| material3-adaptive APIs may need BOM tweaks | Dependency versions | Simpler Row+list/detail fallback if compile fails |
+## Skipped
+| Item | Unblocker |
+|------|-----------|
+| Device rotation / list-detail on hardware | Emulator or tablet device |
+| Root CONTEXT.md | Never |
 
 ## Phase status
-| Band | Status |
-|------|--------|
-| 0 Audit | Done |
-| 1–15 Shell → a11y | Source scaffold |
-| 16–30 QA / release | Unit test + checklists; device QA skipped |
-
-## Decisions
-| Date | Decision |
-|------|----------|
-| 2026-10-17 | Standalone Gradle project under `AndroidTablet/` (phone `android/` untouched). |
-| 2026-10-17 | Demo account `local-tablet-demo`. |
-
-## Verified on this agent (2026-10-17)
-| Check | Result |
-|-------|--------|
-| `./gradlew :app:testDebugUnitTest` | PASS |
-| Phone `android/` modified | No |
-| Emulator GUI | SKIPPED |
+0 done · 1–15 source · 16–30 unit tests + checklists; device QA blocked

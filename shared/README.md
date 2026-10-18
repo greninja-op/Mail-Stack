@@ -2,7 +2,9 @@
 
 Portable contracts and demo models for Mailstack.
 
-- **Linux / CI:** JVM target — `./gradlew test`
-- **macOS:** Add `iosArm64()` / `iosSimulatorArm64()` targets and produce an XCFramework for the Xcode app under `iOS/`.
+```bash
+cd shared && ./gradlew jvmTest
+```
 
-Does not contain Android UI or SwiftUI.
+- Linux / CI: JVM target.
+- macOS: add `iosArm64()` / `iosSimulatorArm64()` and produce XCFramework (blocked until Mac).

@@ -1,6 +1,7 @@
 import SwiftUI
 
 /// Import experience — progress from real sync only; demo completes instantly.
+/// Conduit motion is HELD (do not build). Static arc + ring-only progress.
 struct ImportFlowView: View {
     @EnvironmentObject private var container: AppContainer
     @State private var progress: SyncProgress = .idle
@@ -11,12 +12,13 @@ struct ImportFlowView: View {
             HStack {
                 Image(systemName: "envelope.fill").font(.largeTitle)
                 Spacer()
-                ImportArc()
+                StaticConduitArc()
                 Spacer()
                 Image(systemName: "tray.full.fill").font(.largeTitle).foregroundStyle(Color.accentColor)
             }
             .padding(.horizontal, 32)
 
+            // ONLY the progress ring moves as the progress bar.
             ZStack {
                 Circle().stroke(Color.secondary.opacity(0.2), lineWidth: 8)
                 Circle()
@@ -82,20 +84,12 @@ struct ImportFlowView: View {
     }
 }
 
-struct ImportArc: View {
-    @State private var phase = false
+/// Static conduit between Gmail and Mailstack marks — motion HELD pending design go-ahead.
+struct StaticConduitArc: View {
     var body: some View {
         Capsule()
             .fill(Color.accentColor.opacity(0.35))
             .frame(height: 4)
-            .overlay(
-                Capsule()
-                    .fill(Color.accentColor)
-                    .frame(width: 24, height: 4)
-                    .offset(x: phase ? 40 : -40)
-                    .animation(.easeInOut(duration: 1).repeatForever(autoreverses: true), value: phase)
-            )
-            .onAppear { phase = true }
             .accessibilityHidden(true)
     }
 }

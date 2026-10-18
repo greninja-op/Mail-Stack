@@ -13,3 +13,13 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.greninjaop.mailorganizer.macos
         GENERATE_INFOPLIST_FILE: true
         MACOSX_DEPLOYMENT_TARGET: "14.0"
+  MailstackMacTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources: [MailstackMacTests]
+    dependencies:
+      - target: MailstackMac
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: true
+        PRODUCT_BUNDLE_IDENTIFIER: com.greninjaop.mailorganizer.macos.tests

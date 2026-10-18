@@ -1,9 +1,9 @@
 # Mailstack — Android Tablet
 
-Implementation root for Android tablet. Continuity: `CONTEXT.md` (not root CONTEXT.md).
+Continuity: `CONTEXT.md` (not root CONTEXT.md). Does not modify phone `android/`.
 
 ```bash
 cd AndroidTablet && ./gradlew :app:testDebugUnitTest
 ```
 
-Does not modify the phone app under `android/`.
+Gradle wrapper uses Gradle 8.14.6 (same as phone). Plugin versions: AGP 8.13.2, Kotlin 2.3.21.

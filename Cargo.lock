@@ -11,6 +11,13 @@ dependencies = [
 ]
 
 [[package]]
+name = "mailstack-linux"
+version = "0.1.0"
+dependencies = [
+ "mailstack-desktop-core",
+]
+
+[[package]]
 name = "mailstack-windows"
 version = "0.1.0"
 dependencies = [

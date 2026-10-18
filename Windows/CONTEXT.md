@@ -1,34 +1,17 @@
 # Mailstack Windows — Context (Windows only)
 
-> Continuity for **Windows** under `Windows/`. Do not merge into root `CONTEXT.md`.
-> Never modify `macOS/`, `Linux/`, `iOS/`, `iPadOS/`, `AndroidTablet/`, or phone `android/` from this workstream.
-> Shared Rust core: `desktop-core/`.
+Last updated: 2026-10-18
 
-Last updated: 2026-10-17
+## Verified this session
+| Check | Result | Evidence |
+|-------|--------|----------|
+| `cargo test --manifest-path Windows/Cargo.toml` / `cargo test -p mailstack-windows` | **PASS** 3 tests | Session output |
+| `cargo run --manifest-path Windows/Cargo.toml` | **PASS** prints `ok` | Session output |
+| WinUI 3 / Fluent GUI shell | **BLOCKED** | **Biggest remaining item.** Next step: add a WinUI 3 (or egui/iced) crate under `Windows/` calling `desktop-core`. Needs Windows SDK / MSVC for native packaging. |
+| MSI / Authenticode | **BLOCKED** | Windows SDK + cert |
 
-## Standing rules
-1. Rust owns business/data logic via `desktop-core`.
-2. Windows shell must not duplicate core rules.
-3. Demo accounts never sync; no remote mail images.
-4. This agent runs on Linux — native Win32 GUI / MSVC packaging skipped.
-
-## Skipped / blocked
-| Item | Why | Instead |
-|------|-----|---------|
-| WinUI / native Windows GUI on device | Linux host | CLI workspace driver over desktop-core |
-| MSVC / MSI / Authenticode | No Windows SDK here | Checklist |
-| Live OAuth / Gmail | No secrets | Demo mailbox from core |
-| Root CONTEXT.md | Platform-local | This file |
+## Discrepancy resolved
+Earlier CONTEXT claimed `cargo test -p mailstack-windows` without a workspace — that form now works via root `Cargo.toml` workspace members.
 
 ## Phase status
-| Band | Status |
-|------|--------|
-| 0 Audit | Done |
-| 1–20 Core wiring + mailbox/search/privacy | Source + tests via core |
-| 21–30 Multi-account / QA / installer | Partial / checklist |
-
-## Verified
-| Check | Result |
-|-------|--------|
-| `cargo test -p mailstack-windows` (Linux cross-check) | PASS |
-| `desktop-core` tests | PASS |
+0 done · 1–20 core wiring via CLI · 21–30 GUI + packaging blocked

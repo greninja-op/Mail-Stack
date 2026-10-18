@@ -1,110 +1,45 @@
 # Mailstack iOS — Context (iOS only)
 
-> **Scope:** Continuity log for the **iPhone / iOS** app under `iOS/`.  
-> Do **not** merge into root `CONTEXT.md` (Android / product-wide).  
-> Do **not** create or modify `iPadOS/`, `AndroidTablet/`, `macOS/`, `Windows/`, or `Linux/`.
+> Continuity for **iPhone / iOS** under `iOS/`. Do **not** merge into root `CONTEXT.md`.
 
-Last updated: 2026-10-17
+Last updated: 2026-10-18
 
----
+## Standing rules
+1. All iOS artifacts under `iOS/`. Shared KMP in `shared/` only when portable.
+2. Demo accounts (`local-*`, `fixture-*`) never sync. Progress caps at 99% while Running; Done = 100%.
+3. Never fetch mail-body images. Tokens only in Keychain.
+4. Import travelling-pulse animation: **HELD — do not build**.
+5. Sync pacing (token bucket ~10/sec) is a **new-platform requirement**, not Android phone behaviour.
 
-## Standing rules (iOS)
+## Verified this session (2026-10-18)
 
-1. All iOS source, assets, tests, docs, and this context live under `iOS/`.
-2. Shared KMP (when present) lives in `shared/` — justified, portable only; never Android UI.
-3. Follow `execution plan/iOS/` + `execution plan/iOS/design.md` + `iOS/docs/editor-rules.md`.
-4. Never fake sync %; never auto-fetch mail-body images; tokens only in Keychain.
-5. Demo accounts (`fixture-*`, `local-*`) never call Gmail sync.
-6. Linux Cloud Agent: no Xcode / Simulator — document skips here honestly; do not claim device verification that did not run.
-7. **Never edit root `CONTEXT.md` for iOS work** (user instruction 2026-10-17).
+| Check | Result | Evidence |
+|-------|--------|----------|
+| `shared/` `./gradlew jvmTest` (clean + rerun) | **PASS** 7 tests (3 AccountId + 4 SyncProgress) | XML under `shared/build/test-results/jvmTest/` |
+| iOS XCTest (4 + new) | **BLOCKED** | No Mac/Xcode on this Linux agent. Unblock: macOS runner / local Mac `xcodegen generate && xcodebuild test` |
+| Simulator UI | **BLOCKED** | Same |
 
----
+## Skipped / blocked (exact unblockers)
 
-## Skipped / blocked (honest)
-
-| Item | Phase | Why skipped / blocked | What exists instead |
-|------|-------|------------------------|---------------------|
-| Clean Xcode / Simulator build & launch | 1+ | Host is Linux; no Xcode / `xcodebuild` / Simulator | Swift sources + XcodeGen `project.yml` |
-| Orientation / Dynamic Type / light-dark on device | 1+ | No Simulator | Tokens & layout written for HIG |
-| XCFramework link of KMP → Swift | 1 | iOS KMP targets need macOS | `shared/` JVM commonMain; Swift ports mirror contracts |
-| Real Google OAuth (ASWebAuthenticationSession) | 3 | No client secrets; no Simulator | AuthGate + Keychain + demo sign-in |
-| Live Gmail API sync | 4+ | Needs OAuth + Mac | DemoSyncCoordinator; import UI with 99% cap |
-| On-device SQLite / GRDB | 2 | Demo-first on Linux | `InMemoryStore` + PersistencePort swap point |
-| Full company logo / favicon pipeline | 6 | No network asset pipeline wired | Letter avatars + domain field on rows |
-| On-device FTS search index | 7 | Shared index not extracted yet | In-memory structured query filter |
-| Full temporal / conversation intelligence UI | 8 | Engine not ported | RulesView seam |
-| Live Calendar / Tasks APIs | 9 | Needs incremental OAuth scopes | IntegrationsView labels + ActionEngine demo |
-| Real unified multi-account Gmail merge | 10 | No live accounts | Demo multi-account switcher |
-| BGAppRefreshTask / notification delivery | 11 | No device | Info.plist fetch mode + OfflineSettingsView |
-| App Store privacy nutrition form filing | 12 / 17 | No App Store Connect | Privacy settings + sanitize code |
-| On-device AI model | 13 | Optional; off by default | StubAI |
-| Advanced automation runner | 14 | Shared engine not on iOS yet | StubAutomation |
-| VoiceOver / Reduce Motion on hardware | 15 | No Simulator | Labels, 44pt targets, CapabilityProfile |
-| XCTest execution | 16 | Needs Xcode | `MailstackTests` sources authored |
-| Code signing / provisioning / TestFlight | 17–18 | No Apple Developer credentials | Checklists in `docs/phase-02-through-18.md` |
-| Root `CONTEXT.md` updates | — | Explicit user request | **This file only** |
-
----
-
-## Decision log (iOS)
-
-| Date | Decision |
-|------|----------|
-| 2026-10-17 | Phase 0 audit under `iOS/docs/`. Isolation: `iOS/` only. |
-| 2026-10-17 | User: complete all iOS phases without waiting for approval; report when done. |
-| 2026-10-17 | User: create **`iOS/CONTEXT.md`** for iOS skips; **do not** edit root `CONTEXT.md`. |
-| 2026-10-17 | Scaffold Phases 1–18 in SwiftUI under `iOS/Mailstack/` with demo ports; `shared/` KMP JVM contracts. |
-
----
+| Item | Unblocker |
+|------|-----------|
+| XCTest / Simulator / XcodeGen generate+build | Mac + Xcode |
+| Live Google OAuth / Gmail / Calendar / Tasks | OAuth client secrets + test user + Mac |
+| SQLite replacing InMemoryStore | Implement GRDB/SQLite under `iOS/` then re-run persistence tests |
+| Company logo pipeline / FTS | Wire asset+favicon pipeline + FTS index on Mac |
+| BGAppRefreshTask on device | Physical device + push entitlement |
+| App Store / TestFlight / signing | Apple Developer account |
+| XCFramework link of KMP iOS targets | Enable `iosArm64`/`iosSimulatorArm64` on Mac; produce XCFramework |
+| Import animation | User go-ahead after Gemini prompt (HELD) |
 
 ## Phase status
-
-| Phase | Title | Status | Notes |
-|-------|-------|--------|-------|
-| 0 | Platform architecture audit | Done | `docs/phase-00-architecture-audit.md` |
-| 1 | App shell & KMP integration | Source done | Simulator skipped |
-| 2 | Local persistence | Source done | In-memory; SQLite skipped |
-| 3 | OAuth / secure storage | Source done | Live OAuth skipped |
-| 4 | Sync / import | Source done | Live Gmail skipped |
-| 5 | Mailbox UI | Source done | Device UI skipped |
-| 6 | Classification / companies | Source done | Logo pipeline partial |
-| 7 | Search | Source done | In-memory |
-| 8 | Rules / temporal | Source done | Seam |
-| 9 | Action engine / Cal / Tasks | Source done | Live APIs skipped |
-| 10 | Multi-account | Source done | Demo accounts |
-| 11 | Offline / background | Source done | BG tasks skipped |
-| 12 | Privacy | Source done | |
-| 13 | AI | Source done | Stub off |
-| 14 | Automation | Source done | Stub |
-| 15 | A11y / adaptive | Source done | Hardware skipped |
-| 16 | QA docs / tests | Source done | XCTest run skipped |
-| 17 | Signing prep | Checklist only | Blocked |
-| 18 | Release hardening | Checklist only | Blocked |
-
----
-
-## Environment
-
-- Agent host: Linux (Ubuntu), OpenJDK 17 — **not** macOS.
-- Gradle: `shared/` JVM tests.
-- Swift / Xcode: **not** available → Simulator validation **skipped**.
-
----
-
-## How to use this file
-
-1. After every iOS change: update **Phase status** and append **Skipped** rows if anything was deferred.
-2. Never write iOS continuity into root `CONTEXT.md`.
-3. When completed on a Mac, add a “Verified on Mac” subsection and clear the matching Skipped row.
-
-## Verified on this agent (2026-10-17)
-
-| Check | Result |
+| Phase | Status |
 |-------|--------|
-| `shared/` `jvmTest` | PASS |
-| Android `SyncCoordinatorTest` + related (smoke) | PASS — phone app not broken by iOS work |
-| iOS Swift source inventory | 37 Swift files present |
-| MoreHubView `NavigationLink` without `NavigationStack` | **FIXED** |
-| `xcodebuild` / Simulator | SKIPPED (Linux) |
-| XCTest run | SKIPPED (no Xcode) |
+| 0–16 | Source scaffold + unit tests authored |
+| 17–18 | Checklist only |
 
+## Decisions
+| Date | Decision |
+|------|----------|
+| 2026-10-17 | Platform-local CONTEXT only; root CONTEXT untouched. |
+| 2026-10-18 | Re-verified shared jvmTest from clean rebuild; stale PASS claims for XCTest removed. |
