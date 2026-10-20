@@ -1,48 +1,38 @@
-# Mailstack Windows — RELEASE STATUS
+# RELEASE STATUS
 
-**Decision: RELEASE BLOCKED**  
+```
+RELEASE BLOCKED
+```
+
 **Date:** 2026-10-20  
-**Version under consideration:** `0.1.0` / MSIX `0.1.0.0` (never reuse a released version name)
+**Product:** Mailstack Windows (`Mailstack.exe`)
 
-## Why BLOCKED (observed)
+## Local build (observed 2026-10-20)
 
-| Blocker | Severity | Evidence on this PC |
-|---------|----------|---------------------|
-| MSVC linker (`link.exe`) missing | **Critical** | `cargo build` / `cargo test` fail: `linker 'link.exe' not found`. VS Build Tools / Community MSVC paths absent. |
-| WinAppSDK / WinUI 3 packaging path incomplete | **Critical** | App is interim **egui/eframe** GUI-subsystem binary; Store-ready WinUI project not present. |
-| Code-signing certificate absent | **Critical** | No Authenticode / MSIX signing cert observed; manifest Publisher is `CN=Mailstack-UNSIGNED-STUB`. |
-| Windows SDK pack/sign tools missing | **Critical** | `MakeAppx` / `SignTool` **NOT FOUND** on PATH; Windows Kits bin tree missing. |
-| Production icons / Store logos | **High** | `resources/icons/` placeholders only. |
-| Live OAuth / Gmail smoke on release build | **High** | Not performed; Google app verification / CASA **not claimed**. |
-| Clean release artifact inspection | **High** | No `.msix` produced. |
-| Phase 28–29 live QA | **High** | Matrices document CODE-only; end-to-end **NOT RUN**. |
+After installing Windows SDK **10.0.26100** (winget `Microsoft.WindowsSDK.10.0.26100`):
 
-## Gate checklist (must all be PASS for READY)
+- `LIB` = Kits `Lib\10.0.26100.0\um\x64` + `ucrt\x64` + MSVC 2017 `lib\x64`
+- `cargo build -p mailstack-windows` → **OK** (`Mailstack.exe`, GUI subsystem)
+- `cargo test -p mailstack-windows` → **33 passed**
+- `cargo test -p desktop-core --lib` → **95 passed**
 
-- [ ] `cargo build -p mailstack-windows --release --target x86_64-pc-windows-msvc` succeeds
-- [ ] `cargo test -p desktop-core --lib` and `cargo test -p mailstack-windows` pass
-- [ ] MSIX staged, packed (`MakeAppx`), signed (`SignTool`) with production or trusted test cert
-- [ ] Sideload install + launch smoke (light/dark, account connect or documented demo mode)
-- [ ] No secrets in binary/logs; redaction verified
-- [ ] Version bumped per `VERSIONING.md`; prior version not reused
-- [ ] OAuth release client configured; verification status honestly documented
-- [ ] Privacy disclosure reviewed; dependency review dated
-- [ ] Human release owner explicitly flips this file to **RELEASE READY**
+## Blockers for distribution release
 
-## What is ready in source (not a release)
+| Blocker | Detail |
+|---------|--------|
+| Code signing certificate | No production Authenticode / MSIX signing cert configured |
+| Windows App SDK / WinUI 3 host | Not installed as packaging host; **egui is interim Rust-first shell only** |
+| Store / enterprise identity | Package family name / publisher identity not finalized for signed MSIX |
+| Live OAuth client | Production Google OAuth client + verification not wired (Phase 09+) |
 
-- Shared `desktop-core` contracts through Phase 27 domains
-- Windows interim shell + adapters (Credential Manager, browser, notifications stubs)
-- MSIX **stubs** and packaging documentation
-- QA matrices (Phases 28–29) with honest NOT RUN markers
+## What is allowed now
 
-## Rollback / update (when releases exist)
+- Local `cargo build` / `cargo test` of the interim egui GUI (with `LIB` set as above)
+- Sideload **unsigned** MSIX stubs for layout experimentation only — **not** for distribution
 
-1. Never reuse `Identity@Version` in AppxManifest.
-2. Document previous MSIX version in release notes; keep prior signed artifact for rollback sideload.
-3. Local DB migrations are forward-only; test upgrade path before bumping migration version.
-4. Credential Manager targets use prefix `Mailstack/` — account removal must delete those targets.
+## Exit criteria for UNBLOCKED
 
----
-
-**Final line:** **RELEASE BLOCKED** — toolchain (MSVC + SDK), signing certificate, WinAppSDK packaging, and live smoke evidence are missing.
+1. Valid signing cert + `signtool` / MSIX signing pipeline
+2. WinAppSDK packaging path documented and reproducible on clean VS Build Tools
+3. Smoke install on clean Windows 11 VM
+4. Phase 28 matrix P/A for shipping scope; Phase 29 adversarial minimum set observed

@@ -1,6 +1,6 @@
 ﻿# Mailstack Windows — continuity (Windows boundary only)
 
-Last updated: 2026-10-20 (SUBAGENT 4 — phases 22–27)
+Last updated: 2026-10-20 (UI shell + packaging/QA + phases 22–27)
 
 ## Status
 
@@ -17,7 +17,10 @@ Last updated: 2026-10-20 (SUBAGENT 4 — phases 22–27)
 | **25** | COMPLETE | Finite automation + circuit breaker — `docs/phase-25-automation.md` |
 | **26** | COMPLETE | Interaction (shortcuts/menus/focus/multi-window) — `docs/phase-26-interaction.md` |
 | **27** | COMPLETE | Performance tiers + a11y hooks — `docs/phase-27-performance-a11y.md` |
-| **28–30** | Agent 5 | QA matrices / packaging / release (not owned here) |
+| **14** | COMPLETE (demo UI) | Mail list/conversation/import chrome — `docs/phase-14-mail-workspace.md` |
+| **28** | MATRIX DRAFTED | `docs/qa/phase-28-matrix.md` |
+| **29** | CHECKLIST DRAFTED | `docs/qa/phase-29-adversarial.md` |
+| **30** | **RELEASE BLOCKED** | `packaging/RELEASE_STATUS.md` — signing + WinAppSDK |
 
 ## Standing
 
@@ -56,10 +59,10 @@ With ScopeCppSDK `vc15` `link.exe` + `LIB` on PATH:
 
 ## Honest blockers
 
-1. **Durable MSVC toolchain** — full VS C++ workload / Windows SDK `LIB` preferred; ScopeCppSDK stub works for unit tests but is fragile for release linking.
-2. **WinRT toast / native multi-window** deferred to WinAppSDK packaging (Agent 5).
-3. **Live OAuth/Gmail** and persistence-backed purge execution still need client config + Phase 07 store maturity.
-4. Packaging/QA matrices (28–30) **not owned** by this subagent.
+1. **Code signing + WinAppSDK packaging host** → **RELEASE BLOCKED** (`packaging/RELEASE_STATUS.md`).
+2. **WinRT toast / native multi-window** deferred to WinAppSDK packaging.
+3. **Live OAuth/Gmail** and persistence-backed purge still need client config + Phase 07 maturity.
+4. Local link: Windows SDK **10.0.26100** `Lib\…\um\x64` + `ucrt\x64` + MSVC `lib\x64` on `LIB` (installed this session); keep that for reproducible builds.
 
 ## Key modules (22–27)
 
