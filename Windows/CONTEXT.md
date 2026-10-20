@@ -1,37 +1,17 @@
-# Mailstack Windows — Context (Windows only)
+# Mailstack Windows — continuity (Windows boundary only)
 
-Last updated: 2026-10-18
+Last updated: 2026-10-20
 
-## Verified this session
-| Check | Result | Evidence |
-|-------|--------|----------|
-| `cargo test --manifest-path Windows/Cargo.toml` / `cargo test -p mailstack-windows` | **PASS** 3 tests | Session output |
-| `cargo run --manifest-path Windows/Cargo.toml` | **PASS** prints `ok` | Session output |
-| WinUI 3 / Fluent GUI shell | **BLOCKED** | **Biggest remaining item.** Next step: add a WinUI 3 (or egui/iced) crate under `Windows/` calling `desktop-core`. Needs Windows SDK / MSVC for native packaging. |
-| MSI / Authenticode | **BLOCKED** | Windows SDK + cert |
+## Status
+- **Phase 00:** COMPLETE (audit + gap list) — 2026-10-20
+- **Phase 01+:** NOT STARTED (STOP after Phase 00 per plan)
 
-## Discrepancy resolved
-Earlier CONTEXT claimed `cargo test -p mailstack-windows` without a workspace — that form now works via root `Cargo.toml` workspace members.
+## Standing (from execution plan/Windows)
+- Rust-first shared desktop core (`desktop-core/`) reusable by macOS.
+- Windows UI: **WinUI 3 / Windows App SDK + Fluent 2**, Rust-first (framework or safe bindings) — **not** a CLI product.
+- Never modify `android/`, `iOS/`, `iPadOS/`, `AndroidTablet/`, `macOS/`, `Linux/` during Windows work.
+- Follow `design.md` (2026-10-18) over older phase wording.
 
-## Phase status
-0 done · 1–20 core wiring via CLI · 21–30 GUI + packaging blocked
-
-## Execution-plan fill (2026-10-20)
-
-Went through `execution plan/<platform>/` and implemented everything feasible **without** live Google OAuth verification, Mac Simulator, or store signing.
-
-**Added this session (high level):**
-- `desktop-core`: persistence, oauth contracts, classification, multi-account (+ tests) — **23 cargo tests PASS**
-- Windows/Linux: `workspace` façade over core (inbox/search/classify/oauth/privacy contracts)
-- iOS: SQLite/file persistence seam, PKCE/OAuth mocks, token-bucket pacer, FTS builder, log redactor, AI minimizer, automation store, QA/signing checklists, extra XCTests (Mac-blocked to run)
-- shared KMP: OAuthContracts + TokenBucket (+ 2 JVM tests) — **9 jvmTest PASS** this session
-- AndroidTablet: pacer, HtmlSanitizer, StructuredSearch + unit tests (SDK missing in this VM — run when SDK present)
-- iPadOS/macOS: OAuth+pacer seams
-- Every platform: `docs/phase-status.md` for all phases
-
-**Still BLOCKED (by design / environment):**
-- Live OAuth round-trip / Gmail / Calendar / Tasks
-- XCTest / Simulator / XcodeGen builds (no Mac)
-- WinUI / GTK native shells
-- App Store / Play / notarization / MSI / Flatpak
-- AndroidTablet Gradle in this VM if Android SDK absent
+## Blockers for later phases (honest)
+- MSVC / Visual Studio Build Tools (`link.exe`) required to compile native Windows targets on this PC.
+- Live Google OAuth / Gmail verification needs client config + user account (not Phase 00).

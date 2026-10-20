@@ -1,8 +1,9 @@
 # Mailstack — Windows
 
-Windows shell using `../desktop-core`. Continuity: `CONTEXT.md`.
+Implementation root for the Windows desktop app.
 
-```bash
-cargo test --manifest-path Windows/Cargo.toml
-cargo run --manifest-path Windows/Cargo.toml
-```
+Plan: `execution plan/Windows/`  
+Continuity: `Windows/CONTEXT.md`  
+Phase 00 audit: `Windows/docs/phase-00-audit.md`
+
+Do not put Windows artifacts in sibling platform folders. Do not modify `android/` from this workstream.

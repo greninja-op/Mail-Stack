@@ -1019,3 +1019,13 @@ Contains: sign-in opens in the plain browser instead of the in-app Chrome tab + 
 - Privacy Center row: keep-or-remove alongside the Settings footer links — never answered.
 - Gemini prompt §3+ (design tokens/animation specs) never arrived; reconcile if it comes.
 - **iOS Phase 1+** — Phase 0 done; needs Mac/Xcode to build/run Simulator. Say “continue iOS” to start Phase 1.
+
+## 2026-10-20 — User reset: delete bad platform scaffolds; Windows Phase 00 only
+
+- User directed: agent-invented CLI/scaffolds violated `execution plan/*/design.md` + `editor-rules.md` (same mistake on iOS, iPadOS, AndroidTablet, macOS, Windows, Linux). **Delete those trees and redo from the plans.** Never invent product shapes. Stick to plan stacks (WinUI 3 / SwiftUI / Compose / GTK-Qt + Rust or KMP as specified).
+- **Deleted from main (android untouched):** `iOS/`, `iPadOS/`, `AndroidTablet/`, `macOS/`, `Windows/` (old CLI), `Linux/`, `shared/`, `desktop-core/`, root `Cargo.toml`/`Cargo.lock`, `.github/workflows/platform-tests.yml`.
+- **`android/` not modified** (UI reference only when needed).
+- Root `editor-rules.md` rewritten to isolation + “follow plan stacks; no CLI-as-product; don’t touch android”.
+- **Windows Phase 00 COMPLETE:** audit + gap list under `Windows/docs/phase-00-audit.md` + `Windows/CONTEXT.md`. Decision: recreate `desktop-core` next (Phase 01–02), Windows UI = WinUI 3 / Fluent, Rust-first. **STOP after Phase 00.**
+- Still open: rate-limiter proposal (awaiting user go); import animation refine (reference-only); no APK unless asked.
+
