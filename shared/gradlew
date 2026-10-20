@@ -1,16 +1,14 @@
 #!/usr/bin/env bash
-# Thin wrapper matching the phone android/gradlew pattern (Gradle 8.14.6).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")" && pwd)"
-if [[ -x /home/hatch/gradle-dist/gradle-8.14.6/bin/gradle ]]; then
-  export JAVA_HOME="${JAVA_HOME:-/home/hatch/jdk/jdk-17.0.20.1+1}"
-  export PATH="$JAVA_HOME/bin:$PATH"
-  exec /home/hatch/gradle-dist/gradle-8.14.6/bin/gradle -p "$ROOT" "$@"
-elif [[ -x /home/ubuntu/tools/gradle-8.14.6/bin/gradle ]]; then
-  exec /home/ubuntu/tools/gradle-8.14.6/bin/gradle -p "$ROOT" "$@"
-elif command -v gradle >/dev/null 2>&1; then
-  exec gradle -p "$ROOT" "$@"
-else
-  echo "Gradle 8.14.6 not found. Install Gradle or use the Cloud Agent hatch distribution." >&2
-  exit 1
+G="${GRADLE_BIN:-}"
+if [[ -z "$G" ]]; then
+  for c in \
+    /home/ubuntu/tools/gradle-8.14.6/bin/gradle \
+    /home/hatch/gradle-dist/gradle-8.14.6/bin/gradle \
+    "$(command -v gradle || true)"; do
+    if [[ -n "${c:-}" && -x "$c" ]]; then G="$c"; break; fi
+  done
 fi
+[[ -n "${G:-}" && -x "$G" ]] || { echo "Gradle not found" >&2; exit 1; }
+exec "$G" -p "$ROOT" "$@"
