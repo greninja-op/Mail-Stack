@@ -1029,3 +1029,69 @@ Contains: sign-in opens in the plain browser instead of the in-app Chrome tab + 
 - **Windows Phase 00 COMPLETE:** audit + gap list under `Windows/docs/phase-00-audit.md` + `Windows/CONTEXT.md`. Decision: recreate `desktop-core` next (Phase 01â€“02), Windows UI = WinUI 3 / Fluent, Rust-first. **STOP after Phase 00.**
 - Still open: rate-limiter proposal (awaiting user go); import animation refine (reference-only); no APK unless asked.
 
+
+## 2026-10-20 — Windows Phases 13–21 COMPLETE (SUBAGENT 3)
+
+Mailbox models + intelligence + multi-account + UI wiring in `desktop-core` + `Windows/src/ui`.
+
+### Modules (desktop-core)
+- `mailbox` — Message/Thread presentation; sender email required for logo pipeline
+- `classification` / `company` — explainable categories; pin?star; company filter inside category
+- `search` — structured `SearchQuery` DSL, escaped FTS builder, 300ms `SearchDebouncer` (UI never builds SQL)
+- `priority` — Priority + Action Required explainability; `MailListBadgeFlags` has NO AR chip
+- `rules` — Correction > Rule > Deterministic > AI > Unknown; undo deletes correction
+- `temporal` — 14 item types; reference time = received; idempotent extract
+- `conversation` — 7 states; negative-signal shield; 3-day follow-up / 7-day stale
+- `actions` — Action Engine propose?confirm; Calendar/Tasks traits; NotConnected when disconnected
+- `multi_account` — unified presentation join + receiving-account indicator; demo never syncs
+
+### Windows UI wiring
+- `ui/mail_list.rs` — flat 40px avatar rows, priority badge only (no AR chip), receiving-account indicator
+- `ui/conversation.rs` — sanitize HTML / block remote images; priority why; conversation + temporal cues
+- `ui/categories.rs` — single-cavity cards; pin?star copy; no company sidebar destinations
+- `ui/search.rs` — structured query + 300ms debounce + escaped FTS preview
+- `bridge.rs` / `app_state.rs` / `shell.rs` — wired to core; demo account `is_demo` never syncs
+- Docs: `Windows/docs/phase-13-*.md` … `phase-21-*.md`; `Windows/CONTEXT.md` updated
+
+### Tests / blockers
+- `cargo test -p desktop-core --lib`: phase 13–21 module tests green (see latest run). Persistence comment false-positive fixed (`schema_forbids_tokens` strips `--` comments).
+- Blockers: live OAuth/Gmail/Calendar/Tasks need credentials; WinUI3 packaging still interim (egui shell); MSVC toolchain required for full native Windows link on some hosts.
+- Did not touch `android/`. No push.
+
+## 2026-10-20 â€” Windows Phases 07â€“12 (desktop-core + Windows credential/browser adapters) â€” SUBAGENT 2
+
+Phases 07â€“12 finished in `desktop-core` (wired into `lib.rs`) plus Windows adapters only. `android/` untouched. No push.
+
+### Modules
+- **07** `persistence.rs` â€” account-scoped `LocalStore`/`MemoryStore`; migrations; cursor after persist; `schema_forbids_tokens` (comments stripped); no tokens in DB.
+- **08** `platform.rs` `MemoryCredentialStore` + `Windows/src/adapters/credential_windows.rs` (CredWrite/Read/Delete + memory fallback + `clear_account_secrets`).
+- **09** `oauth.rs` â€” PKCE S256 (`sha2`), env client id, consume-once `PendingPkceStore`; `Windows/src/adapters/browser.rs` system browser (http/https only).
+- **10** `gmail.rs` â€” adapter + `get_message_never_skip` (never skip throttled GETs) + error taxonomy incl. `CoreError::DailyQuota`.
+- **11** `sync_engine.rs` â€” `ImportFlowState` + `run_initial_sync` (fixed total, demo refuse).
+- **12** incremental + join in-flight + honest offlineâ‰ Reconnect messaging.
+
+### Docs
+`Windows/docs/phase-07-persistence.md` â€¦ `phase-12-incremental-sync.md`.
+
+### Verification
+`cargo test -p desktop-core` â†’ **95 passed / 0 failed** (needed VS 2017 Build Tools `link.exe` on PATH; default MSVC toolchain otherwise fails linker-not-found).
+
+### Blockers
+- No live Google OAuth / Gmail HTTP client yet (mock + contracts).
+- SQLite file backend not linked (MemoryStore).
+- History-API stale-cursor recovery deferred; page-token resume only.
+- Import-flow UI chrome is shell agent scope (core supplies state).
+
+## 2026-10-20 â€” Windows phases 22â€“27 (SUBAGENT 4)
+
+Finished offline/background/notifications, privacy, AI, automation, desktop interaction, and performance/a11y for the Windows plan (shared logic in `desktop-core`, Windows adapters/UI only).
+
+- **22:** `background.rs` â€” explicit account id on work; notification dedup; offline taxonomy; 15-min staleness/interval clamp. Windows `adapters/notifications.rs` deduped show.
+- **23:** `privacy.rs` â€” Privacy Center model (4 tabs); safe link launcher blocks `javascript:`/`file:`; log sanitizer; local-only purge. Tabbed UI + browser adapter.
+- **24:** `ai.rs` â€” `AiRouter` default OFF; `DataMinimizer`; injection shield; confidence cap 0.85; never downgrade SECURITY; cannot authorize actions.
+- **25:** `automation.rs` â€” finite triggers/actions; account-scoped; circuit breaker; email cannot create automations.
+- **26:** `Windows/src/interaction.rs` â€” shortcuts/menus/context/selection/multi-window/focus.
+- **27:** `PerformanceProfile` tiers + `AccessibilityHooks` (Narrator/HC/reduced-motion); no 120fps-from-Hz claims.
+
+Docs: `Windows/docs/phase-22-background.md` â€¦ `phase-27-performance-a11y.md`. `Windows/CONTEXT.md` updated.
+**Blocker:** this host lacks full MSVC `link.exe` (C++ workload); cargo tests not re-run here. No android/ touch. No push. Packaging/QA (Agent 5) not owned.

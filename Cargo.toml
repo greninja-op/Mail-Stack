@@ -1,0 +1,35 @@
+[workspace]
+resolver = "2"
+members = [
+    "desktop-core",
+    "Windows",
+]
+
+[workspace.package]
+edition = "2021"
+license = "Proprietary"
+version = "0.1.0"
+authors = ["Mailstack"]
+
+[workspace.dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+sha2 = "0.10"
+base64 = "0.22"
+url = "2"
+percent-encoding = "2"
+uuid = { version = "1", features = ["v4"] }
+regex = "1"
+desktop-core = { path = "desktop-core" }
+
+[profile.dev]
+opt-level = 0
+debug = true
+overflow-checks = true
+
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+strip = "debuginfo"
+panic = "abort"

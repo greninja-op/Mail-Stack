@@ -1,0 +1,6 @@
+# Mailstack Windows — pinned host/target for reproducible builds.
+# Target: x86_64-pc-windows-msvc (Visual Studio / Build Tools link.exe required).
+[toolchain]
+channel = "stable"
+targets = ["x86_64-pc-windows-msvc"]
+profile = "minimal"

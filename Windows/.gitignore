@@ -1,0 +1,38 @@
+# Build outputs
+/target/
+**/*.pdb
+**/*.exe
+**/*.dll
+**/*.msix
+**/*.msixbundle
+**/*.appx
+**/*.appxbundle
+
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.p12
+*.key
+secrets/
+credentials.json
+client_secret*.json
+oauth-client*.json
+**/local.secrets.*
+
+# IDE / OS
+.vs/
+.vscode/*.log
+*.user
+Thumbs.db
+Desktop.ini
+
+# WinAppSDK / packaging scratch
+AppPackages/
+BundleArtifacts/
+_pkg/
+pkg-out/
+packaging/msix/_stage/
+packaging/msix/out/
