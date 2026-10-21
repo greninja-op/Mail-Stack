@@ -1,0 +1,9 @@
+[package]
+name = "mailstack-macos-store"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "macOS backend store and OAuth host. No UI."
+
+[dependencies]
+desktop-core = { path = "../../../desktop-core" }

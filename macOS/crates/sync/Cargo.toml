@@ -1,0 +1,9 @@
+[package]
+name = "mailstack-macos-sync"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "macOS sync backend. Calls desktop-core. No UI."
+
+[dependencies]
+desktop-core = { path = "../../../desktop-core" }

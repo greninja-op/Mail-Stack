@@ -1,0 +1,10 @@
+[package]
+name = "mailstack-linux-sync"
+version = "0.1.0"
+edition = "2021"
+publish = false
+license = "Proprietary"
+description = "Linux sync host. Backend only; calls desktop-core. No UI."
+
+[dependencies]
+desktop-core = { path = "../../../desktop-core" }

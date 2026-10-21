@@ -1,0 +1,9 @@
+[package]
+name = "mailstack-macos-boundary"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "macOS backend boundary. Re-exports desktop-core. No UI."
+
+[dependencies]
+desktop-core = { path = "../../../desktop-core" }

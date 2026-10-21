@@ -1095,3 +1095,15 @@ Finished offline/background/notifications, privacy, AI, automation, desktop inte
 
 Docs: `Windows/docs/phase-22-background.md` … `phase-27-performance-a11y.md`. `Windows/CONTEXT.md` updated.
 **Blocker:** this host lacks full MSVC `link.exe` (C++ workload); cargo tests not re-run here. No android/ touch. No push. Packaging/QA (Agent 5) not owned.
+
+## 2026-10-21 — Linux and macOS are backend only
+
+The UI for Linux and macOS has not been touched. The earlier scaffolds were removed on 2026-10-20 because they were bad. There is no product UI in `Linux/` or `macOS/`. The UI still has to be built later, matching the current Android phone app. Do not treat a leftover shell as acceptable.
+
+What exists now is backend only, on the shared `desktop-core` crate:
+
+- `Linux/crates/` — boundary, secret-service adapter, in-memory store and PKCE URL, sync host. Secret Service and the browser launcher return unavailable on this Windows machine. No live Gmail HTTP client. No SQLite file.
+- `macOS/crates/` — the same shape for Keychain, store, OAuth, and sync. Keychain and the macOS browser launcher return unavailable here. Swift UI has not been started.
+- `Linux/CONTEXT.md` and `macOS/CONTEXT.md` record that status.
+
+Verified on this Windows machine: `cargo test --manifest-path Linux/Cargo.toml` — 17 passed, 0 failed. `cargo test --manifest-path macOS/Cargo.toml` — 11 passed, 0 failed. Not a Linux desktop launch. Not an Xcode or Mac launch.

@@ -1,0 +1,11 @@
+# Linux UI has not been touched. This file is backend only.
+
+[package]
+name = "mailstack-linux-keyring"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Linux Secret Service credential store for Mailstack (backend only; no UI)"
+
+[dependencies]
+desktop-core = { path = "../../../desktop-core" }
