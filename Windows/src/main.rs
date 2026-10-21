@@ -6,22 +6,9 @@
 
 #![windows_subsystem = "windows"]
 
-mod adapters;
-mod app_state;
-mod bridge;
-mod capability_profile;
-mod identity;
-mod interaction;
-mod navigation;
-mod redacting_log;
-mod shell;
-mod tokens;
-mod ui;
-mod workspace;
-
 fn main() {
-    let identity = identity::app_identity();
-    if let Err(err) = shell::run(identity) {
+    let identity = mailstack_windows::app_identity();
+    if let Err(err) = mailstack_windows::shell::run(identity) {
         #[cfg(windows)]
         {
             use std::ffi::OsStr;

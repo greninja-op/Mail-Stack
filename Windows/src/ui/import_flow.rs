@@ -1,15 +1,13 @@
 //! Import flow chrome — honest progress (caps 99% until Done).
+//!
+//! Hardcoded Android ImportScreens dark palette in both themes (audit §8).
 
-use egui::{Color32, RichText, Rounding};
+use egui::{Color32, FontId, RichText, Rounding, Sense, Vec2};
 
 use crate::app_state::AppState;
 use crate::bridge::CoreBridge;
 use crate::navigation::OverlayPane;
-use crate::tokens::{self, ThemeTokens, CARD_RADIUS};
-
-/// Hardcoded dark palette for the import card (design.md — both themes).
-const IMPORT_BG: Color32 = Color32::from_rgb(0x1A, 0x17, 0x28);
-const IMPORT_TEXT: Color32 = Color32::from_rgb(0xF5, 0xF3, 0xFA);
+use crate::tokens::{self, import_palette, ThemeTokens, CARD_RADIUS};
 
 pub fn show_import_flow_window(
     ctx: &egui::Context,
@@ -38,42 +36,74 @@ pub fn show_import_flow_window(
         .anchor(egui::Align2::CENTER_CENTER, egui::vec2(0.0, 0.0))
         .frame(
             egui::Frame::none()
-                .fill(IMPORT_BG)
+                .fill(import_palette::CARD)
                 .rounding(Rounding::same(CARD_RADIUS))
-                .inner_margin(egui::Margin::same(24.0)),
+                .inner_margin(egui::Margin::same(tokens::space::XL)),
         )
         .show(ctx, |ui| {
             ui.set_min_width(420.0);
+
+            // Gmail mark left · Mailstack mark right (letter marks until assets).
             ui.horizontal(|ui| {
-                ui.label(RichText::new("Gmail").color(IMPORT_TEXT).strong());
-                ui.label(RichText::new("  →  ").color(IMPORT_TEXT));
-                ui.label(RichText::new("Mailstack").color(tokens::BRAND_DARK).strong());
+                paint_mark(ui, "G", import_palette::AVATAR_BLUE, import_palette::ON_SURFACE);
+                ui.add_space(tokens::space::SM);
+                ui.label(
+                    RichText::new("Gmail")
+                        .color(import_palette::ON_SURFACE)
+                        .strong()
+                        .size(tokens::type_size::BODY),
+                );
+                ui.add_space(tokens::space::MD);
+                ui.label(
+                    RichText::new("—")
+                        .color(import_palette::ON_SURFACE_MUTED)
+                        .size(tokens::type_size::BODY),
+                );
+                ui.add_space(tokens::space::MD);
+                paint_mark(ui, "M", tokens::BRAND_DARK, import_palette::ON_SURFACE);
+                ui.add_space(tokens::space::SM);
+                ui.label(
+                    RichText::new("Mailstack")
+                        .color(tokens::BRAND_DARK)
+                        .strong()
+                        .size(tokens::type_size::BODY),
+                );
             });
+
             ui.add_space(tokens::space::LG);
-            ui.label(RichText::new(stage).color(IMPORT_TEXT));
-            let (rect, _) =
-                ui.allocate_exact_size(egui::vec2(64.0, 64.0), egui::Sense::hover());
+            ui.label(
+                RichText::new(stage)
+                    .color(import_palette::ON_SURFACE)
+                    .size(tokens::type_size::TITLE_MD),
+            );
+
+            // Only the Mailstack ring is the progress bar (conduit ≠ progress).
+            let (rect, _) = ui.allocate_exact_size(Vec2::splat(64.0), Sense::hover());
             let painter = ui.painter();
             painter.circle_stroke(
                 rect.center(),
                 28.0,
-                egui::Stroke::new(3.0, Color32::from_rgb(0x40, 0x38, 0x58)),
+                egui::Stroke::new(3.0_f32, import_palette::RING_TRACK),
             );
-            painter.circle_stroke(
-                rect.center(),
-                28.0,
-                egui::Stroke::new(3.0, tokens::BRAND_DARK),
-            );
+            if snap.display_percent > 0 {
+                painter.circle_stroke(
+                    rect.center(),
+                    28.0,
+                    egui::Stroke::new(3.0_f32, import_palette::CONNECTED_BLUE),
+                );
+            }
+
             ui.label(
                 RichText::new(format!("{}%", snap.display_percent))
-                    .color(IMPORT_TEXT)
+                    .color(import_palette::ON_SURFACE)
                     .size(tokens::type_size::TITLE_MD),
             );
             ui.label(
                 RichText::new("Conduit pulse is not a progress bar — only this ring is.")
                     .size(tokens::type_size::LABEL)
-                    .color(Color32::from_rgb(0xA8, 0xA0, 0xB8)),
+                    .color(import_palette::ON_SURFACE_MUTED),
             );
+
             ui.add_space(tokens::space::MD);
             ui.horizontal(|ui| {
                 if !state.import_done {
@@ -96,4 +126,16 @@ pub fn show_import_flow_window(
                 }
             });
         });
+}
+
+fn paint_mark(ui: &mut egui::Ui, letter: &str, fill: Color32, fg: Color32) {
+    let (r, _) = ui.allocate_exact_size(Vec2::splat(40.0), Sense::hover());
+    ui.painter().circle_filled(r.center(), 20.0, fill);
+    ui.painter().text(
+        r.center(),
+        egui::Align2::CENTER_CENTER,
+        letter,
+        FontId::proportional(18.0),
+        fg,
+    );
 }

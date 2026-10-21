@@ -7,6 +7,10 @@ authors.workspace = true
 description = "Mailstack Windows desktop app — egui interim shell; WinUI3/WinAppSDK packaging path"
 publish = false
 
+[lib]
+name = "mailstack_windows"
+path = "src/lib.rs"
+
 [[bin]]
 name = "Mailstack"
 path = "src/main.rs"
@@ -15,6 +19,7 @@ path = "src/main.rs"
 desktop-core = { workspace = true }
 eframe = { version = "0.29", default-features = true, features = ["default_fonts", "glow"] }
 egui = "0.29"
+image = { version = "0.25", default-features = false, features = ["png"] }
 log = "0.4"
 serde = { workspace = true, features = ["derive"] }
 thiserror = "2"

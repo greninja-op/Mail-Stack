@@ -1759,6 +1759,7 @@ dependencies = [
  "desktop-core",
  "eframe",
  "egui",
+ "image",
  "log",
  "serde",
  "thiserror 2.0.21",

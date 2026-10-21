@@ -70,6 +70,11 @@ pub struct AppState {
     pub privacy_tab: Option<desktop_core::privacy::PrivacyCenterTab>,
     /// Local-only purge requested from Privacy Center (never touches Gmail).
     pub privacy_purge_requested: bool,
+    /// Compose draft fields (local UI; Send does not hit a real SMTP/Gmail API yet).
+    pub compose_to: String,
+    pub compose_subject: String,
+    pub compose_body: String,
+    pub compose_status: Option<String>,
 }
 
 impl Default for AppState {
@@ -78,7 +83,7 @@ impl Default for AppState {
             nav: NavigationState::default(),
             layout: WorkspaceLayout::default(),
             load: WorkspaceLoadState::Ready,
-            theme_mode: ThemeMode::Dark,
+            theme_mode: ThemeMode::Light,
             motion: MotionTier::Standard,
             accounts: vec![
                 AccountSummary {
@@ -108,6 +113,10 @@ impl Default for AppState {
             reduced_motion: false,
             privacy_tab: None,
             privacy_purge_requested: false,
+            compose_to: String::new(),
+            compose_subject: String::new(),
+            compose_body: String::new(),
+            compose_status: None,
         }
     }
 }
@@ -189,6 +198,7 @@ impl AppState {
                     m.category != NavDestination::Spam && m.category != NavDestination::Starred
                 }
                 NavDestination::Starred => m.starred,
+                NavDestination::Snoozed | NavDestination::Sent | NavDestination::Drafts => false,
                 dest => {
                     m.category == dest
                         || (dest == NavDestination::Primary
@@ -218,31 +228,108 @@ impl AppState {
 
     pub fn toggle_star_selected(&mut self) {
         if let Some(id) = self.layout.selected_message_id.clone() {
+            self.toggle_star(&id);
+        }
+    }
+
+    pub fn toggle_star(&mut self, id: &str) {
+        if let Some(m) = self.messages.iter_mut().find(|m| m.id == id) {
+            m.starred = !m.starred;
+        }
+    }
+
+    pub fn toggle_unread_selected(&mut self) {
+        if let Some(id) = self.layout.selected_message_id.clone() {
             if let Some(m) = self.messages.iter_mut().find(|m| m.id == id) {
-                m.starred = !m.starred;
+                m.unread = !m.unread;
             }
         }
     }
 
-    pub fn on_list_scroll(&mut self, y: f32) {
-        let dy = y - self.last_scroll_y;
-        if dy > 2.0 {
-            self.bars_visible = false;
-        } else if dy < -2.0 {
-            self.bars_visible = true;
-        }
-        self.last_scroll_y = y;
+    /// Demo-only: remove the selected row from the in-memory list.
+    pub fn delete_selected_from_demo_list(&mut self) {
+        let Some(id) = self.layout.selected_message_id.take() else {
+            return;
+        };
+        self.messages.retain(|m| m.id != id);
     }
 
-    pub fn tick(&mut self, dt: f32) {
-        let opening = self.nav.overlay == OverlayPane::Settings
-            || self.nav.settings_progress > 0.0 && self.nav.overlay == OverlayPane::Settings;
-        let want_open = self.nav.overlay == OverlayPane::Settings;
-        let dur = self.motion_effective().settings_slide_secs();
-        if want_open || self.nav.settings_progress > 0.0 {
-            self.nav.tick_settings_slide(dt, dur, want_open);
+    /// Demo-only archive: drop from the local list (no server call).
+    pub fn archive_selected_demo(&mut self) {
+        self.delete_selected_from_demo_list();
+    }
+
+    /// Move selected demo message into Spam.
+    pub fn mark_selected_spam(&mut self) {
+        if let Some(id) = self.layout.selected_message_id.clone() {
+            if let Some(m) = self.messages.iter_mut().find(|m| m.id == id) {
+                m.category = NavDestination::Spam;
+            }
+            self.layout.selected_message_id = None;
         }
-        let _ = opening;
+    }
+
+    pub fn begin_reply_selected(&mut self) {
+        let Some(msg) = self.selected_message().cloned() else {
+            return;
+        };
+        self.compose_to = msg.sender_email;
+        self.compose_subject = format!("Re: {}", msg.subject);
+        self.compose_body = format!("\n\n—\n{}", msg.body_sanitized);
+        self.compose_status = None;
+        self.nav.open_compose();
+    }
+
+    pub fn begin_forward_selected(&mut self) {
+        let Some(msg) = self.selected_message().cloned() else {
+            return;
+        };
+        self.compose_to.clear();
+        self.compose_subject = format!("Fwd: {}", msg.subject);
+        self.compose_body = format!(
+            "\n\n----------\nFrom: {}\n\n{}",
+            msg.sender_name, msg.body_sanitized
+        );
+        self.compose_status = None;
+        self.nav.open_compose();
+    }
+
+    pub fn clear_compose_draft(&mut self) {
+        self.compose_to.clear();
+        self.compose_subject.clear();
+        self.compose_body.clear();
+        self.compose_status = None;
+    }
+
+    /// Local Send: log + clear draft fields, or set status if incomplete. No SMTP.
+    pub fn submit_compose_local(&mut self) {
+        if self.compose_to.trim().is_empty() || self.compose_subject.trim().is_empty() {
+            self.compose_status = Some("Add a recipient and subject to send.".into());
+            return;
+        }
+        log::info!(
+            "compose send (local): to={} subject={}",
+            self.compose_to,
+            self.compose_subject
+        );
+        self.compose_to.clear();
+        self.compose_subject.clear();
+        self.compose_body.clear();
+        self.compose_status = Some("Message queued locally (demo — no SMTP).".into());
+    }
+
+    /// Scroll-hide of chrome is disabled (caused TopBottomPanel thrash / shake).
+    pub fn on_list_scroll(&mut self, _y: f32) {
+        self.bars_visible = true;
+    }
+
+    pub fn tick(&mut self, _dt: f32) {
+        // Settings panel uses fixed width — no slide progress animation.
+        if self.nav.overlay == OverlayPane::Settings {
+            self.nav.settings_progress = 1.0;
+        } else {
+            self.nav.settings_progress = 0.0;
+        }
         // Drain debounce without building SQL in the UI.
         let _ = self.search_should_fire();
     }
