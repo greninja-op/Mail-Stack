@@ -1,3 +1,5 @@
+![Mail Stack — Organise your inbox. Simplify your day.](banner/banner.png)
+
 # Mailstack
 
 Mailstack is a private mail organizer. Gmail stays the source of truth. The apps add a local layer for classification, search, priority, companies, and action suggestions. Nothing in this repository sends mail, and remote images inside a message are not fetched.
