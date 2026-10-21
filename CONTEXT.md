@@ -1107,3 +1107,6 @@ What exists now is backend only, on the shared `desktop-core` crate:
 - `Linux/CONTEXT.md` and `macOS/CONTEXT.md` record that status.
 
 Verified on this Windows machine: `cargo test --manifest-path Linux/Cargo.toml` — 17 passed, 0 failed. `cargo test --manifest-path macOS/Cargo.toml` — 11 passed, 0 failed. Not a Linux desktop launch. Not an Xcode or Mac launch.
+## 2026-10-21 — GitHub README rewritten
+
+Root `README.md` now describes the real platforms, languages, and pinned libraries. It states that the Android phone app is the shipping product, that iPhone, iPad, and the Android tablet use local demo mail, and that Linux and macOS are backend only with no product UI. The old execution-plan-only README and the missing banner image were replaced.
