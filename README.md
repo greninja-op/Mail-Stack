@@ -8,6 +8,94 @@ The Android phone app is the product that has been carried through a real releas
 
 Repository: [greninja-op/Mail-Stack](https://github.com/greninja-op/Mail-Stack)
 
+## How mail moves
+
+Gmail is the cloud copy. The phone keeps a rebuildable local copy and organizes that copy on the device. Tokens never sit in the mail tables. A demo account never starts a sync.
+
+```mermaid
+flowchart TB
+  subgraph signin [Sign-in]
+    Browser[System browser]
+    PKCE[PKCE challenge]
+    Tokens[Encrypted token store]
+    Browser --> PKCE --> Tokens
+  end
+
+  subgraph fetch [Fetch]
+    API[Gmail API]
+    Pace[Request pacing and saved cursor]
+    Room[(Room, one account at a time)]
+    Tokens --> API --> Pace --> Room
+  end
+
+  subgraph local [On the device, in order]
+    Company[Company]
+    Class[Classification]
+    Priority[Priority]
+    Time[Dates and deadlines]
+    Actions[Action suggestions]
+    Search[Search index]
+    Company --> Class --> Priority --> Time --> Actions --> Search
+  end
+
+  Room --> Company
+  Search --> UI[Home, Mail, Categories, Companies, Actions]
+```
+
+Opening a message does not call back to the sender. HTML is sanitized, scripts are dropped, and remote images are not downloaded.
+
+```mermaid
+sequenceDiagram
+  participant User
+  participant App
+  participant Browser
+  participant Google
+  participant Room
+  User->>App: Sign in
+  App->>Browser: Authorization URL
+  Browser->>Google: Consent
+  Google->>App: Redirect with the code
+  App->>Google: Exchange the code
+  App->>Room: Save mail pages
+  Note over App,Room: Tokens stay out of Room
+  App->>App: Classify, prioritize, and index
+  User->>App: Open a message
+  App->>User: Sanitized body, no remote images
+```
+
+When a label is wrong, the phone resolves it in this order. Optional AI runs only if the user has turned it on, and it cannot send, delete, or weaken a security classification.
+
+```mermaid
+flowchart LR
+  Correction[Your correction] --> Rule[Your rule]
+  Rule --> Rules[On-device rules]
+  Rules --> AI[Optional AI]
+  AI --> Unknown[Unknown]
+```
+
+## Where each app sits
+
+The phone owns the live database. Desktop apps share Rust contracts in `desktop-core`. The iPhone, iPad, and Android tablet screens use a local demo mailbox until they are wired to that phone data on purpose.
+
+```mermaid
+flowchart TB
+  Phone[Android phone]
+  Room[(Room schema 10)]
+  Core[desktop-core]
+  Windows[Windows window]
+  Linux[Linux adapters]
+  Mac[macOS adapters]
+  Demos[iPhone, iPad, Android tablet]
+
+  Phone --> Room
+  Windows --> Core
+  Linux --> Core
+  Mac --> Core
+  Demos -.-> Room
+```
+
+The dashed line is not a connection. Those three clients do not open Room and do not complete Google sign-in. Linux and macOS have no window. Windows shows demo mail until an OAuth client id is configured.
+
 ## What each platform is today
 
 | Platform | Folder | Language | Status |
