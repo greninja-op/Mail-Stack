@@ -1,0 +1,24 @@
+---
+description: Which folder each Mailstack platform owns.
+alwaysApply: true
+---
+
+# Platform folders
+
+Each platform owns one root folder. Never mix them.
+
+| Plan | Code | Plan docs |
+|------|------|-----------|
+| Android phone | `android/` | `execution plan/android/` |
+| iOS | `iOS/` | `execution plan/iOS/` |
+| iPadOS | `iPadOS/` | `execution plan/iPadOS/` |
+| Android tablet | `AndroidTablet/` | `execution plan/AndroidTablet/` |
+| macOS | `macOS/` | `execution plan/macOS/` |
+| Windows | `Windows/` | `execution plan/Windows/` |
+| Linux | `Linux/` | `execution plan/Linux/` |
+
+- Change files only under the platform the user named, plus `desktop-core/` when that phase explicitly requires shared Rust.
+- Do not create a new platform root. Do not copy business logic into a platform folder to satisfy isolation.
+- Do not modify `android/` unless the user explicitly asks. Android may be read as the UI reference.
+- Follow `execution plan/<platform>/` (`design.md`, `requirements.md`, `editor-rules.md`). Do not invent a different product, including a CLI shell, when the plan requires a real UI.
+- Linux and macOS have backend crates only. Their product UI has not been started. Do not treat a leftover shell as the UI.

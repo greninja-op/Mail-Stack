@@ -4,9 +4,8 @@ Privacy-first personal email organization and action layer over Gmail. Gmail rem
 the authoritative cloud source of truth; this app adds local organization,
 intelligence, search, prioritization, action suggestions and optional integrations.
 
-> **Working with this repo? Start with [CONTEXT.md](CONTEXT.md)** — the living
-> continuity file. Every agent must **read it before starting any work** and
-> **update it after every prompt**.
+> Current status is [../NOW.md](../NOW.md). Standing rules are in `../.cursor/rules/`.
+> [CONTEXT.md](CONTEXT.md) in this folder is an old log. Do not read it fully.
 
 > **Phase 0 — Project Audit & Development Foundation.** This repository currently
 > contains the Android application foundation only: build toolchain, architecture

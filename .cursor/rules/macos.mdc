@@ -1,0 +1,12 @@
+---
+description: macOS is backend only.
+globs: macOS/**
+alwaysApply: false
+---
+
+# macOS
+
+- Backend only. Swift UI has not been started. Do not start it from a backend task.
+- Read `macOS/CONTEXT.md`. Do not read root `CONTEXT.md`.
+- macOS-specific adapters stay under `macOS/crates`. Shared contracts stay in `desktop-core`.
+- Do not claim an Xcode or Mac launch from this Windows machine.

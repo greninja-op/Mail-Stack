@@ -4,7 +4,7 @@
 
 Mailstack is a private mail organizer. Gmail stays the source of truth. The apps add a local layer for classification, search, priority, companies, and action suggestions. Nothing in this repository sends mail, and remote images inside a message are not fetched.
 
-The Android phone app is the product that has been carried through a real release. The other folders are desktop and tablet clients at different stages. Read [CONTEXT.md](CONTEXT.md) before changing the project. It is the continuity log for decisions, versions, and rules.
+The Android phone app is the product that has been carried through a real release. The other folders are desktop and tablet clients at different stages. Current status is [NOW.md](NOW.md). Standing rules are in `.cursor/rules/`. [CONTEXT.md](CONTEXT.md) is the archive of past decisions.
 
 Repository: [greninja-op/Mail-Stack](https://github.com/greninja-op/Mail-Stack)
 
@@ -218,7 +218,8 @@ desktop-core/       Shared Rust contracts
 Linux/              Linux backend adapters and context
 macOS/              macOS backend adapters and context
 execution plan/     Phase plans per platform
-CONTEXT.md          Continuity log
+NOW.md              Current status
+CONTEXT.md          Archive of past decisions
 ```
 
 Plans live under `execution plan/<platform>/`. A plan file is not evidence that the phase is implemented. Where a plan and the current phone UI disagree, the phone UI wins.

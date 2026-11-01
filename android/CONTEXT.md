@@ -1,11 +1,8 @@
-# CONTEXT.md — Mail Organizer (canonical continuity file)
+# CONTEXT.md — Android archive
 
-## How to use this file
-1. **READ this file fully before starting ANY work** on this repo (phase, fix, doc, push — anything). If the user ever says "read CONTEXT.md", stop everything and re-read it before continuing.
-2. **UPDATE it after every prompt/request is handled**: update `Current build state`, append dated entries to `Decision log`, keep `Standing rules` current.
-3. Never delete history — append and update. Keep entries short and factual.
-4. When updating: fetch the REMOTE version of this file first and merge — never push a stale local copy over a newer remote one. (A stale push once wiped Phase 5's entry; don't repeat that.)
-5. Purpose: this file alone must let any agent reconstruct every conversation, decision, and rule — even with zero prior context (e.g. user switches accounts/chats).
+This is an old Android log. Do not read it fully.
+
+Current status is `../NOW.md`. Standing rules are in `../.cursor/rules/`. The history below stays. Do not append to this file after a prompt.
 
 ## Standing rules (non-negotiable)
 - **Branch:** `main`. Push DIRECTLY to main — no pull requests, no separate branches.

@@ -16,10 +16,10 @@ This is a **Windows** phase.
 
 ## 1. Continuity (repo-wide, non-negotiable)
 
-- **Read `CONTEXT.md` fully before starting ANY work** on this repo. If the user ever says "read CONTEXT.md", stop everything and re-read it.
-- **Update `CONTEXT.md` after EVERY prompt/request is handled** — no matter what. Update current build state, append dated entries, keep standing rules current. Never delete history — append and update.
-- **Fetch the REMOTE `CONTEXT.md` first and merge** — never push a stale local copy over a newer remote one.
-- Check `MEMORY.md` + memory search before acting, so the user never has to repeat what matters or correct the same mistake twice.
+- Read `NOW.md` at the start of a task. Standing rules load from `.cursor/rules/`.
+- Root `CONTEXT.md` is an archive. Do not read it fully, and do not update it after every prompt.
+- Update `NOW.md` when a phase finishes. Keep it short.
+- Older lines that say to read `CONTEXT.md` fully are retired. `.cursor/rules/continuity.mdc` wins.
 
 ## 2. Pushing
 

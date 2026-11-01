@@ -1,0 +1,14 @@
+---
+description: Where Mailstack session memory lives after a crash or a long gap.
+alwaysApply: true
+---
+
+# Session memory
+
+- At the start of a task, read `NOW.md` only. It is the current status.
+- Rules in `.cursor/rules` are already loaded. Do not re-read them from an old chat.
+- Root `CONTEXT.md` and `android/CONTEXT.md` are archives. Open one only when the user asks about an old decision. Never read either file fully, and never append to it after a prompt.
+- When a phase finishes, update `NOW.md` in place. Keep it under 40 lines. Do not paste the decision log into it.
+- Platform detail lives in that platform's own short file (`Windows/CONTEXT.md`, `Linux/CONTEXT.md`, `macOS/CONTEXT.md`). Read only the platform you were asked to work on.
+- Older lines that say "read CONTEXT.md fully" or "update CONTEXT.md after every prompt" are retired. This rule wins.
+- Do not commit, push, or rewrite git history unless the user asks in this chat.

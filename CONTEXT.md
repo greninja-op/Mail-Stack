@@ -1,19 +1,22 @@
-# CONTEXT.md — Mail Organizer (canonical continuity file)
+# CONTEXT.md — Mail Organizer (archive)
+
+This file is the archive of past decisions. It is not loaded at the start of a chat.
 
 ## How to use this file
-1. **READ this file fully before starting ANY work** on this repo (phase, fix, doc, push — anything). If the user ever says "read CONTEXT.md", stop everything and re-read it before continuing.
-2. **UPDATE it after every prompt/request is handled**: update `Current build state`, append dated entries to `Decision log`, keep `Standing rules` current.
-3. Never delete history — append and update. Keep entries short and factual.
-4. When updating: fetch the REMOTE version of this file first and merge — never push a stale local copy over a newer remote one. (A stale push once wiped Phase 5's entry; don't repeat that.)
-5. Purpose: this file alone must let any agent reconstruct every conversation, decision, and rule — even with zero prior context (e.g. user switches accounts/chats).
+
+1. Do not read this file unless the user asks about an old decision.
+2. Current status is `NOW.md`. Standing rules are in `.cursor/rules/`.
+3. Never delete the history below. Append a dated note only when the user asks to record a decision.
+4. Instructions further down that say "read this file fully" or "update it after every prompt" are retired. `.cursor/rules/continuity.mdc` wins.
 
 ## Standing rules — the editor MUST follow these (user directives, non-negotiable)
 
 ### Continuity
-- **R1. Read CONTEXT.md fully before starting ANY work** on this repo (phase, fix, doc, push — anything). If the user ever says "read CONTEXT.md", stop everything and re-read it before continuing.
-- **R2. UPDATE CONTEXT.md after EVERY prompt/request is handled** — no matter what. Update `Current build state`, append dated entries to `Decision log`, keep `Standing rules` current. This is indefinite and always has attention. Never delete history — append and update. Keep entries short and factual.
-- **R3. When updating: fetch the REMOTE version first and merge** — never push a stale local copy over a newer remote one. (A stale push once wiped Phase 5's entry.) Purpose: this file alone must let any agent reconstruct every conversation, decision, and rule — even with zero prior context (e.g. user switches accounts/chats).
-- **R4. Check `~/MEMORY.md` + memory search before replying/acting**, so the user never has to repeat what matters or correct the same mistake twice.
+
+- **R1. Retired.** Do not read this file fully before work. Read `NOW.md`.
+- **R2. Retired.** Do not update this file after every prompt. Update `NOW.md` when a phase finishes.
+- **R3. Retired** as a start-of-task step. If you do append here, merge with the remote copy first so a stale push cannot wipe history.
+- **R4. Retired.** There is no `~/MEMORY.md` to search. Project memory is `NOW.md` plus `.cursor/rules/`.
 
 ### Pushing
 - **R5. Branch: `main`. Push DIRECTLY to main** — no pull requests, no separate branches. Pushes go through the GitHub App/API only, never git-over-SSH.

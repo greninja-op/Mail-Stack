@@ -1,0 +1,12 @@
+---
+description: Android phone app boundaries.
+globs: android/**
+alwaysApply: false
+---
+
+# Android
+
+- This is the shipping phone app. Last recorded release in `android/app/build.gradle.kts` is versionName 1.0.39, versionCode 40. Do not bump it or build an APK unless the user asks.
+- `android/CONTEXT.md` is an old log. Do not read it fully.
+- When changing UI, read `execution plan/android/editor-rules.md`. Do not open root `CONTEXT.md` for those specs.
+- Leave `Windows/`, `Linux/`, `macOS/`, `iOS/`, `iPadOS/`, and `AndroidTablet/` alone during Android work.

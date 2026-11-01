@@ -1,0 +1,20 @@
+---
+description: Mailstack product rules that apply on every platform.
+alwaysApply: true
+---
+
+# Product rules
+
+- Material Design 3 on every UI change. Say so before any deliberate deviation.
+- No app-created emoji in UI, fixtures, or generated text. Emoji may appear only if it arrived inside the user's real mail.
+- Never fabricate unread counts, account details, sync progress, or verification. A successful build on this machine is not an on-device test.
+- No APK, MSIX, or other release build unless the user explicitly asks. Every release increments the version. Never reuse a version name.
+- Dark mode uses dark gray, never pure black. System Default follows the system theme.
+- Demo or seeded accounts (`fixture-*`, `local-*`) never sync.
+- One Google sign-in covers Gmail, Calendar, and Tasks. Do not add a separate sign-in per integration.
+- Account data stays isolated. Never put tokens, passwords, or email bodies in the database or logs.
+- AI is optional, off by default, and never the source of truth. It cannot send, delete, or downgrade a security decision.
+- Gmail is the source of truth. Do not claim a remote change you did not make.
+- A supplied screenshot or logo is the spec to copy. Removing a part means the layout closes up around what remains.
+- Do not bring back Breeze artwork, glass UI (except the import card's frosted host), photo backgrounds, or a mailbox reload on tab switch.
+- Pixel-level UI specs stay in the active platform's `execution plan/<platform>/editor-rules.md` and `design.md`. Read those when changing that UI. Do not load root `CONTEXT.md` for them.

@@ -1,0 +1,12 @@
+---
+description: Linux is backend only.
+globs: Linux/**
+alwaysApply: false
+---
+
+# Linux
+
+- Backend only. Do not start a product UI from a backend task, and do not treat a leftover shell as the UI.
+- Read `Linux/CONTEXT.md`. Do not read root `CONTEXT.md`.
+- Linux-specific adapters stay under `Linux/crates`. Shared contracts stay in `desktop-core`.
+- This machine is Windows. Do not claim a Linux desktop launch.

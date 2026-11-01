@@ -1,0 +1,13 @@
+---
+description: Windows app boundaries.
+globs: Windows/**
+alwaysApply: false
+---
+
+# Windows
+
+- Read `NOW.md` and `Windows/CONTEXT.md` before editing. Do not read root `CONTEXT.md`.
+- Shared logic stays in `desktop-core`. Windows-only code stays in `Windows/`.
+- The UI target is WinUI 3 / Fluent. The current shell is an interim egui app, not a CLI product.
+- Phase 30 packaging is blocked on signing and the Windows App SDK. Do not claim a finished installer.
+- Do not modify `android/` or the other platform roots during Windows work.
