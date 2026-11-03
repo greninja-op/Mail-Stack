@@ -44,7 +44,6 @@ class ThreadViewModelFactory(
             intelligence = container.intelligenceRepository,
             dispatchers = container.dispatchers,
             conversationIntelligence = container.conversationUseCase,
-            aiFallback = container.aiFallbackUseCase,
             // Phase 22: Gmail write operations behind the confirmation
             // boundary. Built here (not in AppContainer) so the auth flow
             // wiring stays untouched.
